@@ -277,7 +277,7 @@ def process_trees(wt_count_burnin_file_list, options, outgroup):
 
         if options.treeprobs:
             #   NOTE: HACK to get branch lengths on trees in trprob file. Think about how to do (problem: smalltreesummary init method has not topoblens option)
-            treesummary = treelib.BigTreeSummary(options.zeroterms, outgroup, options.midpoint, topoblens=True)
+            treesummary = treelib.BigTreeSummary(options.zeroterms, outgroup, options.midpoint)
         else:
             treesummary = treelib.SmallTreeSummary(options.zeroterms)
 
@@ -512,7 +512,7 @@ def compute_and_print_contree(treesummary, confreq, allcomp, outgroup, filename,
         confile.write("begin trees;\n")
         confile.write("   [In this tree branch labels indicate the posterior\n")
         confile.write("    probability of the bipartition corresponding to the branch.]\n")
-        confile.write("   tree consense_tree = ")
+        confile.write("   tree prob = ")
         confile.write(newick)
 
         # If trees contain branch lengths: also print trees with standard error and
@@ -521,13 +521,13 @@ def compute_and_print_contree(treesummary, confreq, allcomp, outgroup, filename,
             confile.write("\n\n")
             confile.write("   [In this tree branch labels indicate the standard error\n")
             confile.write("    of the mean for the branch length.]\n")
-            confile.write("   tree consense_tree = ")
+            confile.write("   tree sem = ")
             confile.write(newicksemlabel)
             confile.write("\n\n")
             confile.write("   [In this tree branch labels indicate the relative standard error\n")
             confile.write("    for the branch length. Relative standard error is defined as\n")
             confile.write("    rse = sem/mean, where sem = standard error of the mean.]\n")
-            confile.write("   tree consense_tree = ")
+            confile.write("   tree rse = ")
             confile.write(newickrselabel)
 
         confile.write("\nend;\n")
