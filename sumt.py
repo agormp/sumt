@@ -44,46 +44,65 @@ from optparse import OptionParser
 
 def build_parser():
     use = """usage: %prog [options] FILE [FILE ...]\n       %prog [options] -w WEIGHT FILE -w WEIGHT FILE ..."""
-    vers = "%prog 2.1"
+    vers = "%prog 2.1.3"
     parser = OptionParser(usage=use, version=vers)
-    parser.set_defaults(burninfrac=0.25, minfreq=0.1, confreq=0.5, allcomp=False, autoweight=False, zeroterms=False, outgroup=None,
+    parser.set_defaults(burninfrac=0.25, minfreq=0.1, allcomp=False, autoweight=False, zeroterms=False, outgroup=None,
                         rootfile=None, midpoint=False, informat="NEXUS", outformat="NEXUS",
                         nowarn=False, std=False, treeprobs=None, verbose=False, fileweights=None)
 
-    parser.add_option("-I", "--in", type="choice", dest="informat",
+    parser.add_option("-I", type="choice", dest="informat",
                       choices=["NEXUS", "nexus", "NEWICK", "newick"], metavar="FORM",
                       help="format of input: nexus or newick [default: nexus]")
 
-    parser.add_option("-O", "--out", type="choice", dest="outformat",
+    parser.add_option("-O", type="choice", dest="outformat",
                       choices=["NEXUS", "nexus", "NEWICK", "newick"], metavar="FORM",
                       help="format of output: nexus or newick [default: nexus]")
 
-    parser.add_option("-q", "--quiet", action="store_true", dest="quiet",
+    parser.add_option("-q", action="store_true", dest="quiet",
                       help="don't print progress indication to terminal window. NOTE: also turns on the --nowarnings option!")
 
-    parser.add_option("-a", "--allcomp", action="store_true", dest="allcomp",
-                      help="add all compatible bipartitions to consensus tree")
+    parser.add_option("-v", action="store_true", dest="verbose",
+                      help="more information, longer error messages")
 
-    parser.add_option("--autoweight", action="store_true", dest="autoweight",
-                    help="automatically assign file weights based on tree counts, so all files have equal impact")
+    parser.add_option("-n", action="store_true", dest="nowarn",
+                      help="overwrite files without warning")
 
-    parser.add_option("-b", "--burnin", type="float", dest="burninfrac", metavar="NUM",
+    parser.add_option("--basename", action="store", type="string", dest="outbase", metavar="NAME",
+                      help="base name of output files (default: derived from input file)")
+
+
+
+    parser.add_option("-b", type="float", dest="burninfrac", metavar="NUM",
                       help="fraction of trees to discard [default: 0.25]")
 
-    parser.add_option("-c", "--cutoff", type="float", dest="confreq", metavar="NUM",
-                      help="only include bipartitions with frequency > cutoff [default: 0.5]")
+    parser.add_option("-t", type="int", dest="treeprobs", metavar="PERC",
+                      help="compute tree probabilities, report PERC percent credible interval [default: 100]")
 
-    parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
-                      help="longer error messages, more information")
+    parser.add_option("-s", action="store_true", dest="std",
+                      help="compute average standard deviation of split frequencies (ASDSF)")
 
-    parser.add_option("-f", "--minf", type="float", dest="minfreq", metavar="NUM",
+    parser.add_option("-f", type="float", dest="minfreq", metavar="NUM",
                       help="Min. frequency for including bipartitions in report and in computation of ASDSF [default: 0.1]")
 
-    parser.add_option("--filename", action="store", type="string", dest="outbase", metavar="NAME",
-                      help="base name of output files")
+    parser.add_option("-a", action="store_true", dest="allcomp",
+                      help="add all compatible bipartitions to consensus tree")
 
-    parser.add_option("-m", "--midpoint", action="store_true", dest="midpoint",
+    parser.add_option("-z", action="store_true", dest="zeroterms",
+                      help="include zero length terms when computing branch length and average standard deviation of split frequencies")
+
+    parser.add_option("-w", action="append",
+                      type="string", dest="fileweights", nargs=2, metavar="WEIGHT FILE -w WEIGHT FILE ...",
+                      help="put different weights on different FILEs")
+
+
+
+    parser.add_option("--autow", action="store_true", dest="autoweight",
+                    help="automatically assign file weights based on tree counts, so all files have equal impact")
+
+    parser.add_option("-m", action="store_true", dest="midpoint",
                       help="perform midpoint rooting of tree")
+
+
 
     parser.add_option("-r", action="append",
                       type="string", dest="outgroup", metavar="TAX [-r TAX ...]",
@@ -92,21 +111,6 @@ def build_parser():
     parser.add_option("--rootfile", action="store", type="string", dest="rootfile", metavar="FILE",
                       help="file containing names of outgroup taxa (one per line)")
 
-    parser.add_option("-s", "--std", action="store_true", dest="std",
-                      help="compute average standard deviation of split frequencies (ASDSF)")
-
-    parser.add_option("-t", "--treeprobs", type="int", dest="treeprobs", metavar="PERC",
-                      help="compute tree probabilities, report PERC percent credible interval [default: 100]")
-
-    parser.add_option("-n", "--nowarnings", action="store_true", dest="nowarn",
-                      help="overwrite files without warning")
-
-    parser.add_option("-z", "--zeroterms", action="store_true", dest="zeroterms",
-                      help="include zero length terms when computing branch length and average standard deviation of split frequencies")
-
-    parser.add_option("-w", action="append",
-                      type="string", dest="fileweights", nargs=2, metavar="WEIGHT FILE -w WEIGHT FILE ...",
-                      help="put different weights on different FILEs")
 
     return parser
 
@@ -171,12 +175,6 @@ def parse_commandline(parser):
 
     if options.burninfrac > 1:
         parser.error("option -b: BURNINFRAC must be between 0.0 and 1.0")
-
-    if options.confreq < 0.5 or options.confreq > 1.0:
-        parser.error("option -c: PERC must be between 50 and 100")
-
-    if options.confreq > 0.5 and options.allcomp:
-        parser.error("options -p and -a are incompatible")
 
     if options.outgroup and options.rootfile:
         parser.error("options -r and --rootfile are incompatible")
@@ -279,7 +277,7 @@ def process_trees(wt_count_burnin_file_list, options, outgroup):
             #   NOTE: HACK to get branch lengths on trees in trprob file. Think about how to do (problem: smalltreesummary init method has not topoblens option)
             treesummary = treelib.BigTreeSummary(options.zeroterms, outgroup, options.midpoint)
         else:
-            treesummary = treelib.SmallTreeSummary(options.zeroterms)
+            treesummary = treelib.TreeSummary(options.zeroterms)
 
         # Read remaining trees from file, add to treesummary
         n_trees = 0
@@ -422,11 +420,11 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf):
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_contree(treesummary, confreq, allcomp, outgroup, filename,
+def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
                               midpoint, nowarn, outformat):
 
     # Construct consensus tree with bipart freq labels
-    contree = treesummary.contree(confreq, allcompat=allcomp)
+    contree = treesummary.contree(allcompat=allcomp)
     n_biparts = len(contree.bipdict())
 
     if contree.length() > 0.0:
@@ -454,7 +452,7 @@ def compute_and_print_contree(treesummary, confreq, allcomp, outgroup, filename,
     if trees_have_branchlengths:
 
         # Construct consensus tree with standard error of the mean labels
-        contree = treesummary.contree(confreq, allcompat=allcomp, lab="sem")
+        contree = treesummary.contree(allcompat=allcomp, lab="sem")
 
         # If outgroup is given: attempt to root tree on provided outgroup.
         # If this is impossible then print warning and save midpoint rooted contree instead
@@ -470,23 +468,6 @@ def compute_and_print_contree(treesummary, confreq, allcomp, outgroup, filename,
         elif midpoint:
             contree.rootmid()
         newicksemlabel = contree.newick(printdist = True)
-
-        # Construct consensus tree with relative standard error labels
-        contree = treesummary.contree(confreq, allcompat=allcomp, lab="rse")
-
-        # If outgroup is given: attempt to root tree on provided outgroup.
-        # If this is impossible then print warning and save midpoint rooted contree instead
-        if outgroup:
-            try:
-                contree.rootout(outgroup)
-            except treelib.TreeError as exc:
-                print("Warning: ", exc.errormessage)
-                print("Midpoint rooting used instead")
-                contree.rootmid()
-
-        elif midpoint:
-            contree.rootmid()
-        newickrselabel = contree.newick(printdist = True)
 
     # Before printing results: check whether files already exist
     confilename = filename + ".con"
@@ -515,20 +496,14 @@ def compute_and_print_contree(treesummary, confreq, allcomp, outgroup, filename,
         confile.write("   tree prob = ")
         confile.write(newick)
 
-        # If trees contain branch lengths: also print trees with standard error and
-        # relative standard error for each branch length in contree
+        # If trees contain branch lengths: also print tree with standard error of the mean
+        # for each branch length in contree
         if trees_have_branchlengths:
             confile.write("\n\n")
             confile.write("   [In this tree branch labels indicate the standard error\n")
             confile.write("    of the mean for the branch length.]\n")
             confile.write("   tree sem = ")
             confile.write(newicksemlabel)
-            confile.write("\n\n")
-            confile.write("   [In this tree branch labels indicate the relative standard error\n")
-            confile.write("    for the branch length. Relative standard error is defined as\n")
-            confile.write("    rse = sem/mean, where sem = standard error of the mean.]\n")
-            confile.write("   tree rse = ")
-            confile.write(newickrselabel)
 
         confile.write("\nend;\n")
 
@@ -649,7 +624,7 @@ def main():
         total_unique_biparts = len(treesummarylist[0].bipartsummary)
 
         compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
-        n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.confreq, options.allcomp,
+        n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp,
                                                                         outgroup, outname, options.midpoint, options.nowarn,
                                                                          options.outformat)
         n_leafs = len(treesummarylist[0].leaves)
