@@ -2,7 +2,7 @@
 
 ![](https://img.shields.io/badge/version-2.1.3-blue)
 
-The command-line program `sumt` takes as input one or more files containing samples of phylogenetic trees (e.g., from a Bayesian MCMC analysis or a bootstrap procedure), and produces as output files containing the majority rule consensus tree with clade support values, a summary of observed bipartitions along with the means and variances of the lengths of the corresponding branches, and (optionally) a list of topologies and how frequently they were observed. The name is taken from the `sumt` command in ![MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also mirrors. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
+The command-line program `sumt` takes as input one or more files containing samples of phylogenetic trees (e.g., from a Bayesian MCMC analysis or a bootstrap procedure), and produces as output files containing the majority rule consensus tree with clade support values, a summary of observed bipartitions along with the means and variances of the lengths of the corresponding branches, and (optionally) a list of topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also mirrors. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
 
 
 ## Availability
