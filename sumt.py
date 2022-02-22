@@ -30,13 +30,13 @@ def build_parser():
                       help="format of output: nexus or newick [default: nexus]")
 
     parser.add_option("-q", action="store_true", dest="quiet",
-                      help="quiet: don't print progress indication to terminal window. NOTE: also turns on the --nowarnings option!")
+                      help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
 
     parser.add_option("-v", action="store_true", dest="verbose",
                       help="verbose: more information, longer error messages")
 
     parser.add_option("-n", action="store_true", dest="nowarn",
-                      help="overwrite files without warning")
+                      help="no warning when overwriting files")
 
     parser.add_option("--basename", action="store", type="string", dest="outbase", metavar="NAME",
                       help="base name of output files (default: derived from input file)")
