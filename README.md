@@ -17,7 +17,7 @@ python3 -m pip install sumt
 
 ## Dependencies
 
-sumt relies on the [phylotreelib library](https://github.com/agormp/phylotreelib), which is automatically included when using pip to install.
+`sumt` relies on the [phylotreelib library](https://github.com/agormp/phylotreelib), which is automatically included when using pip to install.
 
 ## Highlights
 
@@ -45,8 +45,8 @@ sumt relies on the [phylotreelib library](https://github.com/agormp/phylotreelib
 ## Usage
 
 ```
-Usage: sumt.py [options] FILE [FILE ...]
-       sumt.py [options] -w WEIGHT FILE -w WEIGHT FILE ...
+Usage: sumt [options] FILE [FILE ...]
+       sumt [options] -w WEIGHT FILE -w WEIGHT FILE ...
 
 Options:
   --version             show program's version number and exit
@@ -80,7 +80,7 @@ Options:
 
 ## Usage examples
 
-### Two smallish files from MCMC analysis, with tree probabilities
+### Example 1: Two smallish files from MCMC analysis, with tree probabilities
 
 The command below causes sumt to do the following:
 
@@ -91,7 +91,7 @@ The command below causes sumt to do the following:
 * Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
 
 ```
-sumt -b 0.25 -t 80 -s -f 0.1 rpoB.nexus.run1.t rpoB.nexus.run2.t
+sumt -b 0.25 -t 0.8 -s -f 0.1 rpoB.nexus.run1.t rpoB.nexus.run2.t
 ```
 
 #### Screen output
@@ -128,7 +128,7 @@ This is printed to screen during run:
 
 #### Bipartition overview
 
-This is the contents of the file `rpoB.nexus.parts`:
+This is the contents of the file `rpoB.nexus.parts`. Bipartitions are indicated using the "*." notation also used by e.g. MrBayes: Columns correspond to taxa (with column 1 = taxon 1). All taxa with "*" (or ".") are in the same half of the bipartition:
 
 ```
 List of taxa in bipartitions:
@@ -194,7 +194,7 @@ PART             PROB      BLEN      VAR         SEM
 
 #### Tree probabilities
 
-This is the content of the file `rpoB.nexus.trprobs`. Note: For data sets with more than about 15 taxa, each sampled tree will typically be unique and all topologies therefore have the same probability, meaning the credible set is less useful. (Bipartitions on those trees will, however, not be unique, and clade probabilities carry useful information).
+This is the content of the file `rpoB.nexus.trprobs`. Note: For data sets with more than about 15 taxa each sampled tree will typically be unique and all topologies therefore have the same probability, meaning the credible set is less useful. (Bipartitions on those trees will, however, not be unique, and clade probabilities carry useful information).
 
 ```
 #NEXUS
@@ -259,19 +259,19 @@ begin trees;
 end;
 ```
 
-### One large file from MCMC analysis, with verbose screen output
+### Example 2: One large file from MCMC analysis, with verbose screen output
 
 The command below causes sumt to do the following:
 
 * Summarise the tree samples in the file `mhc.nexus.t`
-* Overwrite any existing output files with no warning
 * Discard 50% of tree samples as burn-in
 * Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
 * Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
+* Overwrite any existing output files with no warning
 * Print more verbose output to screen, including running count of
 
 ```
-python sumt -b 0.5 -t 75 -f 0.1 -n -v mhc.nexus.t
+sumt -b 0.5 -t 0.75 -f 0.1 -n -v mhc.nexus.t
 ```
 
 #### Screen output
