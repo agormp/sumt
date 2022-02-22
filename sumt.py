@@ -15,7 +15,7 @@ from optparse import OptionParser
 
 def build_parser():
     use = """usage: %prog [options] FILE [FILE ...]\n       %prog [options] -w WEIGHT FILE -w WEIGHT FILE ..."""
-    vers = "%prog 2.1.3"
+    vers = "%prog 2.1.4"
     parser = OptionParser(usage=use, version=vers)
     parser.set_defaults(burninfrac=0.25, minfreq=0.1, allcomp=False, autoweight=False, zeroterms=False, outgroup=None,
                         rootfile=None, midpoint=False, informat="NEXUS", outformat="NEXUS",
