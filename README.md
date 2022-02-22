@@ -54,9 +54,9 @@ Options:
   -I FORM               format of input: nexus or newick [default: nexus]
   -O FORM               format of output: nexus or newick [default: nexus]
   -q                    quiet: don't print progress indication to terminal
-                        window. NOTE: also turns on the --nowarnings option!
+                        window. NOTE: also turns on the -n option
   -v                    verbose: more information, longer error messages
-  -n                    overwrite files without warning
+  -n                    no warning when overwriting files
   --basename=NAME       base name of output files (default: derived from input
                         file)
   -b NUM                burnin: fraction of trees to discard [0 - 1; default:
@@ -84,7 +84,7 @@ Options:
 
 ### Example 1: Two smallish files from MCMC analysis, with tree probabilities
 
-The command below causes sumt to do the following:
+The command below causes `sumt` to do the following:
 
 * Summarise the tree samples in the files `rpoB.nexus.run1.t` and `rpoB.nexus.run2.t`
 * Discard 25% of tree samples as burn-in
@@ -253,11 +253,11 @@ This is the content of the file `rpoB.nexus.con`. The difference between the two
 begin trees;
    [In this tree branch labels indicate the posterior
     probability of the bipartition corresponding to the branch.]
-   tree prob = (513:0.00544371,504:0.00186322,((((506:0.00858872,508:0.0104387)0.976:0.00535366,((501:0.0104984,(503:0.0164008,507:0.00855192)0.634:0.006356,100:0.0225601)1.000:0.0132633,(509:0.00208824,510:0.00236803)0.947:0.00377207,505:0.00548352)0.974:0.00371618)0.957:0.00351458,502:0.0021187)1.000:0.00963544,511:0.00900914,512:0.00389581)1.000:0.00754406);
+   tree prob = (s513:0.00544371,s504:0.00186322,((((s506:0.00858872,s508:0.0104387)0.976:0.00535366,((s501:0.0104984,(s503:0.0164008,s507:0.00855192)0.634:0.006356,s100:0.0225601)1.000:0.0132633,(s509:0.00208824,s510:0.00236803)0.947:0.00377207,s505:0.00548352)0.974:0.00371618)0.957:0.00351458,s502:0.0021187)1.000:0.00963544,s511:0.00900914,s512:0.00389581)1.000:0.00754406);
 
    [In this tree branch labels indicate the standard error
     of the mean for the branch length.]
-   tree sem = (513:0.00544371,504:0.00186322,((((506:0.00858872,508:0.0104387)0.000082:0.00535366,((501:0.0104984,(503:0.0164008,507:0.00855192)0.000123:0.006356,100:0.0225601)0.000123:0.0132633,(509:0.00208824,510:0.00236803)0.000071:0.00377207,505:0.00548352)0.000069:0.00371618)0.000072:0.00351458,502:0.0021187)0.000120:0.00963544,511:0.00900914,512:0.00389581)0.000095:0.00754406);
+   tree sem = (s513:0.00544371,s504:0.00186322,((((s506:0.00858872,s508:0.0104387)0.000082:0.00535366,((s501:0.0104984,(s503:0.0164008,s507:0.00855192)0.000123:0.006356,s100:0.0225601)0.000123:0.0132633,(s509:0.00208824,s510:0.00236803)0.000071:0.00377207,s505:0.00548352)0.000069:0.00371618)0.000072:0.00351458,s502:0.0021187)0.000120:0.00963544,s511:0.00900914,s512:0.00389581)0.000095:0.00754406);
 end;
 ```
 
@@ -270,7 +270,7 @@ The command below causes sumt to do the following:
 * Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
 * Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
 * Overwrite any existing output files with no warning
-* Print more verbose output to screen, including running count of
+* Print more verbose output to screen, including running count of distinct bipartitions and topologies seen in input trees
 
 ```
 sumt -b 0.5 -t 0.75 -f 0.1 -n -v mhc.nexus.t
@@ -278,7 +278,7 @@ sumt -b 0.5 -t 0.75 -f 0.1 -n -v mhc.nexus.t
 
 #### Screen output
 
-This is printed to screen during run. Numbers in parentheses (after lines of dots) give a running count of how many distinct bipartitions and topologies we have seen so far (so after the first 5000 trees have been analyzed, we have seen 511 different tree topologies, and these contain a total of 118 different bipartitions). At the end of the run the actual and theoretical maximum for number of bipartitions in the consensus tree is reported. The total number of observed topologies and bipartitions (and the theoretical maximal possible number of bipartitions) is also reported. In this case we have seen a total of 141 bipartitions in the 912 distint tree topologies. If the 912 topologies had been completely different (in the sense of not sharing any bipartitions), then the number of distinct bipartitions would have been 39,216 (so 141 is a small fraction of that, indicating that there is good support for some clades in the tree samples).
+This is printed to screen during run. Numbers in parentheses (after lines of dots) give a running count of how many distinct bipartitions and topologies we have seen so far (so after the first 5000 trees have been analyzed, we have seen 511 different tree topologies, and these contain a total of 118 different bipartitions). At the end of the run the actual and theoretical maximum for number of bipartitions in the consensus tree is reported. The total number of observed topologies and bipartitions (and the theoretical maximal possible number of bipartitions) is also reported. In this case we have seen a total of 141 bipartitions in the 912 distint tree topologies. If the 912 topologies had been completely different (in the sense of not sharing any bipartitions), then the number of distinct bipartitions would have been 39,216 (so 141 is a small fraction of that, indicating that some clades are observed in a large fraction of the tree samples).
 
 ```
    Counting trees in file 'mhc.nexus.t':         30,001
