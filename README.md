@@ -130,7 +130,7 @@ This is printed to screen during run:
 
 #### Bipartition overview
 
-This is the contents of the file `rpoB.nexus.parts`. Bipartitions are indicated using the "\* + ." notation also used by e.g. MrBayes: Columns correspond to taxa (with column 1 = taxon 1). All taxa with "\*" (or ".") are in the same half of the bipartition:
+This is the contents of the file `rpoB.nexus.parts`. Bipartitions are indicated using the "asterisk and dots" notation also used by e.g. MrBayes: Columns correspond to taxa (with column 1 = taxon 1). All taxa with "\*" (or ".") are in the same half of the bipartition:
 
 ```
 List of taxa in bipartitions:
