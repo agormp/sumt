@@ -1,34 +1,5 @@
 ####################################################################################
 ####################################################################################
-#
-# Usage: sumt.py [options] FILE [FILE ...]
-#    sumt.py [options] -w WEIGHT FILE -w WEIGHT FILE ...
-#
-# Options:
-# --version             show program's version number and exit
-# -h, --help            show this help message and exit
-# -I FORM, --in=FORM    format of input: nexus or newick [default: nexus]
-# -O FORM, --out=FORM   format of output: nexus or newick [default: nexus]
-# -a, --allcomp         add all compatible bipartitions to consensus tree
-# -b NUM, --burnin=NUM  number of trees to discard [default: 0]
-# -c NUM, --cutoff=NUM  only include bipartitions with frequency above cutoff
-# -v, --verbose         longer error messages, more information
-# -f NUM, --minf=NUM    report bipartitions with freq>minfreq [default: 0.05]
-# --filename=NAME       base name of output files
-# -m, --midpoint        perform midpoint rooting of tree
-# -r TAX [-r TAX ...]   root consensus tree on specified outgroup taxon/taxa
-# --rootfile=FILE       file containing names of outgroup taxa (one per line)
-# -s, --std             compute average standard deviation of split
-#                     frequencies
-# -t, --treeprobs       compute tree probabilities
-# -n, --nowarnings      overwrite files without warning
-# -z, --zeroterms       include zero length terms when computing branch length
-#                     and average standard deviation of split frequencies
-# -w WEIGHT FILE -w WEIGHT FILE ...
-#                     put different weights on different FILEs
-#
-####################################################################################
-####################################################################################
 
 import phylotreelib as treelib
 import os, sys, time, math, subprocess, copy
@@ -59,10 +30,10 @@ def build_parser():
                       help="format of output: nexus or newick [default: nexus]")
 
     parser.add_option("-q", action="store_true", dest="quiet",
-                      help="don't print progress indication to terminal window. NOTE: also turns on the --nowarnings option!")
+                      help="quiet: don't print progress indication to terminal window. NOTE: also turns on the --nowarnings option!")
 
     parser.add_option("-v", action="store_true", dest="verbose",
-                      help="more information, longer error messages")
+                      help="verbose: more information, longer error messages")
 
     parser.add_option("-n", action="store_true", dest="nowarn",
                       help="overwrite files without warning")
@@ -73,10 +44,10 @@ def build_parser():
 
 
     parser.add_option("-b", type="float", dest="burninfrac", metavar="NUM",
-                      help="fraction of trees to discard [default: 0.25]")
+                      help="burnin: fraction of trees to discard [0 - 1; default: 0.25]")
 
-    parser.add_option("-t", type="int", dest="treeprobs", metavar="PERC",
-                      help="compute tree probabilities, report PERC percent credible interval [default: 100]")
+    parser.add_option("-t", type="float", dest="treeprobs", metavar="NUM",
+                      help="compute tree probabilities, report NUM percent credible interval [0 - 1; default: 1.00]")
 
     parser.add_option("-s", action="store_true", dest="std",
                       help="compute average standard deviation of split frequencies (ASDSF)")
@@ -109,7 +80,7 @@ def build_parser():
                       help="root consensus tree on specified outgroup taxon/taxa")
 
     parser.add_option("--rootfile", action="store", type="string", dest="rootfile", metavar="FILE",
-                      help="file containing names of outgroup taxa (one per line)")
+                      help="root consensus tree on outgroup taxa listed in file (one name per line)")
 
 
     return parser
@@ -170,11 +141,11 @@ def parse_commandline(parser):
         if not os.path.isfile(filename):
             parser.error("File %s not found." % filename)
 
-    if options.burninfrac < 0:
-        parser.error("option -b: BURNINFRAC must be a positive number")
+    if options.burninfrac > 1 or options.burninfrac < 0:
+        parser.error("option -b: NUM must be between 0.0 and 1.0")
 
-    if options.burninfrac > 1:
-        parser.error("option -b: BURNINFRAC must be between 0.0 and 1.0")
+    if options.treeprobs > 1 or options.treeprobs < 0:
+        parser.error("option -t: NUM must be between 0.0 and 1.0")
 
     if options.outgroup and options.rootfile:
         parser.error("options -r and --rootfile are incompatible")
@@ -514,7 +485,7 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_trprobs(treesummary, cdi_percentage, filename, nowarn):
+def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
     topolist = treesummary.topo_report()
 
     # Before printing results: check whether file already exist
@@ -534,9 +505,9 @@ def compute_and_print_trprobs(treesummary, cdi_percentage, filename, nowarn):
 
     topofile.write("#NEXUS\n")
     topofile.write("\n")
-    if cdi_percentage < 100:
-        topofile.write("[This file contains the {}% most probable trees found during the\n".format(cdi_percentage))
-        topofile.write("MCMC search, sorted by posterior probability (the {}% HPD interval).\n".format(cdi_percentage))
+    if hpd_frac < 1:
+        topofile.write("[This file contains the {}% most probable trees found during the\n".format(round(hpd_frac*100)))
+        topofile.write("MCMC search, sorted by posterior probability (the {}% HPD interval).\n".format(round(hpd_frac*100)))
         topofile.write("Lower case 'p' indicates the posterior probability of a tree.\n")
         topofile.write("Upper case 'P' indicates the cumulative posterior probability.]\n")
         topofile.write("\n")
@@ -550,12 +521,11 @@ def compute_and_print_trprobs(treesummary, cdi_percentage, filename, nowarn):
 
     n=1
     cum = 0.0
-    cdi_frac = cdi_percentage / 100
     for (freq, treestring) in topolist:
         cum += freq
         topofile.write("   tree tree_%-4d [p = %.6f] [P = %.6f] = %s\n" % (n, freq, cum, treestring))
         n += 1
-        if cum > cdi_frac:
+        if cum > hpd_frac:
             break
 
     topofile.write("end;\n")
