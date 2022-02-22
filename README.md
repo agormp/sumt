@@ -2,12 +2,12 @@
 
 ![](https://img.shields.io/badge/version-2.1.3-blue)
 
-The command-line program `sumt` takes as input one or more files containing samples of phylogenetic trees (e.g., from a Bayesian MCMC analysis or a bootstrap procedure), and produces as output files containing (1) the majority-rule consensus tree with clade support values, (2) a summary of observed bipartitions along with branch length means and variances, and optionally (3) a list of tree topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also mirrors. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
+The command-line program `sumt` takes as input one or more files containing samples of phylogenetic trees (e.g., from a Bayesian MCMC analysis or a bootstrap procedure), and produces as output files containing (1) the majority-rule consensus tree with clade support values, (2) a summary of observed bipartitions along with branch length means and variances, and optionally (3) a list of tree topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also is meant to resemble. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
 
 
 ## Availability
 
-The sumt source code is available on GitHub: https://github.com/agormp/sumt. The executable can be installed from PyPI: https://pypi.org/project/sumt/
+The `sumt` source code is available on GitHub: https://github.com/agormp/sumt. The executable can be installed from PyPI: https://pypi.org/project/sumt/
 
 ## Installation
 
@@ -19,7 +19,7 @@ python3 -m pip install sumt
 
 `sumt` relies on the [phylotreelib library](https://github.com/agormp/phylotreelib), which is automatically included when using pip to install.
 
-## Highlights
+## Overview
 
 * Input:
 	* One or more files containing phylogenetic trees (all trees must have same leaf names), in NEXUS or Newick format.
@@ -29,10 +29,10 @@ python3 -m pip install sumt
 	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 	* (Optionally) Progress indication is written to screen
-* Reasonably fast: Processes 100,000 trees in minutes.
+* Reasonably fast and light on memory usage: 100,000 trees with 41 leaves processed in 2.5 minutes and using 13 GB memory on 2019 MacBook.
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies (ASDSF) when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
-* Option to include all compatible bipartitions in consensus tree (in addition to those being present in more than 50% of input trees).
+* Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
 * Option to root consensus tree on outgroup or using midpoint rooting.
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
@@ -53,15 +53,16 @@ Options:
   -h, --help            show this help message and exit
   -I FORM               format of input: nexus or newick [default: nexus]
   -O FORM               format of output: nexus or newick [default: nexus]
-  -q                    don't print progress indication to terminal window.
-                        NOTE: also turns on the --nowarnings option!
-  -v                    more information, longer error messages
+  -q                    quiet: don't print progress indication to terminal
+                        window. NOTE: also turns on the --nowarnings option!
+  -v                    verbose: more information, longer error messages
   -n                    overwrite files without warning
   --basename=NAME       base name of output files (default: derived from input
                         file)
-  -b NUM                fraction of trees to discard [default: 0.25]
-  -t PERC               compute tree probabilities, report PERC percent
-                        credible interval [default: 100]
+  -b NUM                burnin: fraction of trees to discard [0 - 1; default:
+                        0.25]
+  -t NUM                compute tree probabilities, report NUM percent
+                        credible interval [0 - 1; default: 1.00]
   -s                    compute average standard deviation of split
                         frequencies (ASDSF)
   -f NUM                Min. frequency for including bipartitions in report
@@ -75,7 +76,8 @@ Options:
                         counts, so all files have equal impact
   -m                    perform midpoint rooting of tree
   -r TAX [-r TAX ...]   root consensus tree on specified outgroup taxon/taxa
-  --rootfile=FILE       file containing names of outgroup taxa (one per line)
+  --rootfile=FILE       root consensus tree on outgroup taxa listed in file
+                        (one name per line)
 ```
 
 ## Usage examples
