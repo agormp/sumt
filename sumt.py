@@ -9,6 +9,103 @@ from optparse import OptionParser
 # import gc
 # gc.disable()        # Assume no cyclic references will ever be created
 
+def main():
+
+    parser = build_parser()
+    (options, wt_file_list) = parse_commandline(parser)
+    start=time.time()
+
+    try:
+        # Silence output to stdout if requested
+        # NOTE: automatically sets the "nowarn" option since interactivity is not possible
+        if options.quiet:
+            sys.stdout = open(os.devnull, 'w')
+            options.nowarn = True
+
+        if options.rootfile:
+            outgroup = read_outgroup(options.rootfile)
+        else:
+            outgroup = options.outgroup
+
+        (n_trees_analyzed, wt_count_burnin_file_list) = count_trees(wt_file_list, options)
+        treesummarylist = process_trees(wt_count_burnin_file_list, options, outgroup)
+
+        # Get basename of output files.
+        # Use name supplied by user if present. Make sure all intermediate directories exist
+        if options.outbase:
+            filename = os.path.basename(options.outbase)     # NB: os.path.basename extracts filename from path
+            dirname = os.path.dirname(options.outbase)
+            if dirname and not os.path.isdir(dirname):
+                os.makedirs(dirname)                        # construct any missing dirs from path
+            outname = os.path.join(dirname, filename)
+
+        # If basename is not set: determine semi-intelligently from infilenames:
+        elif len(wt_file_list) > 1:
+            for (wt, outname) in wt_file_list:
+                if outname.endswith(".run1.t"):
+                    outname = outname[:-7]
+                    break
+                elif outname.endswith(".t"):
+                    outname = outname[:-2]
+        else:
+            outname = wt_file_list[0][1]
+            if outname.endswith(".t"):
+                outname = outname[:-2]
+
+        if options.std:
+            for treesummary in treesummarylist:
+                treesummary.compute_bipfreq()
+            compute_and_print_converge_stats(treesummarylist, options.minfreq)
+
+        if options.verbose:
+            # Check memory usage (this is presumably the point where most memory is used)
+            pid= str(os.getpid())
+            ps=subprocess.getoutput("ps up" + pid)
+            memory=ps.split()[16]
+
+        # Collect all trees in single treesummary so final contree and bipart stats can be computed
+        for treesummary2 in treesummarylist[1:]:
+            treesummarylist[0].update(treesummary2)
+            del treesummary2
+        total_unique_biparts = len(treesummarylist[0].bipartsummary)
+
+        compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
+        n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp,
+                                                                        outgroup, outname, options.midpoint, options.nowarn,
+                                                                         options.outformat)
+        n_leafs = len(treesummarylist[0].leaves)
+        theo_maxbip = 2 * n_leafs - 3     # Theoretical maximum number of bipartitions in tree = 2n-3
+        n_internal_biparts = n_biparts_contree - n_leafs        # Number of internal bipartitions (excluding leaves)
+        theo_maxbip_internal = theo_maxbip - n_leafs            # Maximum theoretical number of internal biparts = n-3
+
+        if options.treeprobs:
+            compute_and_print_trprobs(treesummarylist[0], options.treeprobs, outname, options.nowarn)
+            n_trees_seen = len(treesummarylist[0].toposummary)
+        stop=time.time()
+        time_spent=stop-start
+        h = int(time_spent/3600)
+        m = int((time_spent % 3600)/60)
+        s = int(time_spent % 60)
+        print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
+        if options.verbose:
+            print("\n")
+            if options.treeprobs:
+                print("   Different topologies seen: {:8,d}".format(n_trees_seen))
+                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_biparts, theo_maxbip * n_trees_seen))
+            else:
+                print("   Different bipartitions seen: {:6,d}".format(total_unique_biparts))
+            print("   Internal bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(n_internal_biparts, theo_maxbip_internal))
+            print("   Memory used: {:,.2f} MB.".format(float(memory)/1024))
+            print("")
+
+    except treelib.TreeError as exc:
+        if options.verbose:
+            import traceback
+            traceback.print_exc(file=sys.stdout)
+        else:
+            print("Error: ", exc.errormessage)
+
+        sys.exit()
 
 ####################################################################################
 ####################################################################################
@@ -245,10 +342,9 @@ def process_trees(wt_count_burnin_file_list, options, outgroup):
         sys.stdout.flush()
 
         if options.treeprobs:
-            #   NOTE: HACK to get branch lengths on trees in trprob file. Think about how to do (problem: smalltreesummary init method has not topoblens option)
-            treesummary = treelib.BigTreeSummary(options.zeroterms, outgroup, options.midpoint)
+            treesummary = treelib.BigTreeSummary()
         else:
-            treesummary = treelib.TreeSummary(options.zeroterms)
+            treesummary = treelib.TreeSummary()
 
         # Read remaining trees from file, add to treesummary
         n_trees = 0
@@ -295,14 +391,10 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
     sum_std = 0
     N = float(len(treesummarylist))
 
-    # Compute frequencies for all bipartitions in all treesummaries
-    for treesummary in treesummarylist:
-        treesummary.bipart_result()
-
     # Find combined set of bipartitions (excluding external branches)
     bipset = set()
     for treesummary in treesummarylist:
-        for bipart in treesummary.bipartsummary.keys():
+        for bipart in treesummary.bipartsummary:
 
             # Exclude if bipart is external (i.e., when one part of it has only one member)
             (bip1, bip2) = bipart
@@ -348,8 +440,12 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
 
 def compute_and_print_biparts(treesummary, filename, nowarn, minf):
 
+    # Compute bipart freq + branch length var and sem for combined tree summary
+    treesummary.compute_bipfreq()
+    treesummary.compute_blen_var_and_sem()
+
     # Compute and retrieve results
-    (leaflist, biplist) = treesummary.bipart_report(minfreq=minf)
+    (leaflist, biplist) = bipart_report(treesummary, minfreq=minf)
 
     # Before printing results: check whether files already exist
     partsfilename = filename + ".parts"
@@ -391,17 +487,82 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf):
 ##########################################################################################
 ##########################################################################################
 
+def bipart_report(treesummary, minfreq=0.05):
+    """Return processed, almost directly printable, summary of all observed bipartitions"""
+
+    # Bipart report consists of a tuple containing:
+    #       (0) a sorted list of leaves (for interpreting bipartstring)
+    #       (1) a sorted list of lists. Each item list is: [bipartstring, freq, mean, var, sem]
+    #           entire list is sorted on bipartition frequency
+
+    # Must first figure out which leaves correspond to which positions in bipartstring
+    # Note: leaves are ordered alphabetically, meaning first char in bipstring corresponds
+    # to first leaf in alphabetic sort
+    leaflist = sorted(treesummary.leaves)
+
+    position_dict = {}
+    for position, leaf in enumerate(leaflist):
+        position_dict[leaf] = position
+
+    # Loop over all bipartitions in raw_result, build formatted result list in process
+    bipreport = []
+    for bipart in treesummary.bipartsummary:
+        bipstring = bipart_to_string(bipart, position_dict, leaflist)
+        bipsize = bipstring.count("*")              # Size of smaller set
+
+        # Only report bipartitions that occur more often than "minfreq":
+        if treesummary.bipartsummary[bipart].freq>minfreq:
+            freq = treesummary.bipartsummary[bipart].freq
+            mean = treesummary.bipartsummary[bipart].mean
+            var = treesummary.bipartsummary[bipart].var
+            sem = treesummary.bipartsummary[bipart].sem
+            bipreport.append([freq, bipstring, mean, var, sem])
+
+    # Sort bipreport according to (1) frequency (higher values first), (2) size of
+    # smaller bipartition (external branches before internal branches), and
+    # (3) bipartstring (*.. before .*. before ..*)
+    # First construct temporary list of (1-freq, bipsize, bipstring, originial list-item)
+    # tuples. Sort this list of tuples and then re-extract the original list-item again
+    # (Example of Decorate, Sort, Undecorate idiom)
+    tmplist = sorted([(1-bip[0], bip[1].count("*"), bip[1], bip) for bip in bipreport])
+    bipreport = [tup[-1] for tup in tmplist]        # Last element of tuple is orig list
+
+    # Return tuple of (leaflist, bipreport)
+    return (leaflist, bipreport)
+
+##########################################################################################
+##########################################################################################
+
+def bipart_to_string(bipartition, position_dict, leaflist):
+    """Takes bipartition (set of two leaf sets) and returns string representation"""
+
+    bipart1, bipart2 = bipartition
+
+    # Bipartstring will be built as a list of chars first. Initialize with all "."
+    stringwidth = len(leaflist)
+    bipart_list = stringwidth * ["."]
+
+    # Smaller set is represented by "*" characters. Larger set by "." characters (already set)
+    if len(bipart1) < len(bipart2):
+        smallset = bipart1
+    else:
+        smallset = bipart2
+
+    for leaf in smallset:
+        pos = position_dict[leaf]
+        bipart_list[pos] = "*"
+
+    return "".join(bipart_list)        # Concatenate into one string
+
+##########################################################################################
+##########################################################################################
+
 def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
                               midpoint, nowarn, outformat):
 
     # Construct consensus tree with bipart freq labels
     contree = treesummary.contree(allcompat=allcomp)
     n_biparts = len(contree.bipdict())
-
-    if contree.length() > 0.0:
-        trees_have_branchlengths = True         # flag indicating presence of branch lengths
-    else:
-        trees_have_branchlengths = False
 
     # If outgroup is given: attempt to root tree on provided outgroup.
     # If this is impossible then print warning and save midpoint rooted contree instead
@@ -416,29 +577,7 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
     # Perform midpoint rooting if requested
     elif midpoint:
         contree.rootmid()
-    newick = contree.newick(printdist = trees_have_branchlengths)
-
-    # If trees contain branch lengths: also compute standard error and relative standard error
-    # for each branch length in contree
-    if trees_have_branchlengths:
-
-        # Construct consensus tree with standard error of the mean labels
-        contree = treesummary.contree(allcompat=allcomp, lab="sem")
-
-        # If outgroup is given: attempt to root tree on provided outgroup.
-        # If this is impossible then print warning and save midpoint rooted contree instead
-        if outgroup:
-            try:
-                contree.rootout(outgroup)
-            except treelib.TreeError as exc:
-                print("Warning: ", exc.errormessage)
-                print("Midpoint rooting used instead")
-                contree.rootmid()
-
-        # Perform midpoint rooting if requested
-        elif midpoint:
-            contree.rootmid()
-        newicksemlabel = contree.newick(printdist = True)
+    newick = contree.newick()
 
     # Before printing results: check whether files already exist
     confilename = filename + ".con"
@@ -466,16 +605,6 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
         confile.write("    probability of the bipartition corresponding to the branch.]\n")
         confile.write("   tree prob = ")
         confile.write(newick)
-
-        # If trees contain branch lengths: also print tree with standard error of the mean
-        # for each branch length in contree
-        if trees_have_branchlengths:
-            confile.write("\n\n")
-            confile.write("   [In this tree branch labels indicate the standard error\n")
-            confile.write("    of the mean for the branch length.]\n")
-            confile.write("   tree sem = ")
-            confile.write(newicksemlabel)
-
         confile.write("\nend;\n")
 
     print("   Consensus tree written to {}".format(confilename))
@@ -486,7 +615,7 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
 ##########################################################################################
 
 def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
-    topolist = treesummary.topo_report()
+    topolist = topo_report(treesummary)
 
     # Before printing results: check whether file already exist
     topofilename = filename + ".trprobs"
@@ -508,15 +637,12 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
     if hpd_frac < 1:
         topofile.write("[This file contains the {}% most probable trees found during the\n".format(round(hpd_frac*100)))
         topofile.write("MCMC search, sorted by posterior probability (the {}% HPD interval).\n".format(round(hpd_frac*100)))
-        topofile.write("Lower case 'p' indicates the posterior probability of a tree.\n")
-        topofile.write("Upper case 'P' indicates the cumulative posterior probability.]\n")
-        topofile.write("\n")
     else:
         topofile.write("[This file contains all trees that were found during the MCMC\n")
         topofile.write("search, sorted by posterior probability. \n")
-        topofile.write("Lower case 'p' indicates the posterior probability of a tree.\n")
-        topofile.write("Upper case 'P' indicates the cumulative posterior probability.]\n")
-        topofile.write("\n")
+    topofile.write("Lower case 'p' indicates the posterior probability of a tree.\n")
+    topofile.write("Upper case 'P' indicates the cumulative posterior probability.]\n")
+    topofile.write("\n")
     topofile.write("begin trees;\n")
 
     n=1
@@ -534,102 +660,28 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
 ##########################################################################################
 ##########################################################################################
 
-def main():
+def topo_report(treesummary):
+    """Returns list of [freq, treestring] lists"""
 
-    parser = build_parser()
-    (options, wt_file_list) = parse_commandline(parser)
-    start=time.time()
+    # Python note: root trees in trprobs?
+    treesummary.compute_topofreq()
+    toporeport = []
+    for topology, topostruct in treesummary.toposummary.items():
+        treestring = topostruct.treestring
+        freq = topostruct.freq
+        toporeport.append((freq, treestring))
 
-    try:
-        # Silence output to stdout if requested
-        # NOTE: automatically sets the "nowarn" option since interactivity is not possible
-        if options.quiet:
-            f = open(os.devnull, 'w')
-            sys.stdout = f
-            options.nowarn = True
+    # Sort report according to frequency (higher values first) and return
+    toporeport.sort(reverse=True)
 
-        if options.rootfile:
-            outgroup = read_outgroup(options.rootfile)
-        else:
-            outgroup = options.outgroup
+    return toporeport
 
-        (n_trees_analyzed, wt_count_burnin_file_list) = count_trees(wt_file_list, options)
-        treesummarylist = process_trees(wt_count_burnin_file_list, options, outgroup)
-
-        # Get basename of output files.
-        # Use name supplied by user if present. Make sure all intermediate directories exist
-        if options.outbase:
-            filename = os.path.basename(options.outbase)     # NB: os.path.basename extracts filename from path
-            dirname = os.path.dirname(options.outbase)
-            if dirname and not os.path.isdir(dirname):
-                os.makedirs(dirname)                        # construct any missing dirs from path
-            outname = os.path.join(dirname, filename)
-
-        # If basename is not set: determine semi-intelligently from infilenames:
-        elif len(wt_file_list) > 1:
-            for (wt, outname) in wt_file_list:
-                if outname.endswith(".run1.t"):
-                    outname = outname[:-7]
-                    break
-                elif outname.endswith(".t"):
-                    outname = outname[:-2]
-        else:
-            outname = wt_file_list[0][1]
-            if outname.endswith(".t"):
-                outname = outname[:-2]
-
-        if options.std:
-            compute_and_print_converge_stats(treesummarylist, options.minfreq)
-
-        if options.verbose:
-            # Check memory usage (this is presumably the point where most memory is used)
-            pid= str(os.getpid())
-            ps=subprocess.getoutput("ps up" + pid)
-            memory=ps.split()[16]
-
-        # Collect all trees in single treesummary so final contree and bipart stats can be computed
-        for treesummary2 in treesummarylist[1:]:
-            treesummarylist[0].update(treesummary2)
-            del treesummary2
-        total_unique_biparts = len(treesummarylist[0].bipartsummary)
-
-        compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
-        n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp,
-                                                                        outgroup, outname, options.midpoint, options.nowarn,
-                                                                         options.outformat)
-        n_leafs = len(treesummarylist[0].leaves)
-        theo_maxbip = 2 * n_leafs - 3     # Theoretical maximum number of bipartitions in tree = 2n-3
-        n_internal_biparts = n_biparts_contree - n_leafs        # Number of internal bipartitions (excluding leaves)
-        theo_maxbip_internal = theo_maxbip - n_leafs            # Maximum theoretical number of internal biparts = n-3
-
-        if options.treeprobs:
-            compute_and_print_trprobs(treesummarylist[0], options.treeprobs, outname, options.nowarn)
-            n_trees_seen = len(treesummarylist[0].toposummary)
-        stop=time.time()
-        time_spent=stop-start
-        h = int(time_spent/3600)
-        m = int((time_spent % 3600)/60)
-        s = int(time_spent % 60)
-        print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
-        if options.verbose:
-            print("\n")
-            if options.treeprobs:
-                print("   Different topologies seen: {:8,d}".format(n_trees_seen))
-                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_biparts, theo_maxbip * n_trees_seen))
-            else:
-                print("   Different bipartitions seen: {:6,d}".format(total_unique_biparts))
-            print("   Internal bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(n_internal_biparts, theo_maxbip_internal))
-            print("   Memory used: {:,.2f} MB.".format(float(memory)/1024))
-            print("")
-
-    except treelib.TreeError as exc:
-        if options.verbose:
-            import traceback
-            traceback.print_exc(file=sys.stdout)
-        else:
-            print("Error: ", exc.errormessage)
-
-        sys.exit()
+##########################################################################################
+##########################################################################################
 
 if __name__ == "__main__":
     main()
+    # import cProfile
+    # cProfile.run('main()', 'tmp/profile.pstats')
+
+
