@@ -88,10 +88,10 @@ Options:
 The command below causes `sumt` to do the following:
 
 * Summarise the tree samples in the files `primates.nexus.run1.t` and `primates.nexus.run2.t`
-* Discard 25% of tree samples as burn-in
-* Report 100% credible set of topologies (i.e., all topologies that were seen)
-* Compute average standard deviation of split frequencies as a measure of MCMC convergence
-* Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
+* `-b 0.25`: Discard 25% of tree samples as burn-in
+* `-t 1.0`: Report 100% credible set of topologies (i.e., all topologies that were seen)
+* `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence
+* `-f 0.1`: Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
 
 ```
 sumt -b 0.25 -t 1.0 -s -f 0.1 primates.nexus.run1.t primates.nexus.run2.t
@@ -196,11 +196,11 @@ end;
 The command below causes sumt to do the following:
 
 * Summarise the tree samples in the file `mhc.nexus.t`
-* Discard 50% of tree samples as burn-in
-* Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
-* Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
-* Overwrite any existing output files with no warning
-* Print more verbose output to screen, including running count of distinct bipartitions and topologies seen in input trees
+* `-b 0.5`: Discard 50% of tree samples as burn-in
+* `-t 0.75`: Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
+* `-f 0.1`: Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
+* `-n`: Overwrite any existing output files with no warning
+* `-v`: Print more verbose output to screen, including running count of distinct bipartitions and topologies seen in input trees
 
 ```
 sumt -b 0.5 -t 0.75 -f 0.1 -n -v mhc.nexus.t
