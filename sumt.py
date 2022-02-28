@@ -445,7 +445,7 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf):
     treesummary.compute_blen_var_and_sem()
 
     # Compute and retrieve results
-    (leaflist, biplist) = bipart_report(treesummary, minfreq=minf)
+    (leaflist, bipreslist) = bipart_report(treesummary, minfreq=minf)
 
     # Before printing results: check whether files already exist
     partsfilename = filename + ".parts"
@@ -462,25 +462,23 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf):
     else:
         partsfile = open(partsfilename, "w")
 
-    # Print list of taxa
-    partsfile.write("List of taxa in bipartitions:\n\n")
-    i = 1
-    for leaf in leaflist:
-        partsfile.write("%2d -- %s\n" % (i, leaf))
-        i += 1
-
     # Print bipartitions
-    partsfile.write("\n\nList of bipartitions:\n\n"
+    partsfile.write("List of bipartitions:\n\n"
                     "PART = Description of partition in .* format\n"
                     "PROB = Posterior probability of the partition\n"
                     "BLEN = Mean branch length\n"
                     "VAR  = Branch length variance\n"
-                    "SEM  = Standard error of the mean for branch length\n\n")
+                    "SEM  = Standard error of the mean for branch length\n"
+                    "ID   = Leaf name or internal branch label, for those bipartitions that are included in consensus tree\n\n")
     stringwidth = len(leaflist)
-    partsfile.write("PART" + (stringwidth-1)*" " + "PROB      " + "BLEN      " + "VAR         " + "SEM\n")
+    partsfile.write("PART" + (stringwidth-1)*" " + "PROB      " + "BLEN      " + "VAR         " + "SEM         " + "ID\n")
 
-    for bipart in biplist:
-        partsfile.write("%s   %8.6f  %8.6f  (%8.6f)  (%8.6f)\n" % (bipart[1], bipart[0], bipart[2], bipart[3], bipart[4]))
+    for (freq, bipstring, mean, var, sem, branchID) in bipreslist:
+        if freq > 0.5:
+            partsfile.write("%s   %8.6f  %8.6f  (%8.6f)  (%8.6f)  %s\n" % (bipstring, freq, mean, var, sem, branchID))
+        else:
+            partsfile.write("%s   %8.6f  %8.6f  (%8.6f)  (%8.6f)\n" % (bipstring, freq, mean, var, sem))
+
 
     print("   Bipartition list written to {}".format(partsfilename))
 
@@ -504,19 +502,20 @@ def bipart_report(treesummary, minfreq=0.05):
     for position, leaf in enumerate(leaflist):
         position_dict[leaf] = position
 
-    # Loop over all bipartitions in raw_result, build formatted result list in process
+    # Loop over all bipartitions in bipartsummary, build formatted result list in process
     bipreport = []
-    for bipart in treesummary.bipartsummary:
+    for freq,bipart in treesummary.bipfreqlist:
         bipstring = bipart_to_string(bipart, position_dict, leaflist)
         bipsize = bipstring.count("*")              # Size of smaller set
 
         # Only report bipartitions that occur more often than "minfreq":
-        if treesummary.bipartsummary[bipart].freq>minfreq:
-            freq = treesummary.bipartsummary[bipart].freq
+        if freq > minfreq:
             mean = treesummary.bipartsummary[bipart].mean
             var = treesummary.bipartsummary[bipart].var
             sem = treesummary.bipartsummary[bipart].sem
-            bipreport.append([freq, bipstring, mean, var, sem])
+            bipreport.append([freq, bipstring, mean, var, sem, bipart])
+        else:
+            break   # bipartsummary is sorted by freq, so all later values will be lower
 
     # Sort bipreport according to (1) frequency (higher values first), (2) size of
     # smaller bipartition (external branches before internal branches), and
@@ -526,6 +525,25 @@ def bipart_report(treesummary, minfreq=0.05):
     # (Example of Decorate, Sort, Undecorate idiom)
     tmplist = sorted([(1-bip[0], bip[1].count("*"), bip[1], bip) for bip in bipreport])
     bipreport = [tup[-1] for tup in tmplist]        # Last element of tuple is orig list
+
+    # Add field to Branchstructs and result list indicating bipart-ID
+    # Will be used to add label to consensus tree, so user can directly see which
+    # branches are what in partslist
+    # For external branches this is simply leaf.
+    # For internal branches: consecutively numbered, prepended by hash: #
+    i = 1
+    for reslist in bipreport:
+        bipart = reslist[-1]
+        bip1,bip2 = bipart
+        if len(bip1)==1:
+            branchID, = bip1  # Tuple unpacking to get single element in frozenset. No pop...
+        elif len(bip2)==1:
+            branchID, = bip2
+        else:
+            branchID = "{}".format(i)
+            i += 1
+        treesummary.bipartsummary[bipart].branchID = branchID
+        reslist[-1] = branchID    # Replace bipartition with bipartID in individual reslist
 
     # Return tuple of (leaflist, bipreport)
     return (leaflist, bipreport)
@@ -577,7 +595,8 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
     # Perform midpoint rooting if requested
     elif midpoint:
         contree.rootmid()
-    newick = contree.newick()
+    newick_prob = contree.newick(labelfield="freq")
+    newick_branchID = contree.newick(labelfield="branchID")
 
     # Before printing results: check whether files already exist
     confilename = filename + ".con"
@@ -601,10 +620,13 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
         confile.write("#NEXUS\n")
         confile.write("\n")
         confile.write("begin trees;\n")
-        confile.write("   [In this tree branch labels indicate the posterior\n")
-        confile.write("    probability of the bipartition corresponding to the branch.]\n")
+        confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
         confile.write("   tree prob = ")
-        confile.write(newick)
+        confile.write(newick_prob)
+        confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(filename + ".parts"))
+        confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
+        confile.write("   tree partID = ")
+        confile.write(newick_branchID)
         confile.write("\nend;\n")
 
     print("   Consensus tree written to {}".format(confilename))
