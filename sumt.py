@@ -241,7 +241,7 @@ def parse_commandline(parser):
     if options.burninfrac > 1 or options.burninfrac < 0:
         parser.error("option -b: NUM must be between 0.0 and 1.0")
 
-    if options.treeprobs > 1 or options.treeprobs < 0:
+    if options.treeprobs and (options.treeprobs > 1 or options.treeprobs < 0):
         parser.error("option -t: NUM must be between 0.0 and 1.0")
 
     if options.outgroup and options.rootfile:
