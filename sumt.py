@@ -2,7 +2,7 @@
 ####################################################################################
 
 import phylotreelib as treelib
-import os, sys, time, math, subprocess, copy
+import os, sys, time, math, copy, psutil
 from optparse import OptionParser
 
 # NOTE: maybe include this as option for aggressive optimization at runtime
@@ -57,12 +57,6 @@ def main():
                 treesummary.compute_bipfreq()
             compute_and_print_converge_stats(treesummarylist, options.minfreq)
 
-        if options.verbose:
-            # Check memory usage (this is presumably the point where most memory is used)
-            pid= str(os.getpid())
-            ps=subprocess.getoutput("ps up" + pid)
-            memory=ps.split()[16]
-
         # Collect all trees in single treesummary so final contree and bipart stats can be computed
         for treesummary2 in treesummarylist[1:]:
             treesummarylist[0].update(treesummary2)
@@ -72,7 +66,13 @@ def main():
         compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
         n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp,
                                                                         outgroup, outname, options.midpoint, options.nowarn,
-                                                                         options.outformat)
+                                                                        options.outformat)
+
+        if options.verbose:
+            # Check memory usage (this is presumably the point where most memory is used)
+            pid = psutil.Process(os.getpid())
+            memory = pid.memory_full_info().rss
+
         n_leafs = len(treesummarylist[0].leaves)
         theo_maxbip = 2 * n_leafs - 3     # Theoretical maximum number of bipartitions in tree = 2n-3
         n_internal_biparts = n_biparts_contree - n_leafs        # Number of internal bipartitions (excluding leaves)
@@ -82,6 +82,7 @@ def main():
             compute_and_print_trprobs(treesummarylist[0], options.treeprobs, outname, options.nowarn)
             n_trees_seen = len(treesummarylist[0].toposummary)
         stop=time.time()
+
         time_spent=stop-start
         h = int(time_spent/3600)
         m = int((time_spent % 3600)/60)
@@ -95,9 +96,10 @@ def main():
             else:
                 print("   Different bipartitions seen: {:6,d}".format(total_unique_biparts))
             print("   Internal bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(n_internal_biparts, theo_maxbip_internal))
-            print("   Memory used: {:,.2f} MB.".format(float(memory)/1024))
-            print("")
-
+            if memory > 1E9:
+                print("   Memory used: {:,.2f} GB.".format( memory  / (1024**3) ))
+            else:
+                print("   Memory used: {:,.2f} MB.".format( memory  / (1024**2) ))
     except treelib.TreeError as exc:
         if options.verbose:
             import traceback
@@ -284,7 +286,7 @@ def read_trees(wt_file_list, options):
     sys.stdout.write("\n")
     for (wt, filename) in wt_file_list:
         treelist = []
-        sys.stdout.write("   Counting trees in file {:<40}".format("'" + filename + "'" ":"))
+        sys.stdout.write("   Reading trees from file {:<40}".format("'" + filename + "'" ":"))
         sys.stdout.flush()
         if options.informat.lower() == "nexus":
             treefile = treelib.Nexustreefile(filename)
