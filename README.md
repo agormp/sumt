@@ -41,7 +41,6 @@ python3 -m pip install sumt
 	* Running counts of number of distinct bipartitions and topologies seen, along with theoretical maximum possible
 	* Count of number of bipartitions in consensus tree, along with theoretical maximum
 	* Report of maximum memory usage during processing
-* Option to include zero length terms when computing branch lengths and ASDF (length of branch is taken to be zero in those input trees where the corresponding bipartition is not present). Not sure whether this is a good idea...
 
 ## Usage
 

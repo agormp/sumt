@@ -117,7 +117,7 @@ def build_parser():
     use = """usage: %prog [options] FILE [FILE ...]\n       %prog [options] -w WEIGHT FILE -w WEIGHT FILE ..."""
     vers = "%prog 2.1.4"
     parser = OptionParser(usage=use, version=vers)
-    parser.set_defaults(burninfrac=0.25, minfreq=0.1, allcomp=False, autoweight=False, zeroterms=False, outgroup=None,
+    parser.set_defaults(burninfrac=0.25, minfreq=0.1, allcomp=False, autoweight=False, outgroup=None,
                         rootfile=None, midpoint=False, informat="NEXUS", outformat="NEXUS",
                         nowarn=False, std=False, treeprobs=None, verbose=False, fileweights=None)
 
@@ -157,9 +157,6 @@ def build_parser():
 
     parser.add_option("-a", action="store_true", dest="allcomp",
                       help="add all compatible bipartitions to consensus tree")
-
-    parser.add_option("-z", action="store_true", dest="zeroterms",
-                      help="include zero length terms when computing branch length and average standard deviation of split frequencies")
 
     parser.add_option("-w", action="append",
                       type="string", dest="fileweights", nargs=2, metavar="WEIGHT FILE -w WEIGHT FILE ...",
