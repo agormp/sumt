@@ -30,7 +30,7 @@ python3 -m pip install sumt
 	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths.
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 	* (Optionally) Progress indication is written to screen
-* Reasonably fast and light on memory usage: 100,000 trees with 41 leaves processed in 2.5 minutes and using 10 GB memory on 2019 MacBook.
+* Reasonably fast and light on memory usage: 100,000 trees with 41 leaves processed in 1:18 (m:s), using max 4.9 GB memory on 2019 MacBook (99,034 topologies, 5,218 bipartitions)
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies (ASDSF) when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
