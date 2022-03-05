@@ -4,10 +4,9 @@
 import phylotreelib as treelib
 import os, sys, time, math, copy, psutil
 from optparse import OptionParser
-
-# NOTE: maybe include this as option for aggressive optimization at runtime
 import gc
-gc.disable()        # Assume no cyclic references will ever be created
+
+gc.disable()        # Faster. Assume no cyclic references will ever be created
 
 def main():
 
@@ -28,6 +27,11 @@ def main():
             outgroup = options.outgroup
 
         (n_trees_analyzed, wt_count_burnin_file_treelist_list) = read_trees(wt_file_list, options)
+
+        if options.verbose:
+            pid = psutil.Process(os.getpid())
+            memory1 = pid.memory_full_info().rss
+
         treesummarylist = process_trees(wt_count_burnin_file_treelist_list, options, outgroup)
 
         # Get basename of output files.
@@ -64,14 +68,8 @@ def main():
         total_unique_biparts = len(treesummarylist[0].bipartsummary)
 
         compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
-        n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp,
-                                                                        outgroup, outname, options.midpoint, options.nowarn,
-                                                                        options.outformat)
-
-        if options.verbose:
-            # Check memory usage (this is presumably the point where most memory is used)
-            pid = psutil.Process(os.getpid())
-            memory = pid.memory_full_info().rss
+        n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
+                                                      options.midpoint, options.nowarn, options.outformat)
 
         n_leafs = len(treesummarylist[0].leaves)
         theo_maxbip = 2 * n_leafs - 3     # Theoretical maximum number of bipartitions in tree = 2n-3
@@ -83,23 +81,26 @@ def main():
             n_trees_seen = len(treesummarylist[0].toposummary)
         stop=time.time()
 
+        if options.verbose:
+            memory2 = pid.memory_full_info().rss
+            memorymax = max(memory1, memory2)
+
         time_spent=stop-start
         h = int(time_spent/3600)
         m = int((time_spent % 3600)/60)
         s = int(time_spent % 60)
-        print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
+        print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)\n".format(n_trees_analyzed, h, m, s))
         if options.verbose:
-            print("\n")
             if options.treeprobs:
                 print("   Different topologies seen: {:8,d}".format(n_trees_seen))
                 print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_biparts, theo_maxbip * n_trees_seen))
             else:
                 print("   Different bipartitions seen: {:6,d}".format(total_unique_biparts))
             print("   Internal bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(n_internal_biparts, theo_maxbip_internal))
-            if memory > 1E9:
-                print("   Memory used: {:,.2f} GB.".format( memory  / (1024**3) ))
+            if memorymax > 1E9:
+                print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
             else:
-                print("   Memory used: {:,.2f} MB.".format( memory  / (1024**2) ))
+                print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
     except treelib.TreeError as exc:
         if options.verbose:
             import traceback
