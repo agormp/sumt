@@ -332,17 +332,23 @@ def read_trees(wt_file_list, options):
 def process_trees(wt_count_burnin_file_treelist_list, options, outgroup):
 
     treesummarylist = []
-    for (weight, count, burnin, filename, treelist) in wt_count_burnin_file_treelist_list:
+    for i, (weight, count, burnin, filename, treelist) in enumerate(wt_count_burnin_file_treelist_list):
         sys.stdout.write("\n   Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
         sys.stdout.flush()
         sys.stdout.write("\n   Discarded {:,} of {:,} trees (burnin fraction={:.2f})".format(burnin, count, options.burninfrac))
         sys.stdout.write("\n   Processing trees ('.' signifies 100 trees):\n")
         sys.stdout.flush()
 
-        if options.treeprobs:
-            treesummary = treelib.BigTreeSummary()
+        # Re-use interner from first Treesummary to avoid duplication
+        if i>0:
+            interner = treesummarylist[0].interner
         else:
-            treesummary = treelib.TreeSummary()
+            interner = None
+
+        if options.treeprobs:
+            treesummary = treelib.BigTreeSummary(interner=interner)
+        else:
+            treesummary = treelib.TreeSummary(interner=interner)
 
         n_trees = 0
         sys.stdout.write("\n   ")
