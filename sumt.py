@@ -514,10 +514,10 @@ def bipart_report(treesummary, minfreq=0.05):
 
         # Only report bipartitions that occur more often than "minfreq":
         if freq > minfreq:
-            mean = treesummary.bipartsummary[bipart].mean
+            length = treesummary.bipartsummary[bipart].length
             var = treesummary.bipartsummary[bipart].var
             sem = treesummary.bipartsummary[bipart].sem
-            bipreport.append([freq, bipstring, mean, var, sem, bipart])
+            bipreport.append([freq, bipstring, length, var, sem, bipart])
         else:
             break   # bipartsummary is sorted by freq, so all later values will be lower
 
