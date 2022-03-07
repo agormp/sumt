@@ -4,6 +4,7 @@
 import phylotreelib as treelib
 import os, sys, time, math, copy, psutil
 from optparse import OptionParser
+from itertools import (takewhile,repeat)
 import gc
 
 gc.disable()        # Faster. Assume no cyclic references will ever be created
@@ -26,13 +27,13 @@ def main():
         else:
             outgroup = options.outgroup
 
-        (n_trees_analyzed, wt_count_burnin_file_treelist_list) = read_trees(wt_file_list, options)
+        (n_trees_analyzed, wt_count_burnin_filename_list) = count_trees(wt_file_list, options)
 
         if options.verbose:
             pid = psutil.Process(os.getpid())
             memory1 = pid.memory_full_info().rss
 
-        treesummarylist = process_trees(wt_count_burnin_file_treelist_list, options, outgroup)
+        treesummarylist = process_trees(wt_count_burnin_filename_list, options, outgroup)
 
         # Get basename of output files.
         # Use name supplied by user if present. Make sure all intermediate directories exist
@@ -275,32 +276,30 @@ def read_outgroup(rootfile):
 ####################################################################################
 ####################################################################################
 
-def read_trees(wt_file_list, options):
+def count_trees(wt_file_list, options):
 
-    # Read trees in all files, discard burnin, keep in list of treelists
+    # fast counting of specific pattern.
+    # from: https://stackoverflow.com/a/27517681/7836730
+    # Assumes all treestrings (and nothing else) ends in ");"
+    def count_treestring_terminators(filename):
+        f = open(filename, 'rb')
+        bufsize = 1024*1024
+        bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
+        return sum( buf.count(b');') for buf in bufgen if buf )
+
     count_list = []
     burnin_list = []
-    treelist_list = []
     sys.stdout.write("\n")
     for (wt, filename) in wt_file_list:
         treelist = []
-        sys.stdout.write("   Reading trees from file {:<40}".format("'" + filename + "'" ":"))
+        sys.stdout.write("   Counting trees from file {:<40}".format("'" + filename + "'" ":"))
         sys.stdout.flush()
-        if options.informat.lower() == "nexus":
-            treefile = treelib.Nexustreefile(filename)
-        else:
-            treefile = treelib.Newicktreefile(filename)
-        n_tot = 0
-        for tree in treefile:
-            n_tot += 1
-            treelist.append(tree)
+        n_tot = count_treestring_terminators(filename)
         sys.stdout.write("{:>15,d}\n".format(n_tot))
         sys.stdout.flush()
         burnin = int(options.burninfrac * n_tot)
-        treelist = treelist[burnin:]
         count_list.append(n_tot)
         burnin_list.append(burnin)
-        treelist_list.append(treelist)
 
     # If automatic weighting requested: Compute new weights
     if options.autoweight:
@@ -310,7 +309,7 @@ def read_trees(wt_file_list, options):
         new_wt_list = [relwt / relwtsum for relwt in relwt_list]    # Normalized so sum=1
 
     # Construct final combined wt + count + burnin + filename list
-    wt_count_burnin_file_treelist_list = []
+    wt_count_burnin_filename_list = []
     for i in range(len(wt_file_list)):
         filename = wt_file_list[i][1]
         count = count_list[i]
@@ -319,41 +318,49 @@ def read_trees(wt_file_list, options):
             wt = new_wt_list[i]
         else:
             wt = wt_file_list[i][0]
-        treelist = treelist_list[i]
 
-        wt_count_burnin_file_treelist_list.append((wt, count, burnin, filename, treelist))
+        wt_count_burnin_filename_list.append((wt, count, burnin, filename))
 
     n_trees_analyzed = sum(count_list) - sum (burnin_list)
-    return (n_trees_analyzed, wt_count_burnin_file_treelist_list)
+    return (n_trees_analyzed, wt_count_burnin_filename_list)
 
 ####################################################################################
 ####################################################################################
 
-def process_trees(wt_count_burnin_file_treelist_list, options, outgroup):
+def process_trees(wt_count_burnin_filename_list, options, outgroup):
 
     treesummarylist = []
-    for i, (weight, count, burnin, filename, treelist) in enumerate(wt_count_burnin_file_treelist_list):
+    for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
         sys.stdout.write("\n   Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
         sys.stdout.flush()
-        sys.stdout.write("\n   Discarded {:,} of {:,} trees (burnin fraction={:.2f})".format(burnin, count, options.burninfrac))
-        sys.stdout.write("\n   Processing trees ('.' signifies 100 trees):\n")
-        sys.stdout.flush()
 
+        # Open treefile. Discard (i.e., silently pass by) the requested number of trees
+        if options.informat.lower() == "nexus":
+            treefile = treelib.Nexustreefile(filename)
+        else:
+            treefile = treelib.Newicktreefile(filename)
+        for j in range(burnin):
+            treefile.readtree()
+        sys.stdout.write("\n   Discarded {:,} of {:,} trees (burnin fraction={:.2f})".format(burnin, count, options.burninfrac))
+
+        # Instantiate Treesummary.
         # Re-use interner from first Treesummary to avoid duplication
         if i>0:
             interner = treesummarylist[0].interner
         else:
             interner = None
-
         if options.treeprobs:
             treesummary = treelib.BigTreeSummary(interner=interner)
         else:
             treesummary = treelib.TreeSummary(interner=interner)
 
-        n_trees = 0
+        # Read remaining trees from file, add to treesummary
+        sys.stdout.write("\n   Processing trees ('.' signifies 100 trees):\n")
+        sys.stdout.flush()
         sys.stdout.write("\n   ")
-        while treelist:
-            tree = treelist.pop()
+
+        n_trees = 0
+        for tree in treefile:
             n_trees += 1
             treesummary.add_tree(tree, weight)
 
@@ -371,6 +378,7 @@ def process_trees(wt_count_burnin_file_treelist_list, options, outgroup):
             elif n_trees % 100 == 0:
                 sys.stdout.write(".")
                 sys.stdout.flush()
+
         treesummarylist.append(treesummary)
         print("\n")
 
