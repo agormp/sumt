@@ -1,6 +1,6 @@
 # sumt: command line program for computing consensus tree and other phylogenetic tree summaries
 
-![](https://img.shields.io/badge/version-2.3.2-blue)
+![](https://img.shields.io/badge/version-2.3.3-blue)
 
 The command-line program `sumt` takes as input one or more files containing samples of phylogenetic trees (e.g., from a Bayesian MCMC analysis or a bootstrap procedure), and produces, as output, files containing (1) the majority-rule consensus tree with clade support values, (2) a summary of observed bipartitions along with branch length means and variances, and optionally (3) a list of tree topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also is meant to resemble. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
 
@@ -27,12 +27,14 @@ python3 -m pip install sumt
 * Output:
 	* File containing consensus tree with clade support values (= frequency of bipartition in input trees)
 	* The file also contains a second consensus tree where branch labels = bipartition IDs, which can be used for interpreting bipartition file below.
-	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths.
+	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths. Thi list includes both bipartitions that correspond to branches in consensus tree, and bipartitions not included in that tree (typically because their frequency was below 50%).
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 	* (Optionally) Progress indication is written to screen
-* Reasonably fast and light on memory usage: 100,000 trees with 41 leaves processed in 1:18 (m:s), using max 4.9 GB memory on 2019 MacBook (99,034 topologies, 5,218 bipartitions)
+* Optimized for speed and memory usage:
+	* 100,000 trees with 41 leaves processed in 1:15 (m:s), using max 55 MB memory on 2019 MacBook (5,218 distinct bipartitions seen)
+	* Same file processed in 1:23 (m:s), using max 4.5 GB memory when also keeping track of topologies (99,034 distinct topologies seen)
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
-* Option to compute average standard deviation of split frequencies (ASDSF) when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
+* Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
 * Option to root consensus tree on outgroup or using midpoint rooting.
 * Option to assign specific weights to different input files.
