@@ -292,7 +292,7 @@ def count_trees(wt_file_list, options):
     sys.stdout.write("\n")
     for (wt, filename) in wt_file_list:
         treelist = []
-        sys.stdout.write("   Counting trees from file {:<40}".format("'" + filename + "'" ":"))
+        sys.stdout.write("   Counting trees in file {:<40}".format("'" + filename + "'" ":"))
         sys.stdout.flush()
         n_tot = count_treestring_terminators(filename)
         sys.stdout.write("{:>15,d}\n".format(n_tot))
