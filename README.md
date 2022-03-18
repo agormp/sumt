@@ -1,6 +1,6 @@
 # sumt: command line program for computing consensus tree and other phylogenetic tree summaries
 
-![](https://img.shields.io/badge/version-2.3.4-blue)
+![](https://img.shields.io/badge/version-2.4.0-blue)
 
 The command-line program `sumt` takes as input one or more files containing samples of phylogenetic trees (e.g., from a Bayesian MCMC analysis or a bootstrap procedure), and produces, as output, files containing (1) the majority-rule consensus tree with clade support values, (2) a summary of observed bipartitions along with branch length means and variances, and optionally (3) a list of tree topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also is meant to resemble. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
 
@@ -32,7 +32,7 @@ python3 -m pip install sumt
 	* (Optionally) Progress indication is written to screen
 * Optimized for speed and memory usage:
 	* 100,000 trees with 41 leaves processed in 1:15 (m:s), using max 55 MB memory on 2019 MacBook (5,218 distinct bipartitions seen)
-	* Same file processed in 1:23 (m:s), using max 4.5 GB memory when also keeping track of topologies (99,034 distinct topologies seen)
+	* Same file processed in 1:20 (m:s), using max 4.4 GB memory when also keeping track of topologies (99,034 distinct topologies seen)
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
