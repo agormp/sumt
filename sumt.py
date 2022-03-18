@@ -698,12 +698,10 @@ def topo_report(treesummary):
     """Returns list of [freq, treestring] lists"""
 
     # Python note: root trees in trprobs?
-    treesummary.compute_topofreq()
+    toposummary = treesummary.get_toposummary()
     toporeport = []
-    for topology, topostruct in treesummary.toposummary.items():
-        treestring = topostruct.treestring
-        freq = topostruct.freq
-        toporeport.append((freq, treestring))
+    for topology, topostruct in toposummary.items():
+        toporeport.append((topostruct.freq, topostruct.treestring))
 
     # Sort report according to frequency (higher values first) and return
     toporeport.sort(reverse=True)
@@ -715,7 +713,4 @@ def topo_report(treesummary):
 
 if __name__ == "__main__":
     main()
-    # import cProfile
-    # cProfile.run('main()', 'tmp/profile.pstats')
-
 
