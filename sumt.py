@@ -678,7 +678,7 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
     topofile.write("Upper case 'P' indicates the cumulative posterior probability.]\n")
     topofile.write("\n")
     topofile.write("begin trees;\n")
-
+    topofile.write(treesummary.translateblock)
     n=1
     cum = 0.0
     for (freq, treestring) in topolist:
