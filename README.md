@@ -16,6 +16,12 @@ The `sumt` source code is available on GitHub: https://github.com/agormp/sumt. T
 python3 -m pip install sumt
 ```
 
+Upgrading to latest version:
+
+```
+python3 -m pip install --upgrade sumt
+```
+
 ## Dependencies
 
 `sumt` relies on the [phylotreelib library](https://github.com/agormp/phylotreelib) for phylogeny-related matters, and on [psutil](https://pypi.org/project/psutil/) for (optionally) monitoring memory usage. These are automatically included when using pip to install.
