@@ -70,7 +70,7 @@ def main():
 
         compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
         n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
-                                                      options.midpoint, options.nowarn, options.outformat)
+                                                      options.midpoint, options.minvar, options.nowarn, options.outformat)
 
         n_leafs = len(treesummarylist[0].leaves)
         theo_maxbip = 2 * n_leafs - 3     # Theoretical maximum number of bipartitions in tree = 2n-3
@@ -142,8 +142,6 @@ def build_parser():
     parser.add_option("--basename", action="store", type="string", dest="outbase", metavar="NAME",
                       help="base name of output files (default: derived from input file)")
 
-
-
     parser.add_option("-b", type="float", dest="burninfrac", metavar="NUM",
                       help="burnin: fraction of trees to discard [0 - 1; default: 0.25]")
 
@@ -163,15 +161,14 @@ def build_parser():
                       type="string", dest="fileweights", nargs=2, metavar="WEIGHT FILE -w WEIGHT FILE ...",
                       help="put different weights on different FILEs")
 
-
-
     parser.add_option("--autow", action="store_true", dest="autoweight",
                     help="automatically assign file weights based on tree counts, so all files have equal impact")
 
-    parser.add_option("-m", action="store_true", dest="midpoint",
+    parser.add_option("-m", "--rootmid", action="store_true", dest="midpoint",
                       help="perform midpoint rooting of tree")
 
-
+    parser.add_option("--rootminvar", action="store_true", dest="minvar",
+                      help="perform minimum variance rooting of tree")
 
     parser.add_option("-r", action="append",
                       type="string", dest="outgroup", metavar="TAX [-r TAX ...]",
@@ -251,8 +248,9 @@ def parse_commandline(parser):
     if options.std and len(wt_file_list)==1:
         parser.error("cannot compute standard deviation from one tree file")
 
-    if options.midpoint and (options.outgroup or options.rootfile):
-        parser.error("cannot perform midpoint (-m) and outgroup (-r/--rootfile) rooting simultaneously")
+    n_root_options = sum(1 for opt in [options.midpoint, options.minvar, options.outgroup, options.rootfile] if opt)
+    if n_root_options > 1:
+        parser.error("More than one option for rooting was specified. Please use only one.")
 
     if options.rootfile:
         if not os.path.isfile(options.rootfile):
@@ -588,11 +586,11 @@ def bipart_to_string(bipartition, position_dict, leaflist):
 ##########################################################################################
 
 def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
-                              midpoint, nowarn, outformat):
+                              midpoint, minvar, nowarn, outformat):
 
     # Construct consensus tree with bipart freq labels
     contree = treesummary.contree(allcompat=allcomp)
-    n_biparts = len(contree.bipdict())
+    n_biparts = contree.n_bipartitions()
 
     # If outgroup is given: attempt to root tree on provided outgroup.
     # If this is impossible then print warning and save midpoint rooted contree instead
@@ -603,10 +601,10 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
             print("Warning: ", exc.errormessage)
             print("Midpoint rooting used instead")
             contree.rootmid()
-
-    # Perform midpoint rooting if requested
     elif midpoint:
         contree.rootmid()
+    elif minvar:
+        contree.rootminvar()
     newick_prob = contree.newick(labelfield="freq")
     newick_branchID = contree.newick(labelfield="branchID")
 
