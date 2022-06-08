@@ -43,7 +43,7 @@ python3 -m pip install --upgrade sumt
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
-* Option to root consensus tree using either outgroup, midpoint, or minimum variance rooting.
+* Option to root consensus tree using either outgroup, midpoint, or [minimum variance](https://pubmed.ncbi.nlm.nih.gov/28800608/) rooting.
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to get verbose progress indication:
