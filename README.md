@@ -1,7 +1,7 @@
 # sumt: command line program for computing consensus tree and other phylogenetic tree summaries
 
 [![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=downloads&service=github)](https://pepy.tech/project/sumt)
-![](https://img.shields.io/badge/version-2.4.0-blue)
+![](https://img.shields.io/badge/version-2.5.0-blue)
 
 The command-line program `sumt` takes as input one or more files containing samples of phylogenetic trees (e.g., from a Bayesian MCMC analysis or a bootstrap procedure), and produces, as output, files containing (1) the majority-rule consensus tree with clade support values, (2) a summary of observed bipartitions along with branch length means and variances, and optionally (3) a list of tree topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also is meant to resemble. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
 
@@ -34,7 +34,7 @@ python3 -m pip install --upgrade sumt
 * Output:
 	* File containing consensus tree with clade support values (= frequency of bipartition in input trees)
 	* The file also contains a second consensus tree where branch labels = bipartition IDs, which can be used for interpreting bipartition file below.
-	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths. Thi list includes both bipartitions that correspond to branches in consensus tree, and bipartitions not included in that tree (typically because their frequency was below 50%).
+	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in consensus tree, and bipartitions not included in consensus (typically because their frequency was below 50%).
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 	* (Optionally) Progress indication is written to screen
 * Optimized for speed and memory usage:
@@ -43,7 +43,7 @@ python3 -m pip install --upgrade sumt
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
-* Option to root consensus tree on outgroup or using midpoint rooting.
+* Option to root consensus tree using either outgroup, midpoint, or minimum variance rooting.
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to get verbose progress indication:
@@ -54,8 +54,8 @@ python3 -m pip install --upgrade sumt
 ## Usage
 
 ```
-Usage: sumt [options] FILE [FILE ...]
-       sumt [options] -w WEIGHT FILE -w WEIGHT FILE ...
+Usage: sumt.py [options] FILE [FILE ...]
+       sumt.py [options] -w WEIGHT FILE -w WEIGHT FILE ...
 
 Options:
   --version             show program's version number and exit
@@ -77,13 +77,12 @@ Options:
   -f NUM                Min. frequency for including bipartitions in report
                         and in computation of ASDSF [default: 0.1]
   -a                    add all compatible bipartitions to consensus tree
-  -z                    include zero length terms when computing branch length
-                        and average standard deviation of split frequencies
   -w WEIGHT FILE -w WEIGHT FILE ...
                         put different weights on different FILEs
   --autow               automatically assign file weights based on tree
                         counts, so all files have equal impact
-  -m                    perform midpoint rooting of tree
+  -m, --rootmid         perform midpoint rooting of tree
+  --rootminvar          perform minimum variance rooting of tree
   -r TAX [-r TAX ...]   root consensus tree on specified outgroup taxon/taxa
   --rootfile=FILE       root consensus tree on outgroup taxa listed in file
                         (one name per line)
