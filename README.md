@@ -38,8 +38,8 @@ python3 -m pip install --upgrade sumt
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 	* (Optionally) Progress indication is written to screen
 * Optimized for speed and memory usage:
-	* 100,000 trees with 41 leaves processed in 1:15 (m:s), using max 55 MB memory on 2019 MacBook (5,218 distinct bipartitions seen)
-	* Same file processed in 1:20 (m:s), using max 4.4 GB memory when also keeping track of topologies (99,034 distinct topologies seen)
+	* 100,000 trees with 41 leaves processed in 39 s, using max 63 MB memory on 2021 MacBook M1 Max (5,177 distinct bipartitions seen)
+	* Same file processed in 41 s, using max 4.7 GB memory when also keeping track of topologies (99,034 distinct topologies seen)
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
