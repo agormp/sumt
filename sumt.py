@@ -66,20 +66,18 @@ def main():
         for treesummary2 in treesummarylist[1:]:
             treesummarylist[0].update(treesummary2)
             del treesummary2
-        total_unique_biparts = len(treesummarylist[0].bipartsummary)
+        n_leafs = len(treesummarylist[0].leaves)
+        total_unique_internal_biparts = len(treesummarylist[0].bipartsummary) - n_leafs
 
         compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
-        n_biparts_contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
+        n_internal_biparts = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
                                                       options.midpoint, options.minvar, options.nowarn, options.outformat)
 
-        n_leafs = len(treesummarylist[0].leaves)
-        theo_maxbip = 2 * n_leafs - 3     # Theoretical maximum number of bipartitions in tree = 2n-3
-        n_internal_biparts = n_biparts_contree - n_leafs        # Number of internal bipartitions (excluding leaves)
-        theo_maxbip_internal = theo_maxbip - n_leafs            # Maximum theoretical number of internal biparts = n-3
+        theo_maxbip_internal = n_leafs - 3            # Maximum theoretical number of internal biparts = n-3
 
         if options.treeprobs:
             compute_and_print_trprobs(treesummarylist[0], options.treeprobs, outname, options.nowarn)
-            n_trees_seen = len(treesummarylist[0].toposummary)
+            n_topo_seen = len(treesummarylist[0].toposummary)
         stop=time.time()
 
         if options.verbose:
@@ -93,11 +91,11 @@ def main():
         print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)\n".format(n_trees_analyzed, h, m, s))
         if options.verbose:
             if options.treeprobs:
-                print("   Different topologies seen: {:8,d}".format(n_trees_seen))
-                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_biparts, theo_maxbip * n_trees_seen))
+                print("   Different topologies seen: {:8,d}".format(n_topo_seen))
+                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
             else:
-                print("   Different bipartitions seen: {:6,d}".format(total_unique_biparts))
-            print("   Internal bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(n_internal_biparts, theo_maxbip_internal))
+                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
+            print("   Bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(n_internal_biparts, theo_maxbip_internal))
             if memorymax > 1E9:
                 print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
             else:
@@ -366,10 +364,11 @@ def process_trees(wt_count_burnin_filename_list, options, outgroup):
             if n_trees % 5000 == 0:
                 sys.stdout.write(".  %7d" % n_trees)
                 if options.verbose:
+                    n_leaves = len(tree.leaves)
                     if options.treeprobs:
-                        sys.stdout.write("   (# bip: %6d    # topo: %6d)\n   " % (len(treesummary.bipartsummary), len(treesummary.toposummary)))
+                        sys.stdout.write("   (# bip: %6d    # topo: %6d)\n   " % (len(treesummary.bipartsummary)-n_leaves, len(treesummary.toposummary)))
                     else:
-                        sys.stdout.write("   (# bip: %6d)\n   " % len(treesummary.bipartsummary))
+                        sys.stdout.write("   (# bip: %6d)\n   " % (len(treesummary.bipartsummary)-n_leaves))
                 else:
                     sys.stdout.write("\n   ")
                 sys.stdout.flush()
