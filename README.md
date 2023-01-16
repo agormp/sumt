@@ -54,8 +54,8 @@ python3 -m pip install --upgrade sumt
 ## Usage
 
 ```
-Usage: sumt.py [options] FILE [FILE ...]
-       sumt.py [options] -w WEIGHT FILE -w WEIGHT FILE ...
+Usage: sumt [options] FILE [FILE ...]
+       sumt [options] -w WEIGHT FILE -w WEIGHT FILE ...
 
 Options:
   --version             show program's version number and exit
