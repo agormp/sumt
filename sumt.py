@@ -5,6 +5,7 @@ import phylotreelib as treelib
 import os, sys, time, math, copy, psutil
 from optparse import OptionParser
 from itertools import (takewhile,repeat)
+from operator import itemgetter
 import gc
 
 gc.disable()        # Faster. Assume no cyclic references will ever be created
@@ -350,7 +351,7 @@ def process_trees(wt_count_burnin_filename_list, options, outgroup):
             interner = None
         if options.treeprobs:
             treesummary = treelib.BigTreeSummary(interner=interner,
-                                                 store_treestrings=True)
+                                                 store_trees=True)
         else:
             treesummary = treelib.TreeSummary(interner=interner)
 
@@ -682,8 +683,9 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
     topofile.write(treesummary.translateblock)
     n=1
     cum = 0.0
-    for (freq, treestring) in topolist:
+    for (freq, tree) in topolist:
         cum += freq
+        treestring = tree.newick(printdist=False, printlabels=False)
         topofile.write(f"   tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
         n += 1
         if cum > hpd_frac:
@@ -702,10 +704,10 @@ def topo_report(treesummary):
     toposummary = treesummary.get_toposummary()
     toporeport = []
     for topology, topostruct in toposummary.items():
-        toporeport.append((topostruct.freq, topostruct.treestring))
+        toporeport.append((topostruct.freq, topostruct.tree))
 
     # Sort report according to frequency (higher values first) and return
-    toporeport.sort(reverse=True)
+    toporeport = sorted(toporeport, key=itemgetter(0), reverse=True)
 
     return toporeport
 
