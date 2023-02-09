@@ -147,7 +147,7 @@ def build_parser():
                       help="burnin: fraction of trees to discard [0 - 1; default: 0.25]")
 
     parser.add_option("-t", type="float", dest="treeprobs", metavar="NUM",
-                      help="compute tree probabilities, report NUM percent credible interval [0 - 1; default: 1.00]")
+                      help="compute tree probabilities, report NUM percent credible interval [0 - 1]")
 
     parser.add_option("-s", action="store_true", dest="std",
                       help="compute average standard deviation of split frequencies (ASDSF)")
