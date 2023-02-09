@@ -656,21 +656,21 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
     if nowarn:
         topofile = open(topofilename, "w")
     elif os.path.isfile(topofilename):
-        overwrite = input("\n   File %s already exists.\n   Overwrite (y/n): " % topofilename)
+        overwrite = input(f"\n   File {topofilename} already exists.\n   Overwrite (y/n): ")
         if overwrite== "y":
             topofile = open(topofilename, "w")            # Overwrite
-            print("   Overwriting file {}\n".format(topofilename))
+            print(f"   Overwriting file {topofilename}\n")
         else:
             topofile = open(topofilename, "a")            # Append
-            print("   Appending to file {}\n".format(topofilename))
+            print(f"   Appending to file {topofilename}\n")
     else:
         topofile = open(topofilename, "w")
 
     topofile.write("#NEXUS\n")
     topofile.write("\n")
     if hpd_frac < 1:
-        topofile.write("[This file contains the {}% most probable trees found during the\n".format(round(hpd_frac*100)))
-        topofile.write("MCMC search, sorted by posterior probability (the {}% HPD interval).\n".format(round(hpd_frac*100)))
+        topofile.write(f"[This file contains the {round(hpd_frac*100)}% most probable trees found during the\n")
+        topofile.write(f"MCMC search, sorted by posterior probability (the {round(hpd_frac*100)}% HPD interval).\n")
     else:
         topofile.write("[This file contains all trees that were found during the MCMC\n")
         topofile.write("search, sorted by posterior probability. \n")
@@ -683,13 +683,13 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
     cum = 0.0
     for (freq, treestring) in topolist:
         cum += freq
-        topofile.write("   tree tree_%-4d [p = %.6f] [P = %.6f] = %s\n" % (n, freq, cum, treestring))
+        topofile.write(f"   tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
         n += 1
         if cum > hpd_frac:
             break
 
     topofile.write("end;\n")
-    print("   Tree probabilities written to {}".format(topofilename))
+    print(f"   Tree probabilities written to {topofilename}")
 
 ##########################################################################################
 ##########################################################################################
