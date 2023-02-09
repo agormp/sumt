@@ -92,10 +92,13 @@ def main():
         if options.verbose:
             if options.treeprobs:
                 print("   Different topologies seen: {:8,d}".format(n_topo_seen))
-                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
+                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(
+                                                        total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
             else:
-                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
-            print("   Bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(n_internal_biparts, theo_maxbip_internal))
+                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(
+                                                        total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
+            print("   Bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(
+                                                        n_internal_biparts, theo_maxbip_internal))
             if memorymax > 1E9:
                 print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
             else:
