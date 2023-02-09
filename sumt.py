@@ -349,7 +349,8 @@ def process_trees(wt_count_burnin_filename_list, options, outgroup):
         else:
             interner = None
         if options.treeprobs:
-            treesummary = treelib.BigTreeSummary(interner=interner)
+            treesummary = treelib.BigTreeSummary(interner=interner,
+                                                 store_treestrings=True)
         else:
             treesummary = treelib.TreeSummary(interner=interner)
 
