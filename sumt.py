@@ -418,10 +418,12 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
     bipset_keep = set()
     for bipart in bipset:
         for treesummary in treesummarylist:
-            bipsum = treesummary.bipartsummary
-            if bipart in bipsum and bipsum[bipart].freq >= minfreq:
-                bipset_keep.add(bipart)
-                break
+            try:
+                if treesummary.bipartsummary[bipart].freq >= minfreq:
+                    bipset_keep.add(bipart)
+                    break
+            except:
+                pass
     del(bipset)
 
     # For each internal bipart: compute std of freq of this bipart across all treesummaries
