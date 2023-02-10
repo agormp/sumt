@@ -59,8 +59,6 @@ def main():
                 outname = outname[:-2]
 
         if options.std:
-            for treesummary in treesummarylist:
-                treesummary.compute_bipfreq()
             compute_and_print_converge_stats(treesummarylist, options.minfreq)
 
         # Collect all trees in single treesummary so final contree and bipart stats can be computed
@@ -408,9 +406,8 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
     # Find combined set of bipartitions (excluding external branches)
     bipset = set()
     for treesummary in treesummarylist:
+        treesummary.compute_bipfreq()
         for bipart in treesummary.bipartsummary:
-
-            # Exclude if bipart is external (i.e., when one part of it has only one member)
             (bip1, bip2) = bipart
             if (len(bip1)==1 or len(bip2)==1):
                 pass
@@ -418,19 +415,17 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
                 bipset.add(bipart)
 
     # Discard rare bipartitions: Only biparts that have freq >= minfreq are kept
-    bipsetcopy = copy.deepcopy(bipset)
-    for bipart in bipsetcopy:
-        discard = True
+    bipset_keep = set()
+    for bipart in bipset:
         for treesummary in treesummarylist:
             bipsum = treesummary.bipartsummary
             if bipart in bipsum and bipsum[bipart].freq >= minfreq:
-                discard = False
-        if discard:
-            bipset.remove(bipart)
-    del(bipsetcopy)
+                bipset_keep.add(bipart)
+                break
+    del(bipset)
 
     # For each internal bipart: compute std of freq of this bipart across all treesummaries
-    for bipart in bipset:
+    for bipart in bipset_keep:
 
         freqsum = 0
         sumsq = 0
@@ -444,7 +439,7 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
         std = math.sqrt((sumsq-N*meansq)/(N-1))
         sum_std += std
 
-    ave_std = sum_std / len(bipset)
+    ave_std = sum_std / len(bipset_keep)
 
     print(("   Average standard deviation of split frequencies: {:.6f}\n".format(ave_std)))
 
