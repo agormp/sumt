@@ -518,18 +518,14 @@ def bipart_report(treesummary, minfreq=0.05):
 
     # Loop over all bipartitions in bipartsummary, build formatted result list in process
     bipreport = []
-    for freq,bipart in treesummary.bipfreqlist:
+    bipfreqlist = select_sort_biparts(treesummary, minfreq)
+    for freq,bipart in bipfreqlist:
         bipstring = bipart_to_string(bipart, position_dict, leaflist)
         bipsize = bipstring.count("*")              # Size of smaller set
-
-        # Only report bipartitions that occur more often than "minfreq":
-        if freq > minfreq:
-            length = treesummary.bipartsummary[bipart].length
-            var = treesummary.bipartsummary[bipart].var
-            sem = treesummary.bipartsummary[bipart].sem
-            bipreport.append([freq, bipstring, length, var, sem, bipart])
-        else:
-            break   # bipartsummary is sorted by freq, so all later values will be lower
+        length = treesummary.bipartsummary[bipart].length
+        var = treesummary.bipartsummary[bipart].var
+        sem = treesummary.bipartsummary[bipart].sem
+        bipreport.append([freq, bipstring, length, var, sem, bipart])
 
     # Sort bipreport according to (1) frequency (higher values first), (2) size of
     # smaller bipartition (external branches before internal branches), and
@@ -563,6 +559,15 @@ def bipart_report(treesummary, minfreq=0.05):
     return (leaflist, bipreport)
 
 ##########################################################################################
+
+def select_sort_biparts(treesummary, minfreq):
+    bipfreqlist = []
+    for bipartition, branch in treesummary.bipartsummary.items():
+        if branch.freq > minfreq:
+            bipfreqlist.append((branch.freq, bipartition))
+    bipfreqlist.sort(reverse=True)
+    return bipfreqlist
+
 ##########################################################################################
 
 def bipart_to_string(bipartition, position_dict, leaflist):
