@@ -406,7 +406,6 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
     # Find combined set of bipartitions (excluding external branches)
     bipset = set()
     for treesummary in treesummarylist:
-        treesummary.compute_bipfreq()
         for bipart in treesummary.bipartsummary:
             (bip1, bip2) = bipart
             if (len(bip1)==1 or len(bip2)==1):
@@ -450,10 +449,6 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
 ##########################################################################################
 
 def compute_and_print_biparts(treesummary, filename, nowarn, minf):
-
-    # Compute bipart freq + branch length var and sem for combined tree summary
-    treesummary.compute_bipfreq()
-    treesummary.compute_blen_var_and_sem()
 
     # Compute and retrieve results
     (leaflist, bipreslist) = bipart_report(treesummary, minfreq=minf)
