@@ -285,6 +285,18 @@ def count_trees(wt_file_list, options):
         bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
         return sum( buf.count(b');') for buf in bufgen if buf )
 
+    def count_trees_by_parsing(filename, options):
+        # Open treefile. Discard (i.e., silently pass by) the requested number of trees
+        if options.informat.lower() == "nexus":
+            treefile = treelib.Nexustreefile(filename)
+        else:
+            treefile = treelib.Newicktreefile(filename)
+        treecount = 0
+        for tree in treefile:
+            treecount += 1
+        return treecount
+
+
     count_list = []
     burnin_list = []
     sys.stdout.write("\n")
@@ -292,7 +304,7 @@ def count_trees(wt_file_list, options):
         treelist = []
         sys.stdout.write("   Counting trees in file {:<40}".format("'" + filename + "'" ":"))
         sys.stdout.flush()
-        n_tot = count_treestring_terminators(filename)
+        n_tot = count_trees_by_parsing(filename, options)
         sys.stdout.write("{:>15,d}\n".format(n_tot))
         sys.stdout.flush()
         burnin = int(options.burninfrac * n_tot)
