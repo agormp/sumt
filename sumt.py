@@ -606,7 +606,7 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
         contree.rootmid()
     elif minvar:
         contree.rootminvar()
-    newick_prob = contree.newick(labelfield="freq")
+    newick_prob = contree.newick(labelfield="label")
     newick_branchID = contree.newick(labelfield="branchID")
 
     # Before printing results: check whether files already exist
