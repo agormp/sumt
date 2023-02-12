@@ -491,7 +491,7 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf):
     stringwidth = len(leaflist)
     partsfile.write("PART" + (stringwidth-1)*" " + "PROB      " + "BLEN      " + "VAR         " + "SEM         " + "ID\n")
 
-    for (freq, bipstring, mean, var, sem, branchID) in bipreslist:
+    for (freq, bipsize, bipstring, mean, var, sem, branchID) in bipreslist:
         if freq > 0.5:
             partsfile.write("%s   %8.6f  %8.6f  (%8.6f)  (%8.6f)  %s\n" % (bipstring, freq, mean, var, sem, branchID))
         else:
@@ -529,7 +529,7 @@ def bipart_report(treesummary, minfreq=0.05):
         length = treesummary.bipartsummary[bipart].length
         var = treesummary.bipartsummary[bipart].var
         sem = treesummary.bipartsummary[bipart].sem
-        bipreport.append([freq, bipstring, length, var, sem, bipart])
+        bipreport.append([freq, bipsize, bipstring, length, var, sem, bipart])
 
     # Sort bipreport according to (1) frequency (higher values first), (2) size of
     # smaller bipartition (external branches before internal branches), and
@@ -537,7 +537,7 @@ def bipart_report(treesummary, minfreq=0.05):
     # First construct temporary list of (1-freq, bipsize, bipstring, originial list-item)
     # tuples. Sort this list of tuples and then re-extract the original list-item again
     # (Example of Decorate, Sort, Undecorate idiom)
-    tmplist = sorted([(1-bip[0], bip[1].count("*"), bip[1], bip) for bip in bipreport])
+    tmplist = sorted([(1-bip[0], bip[1], bip[2], bip) for bip in bipreport])
     bipreport = [tup[-1] for tup in tmplist]        # Last element of tuple is orig list
 
     # Add field to Branchstructs and result list indicating bipart-ID
