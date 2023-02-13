@@ -132,9 +132,11 @@ def build_parser():
                       help="format of output: nexus or newick [default: nexus]")
 
     parser.add_option("--mbc", action="store_true", dest="mbc",
-                      help="summarise trees with maximum bipartition credibility (mbc) tree instead of majority rule consensus tree. "
-                           + "mbc is similar to mcc (maximum clade credibility) tree "
-                           + "but counting bipartitions instead of clades, i.e. ignoring rooting")
+                      help="summarise trees using Maximum Bipartition Credibility (MBC) tree instead of majority rule consensus tree. "
+                           + "MBC is similar to MCC (Maximum Clade Credibility) tree "
+                           + "but counting bipartitions instead of clades, i.e. ignoring rooting. "
+                           + "Additionally, branch lengths are estimated from branch lengths of bipartitions "
+                           + "and not from node depths (i.e., again ignoring rooting)")
 
     parser.add_option("-q", action="store_true", dest="quiet",
                       help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
