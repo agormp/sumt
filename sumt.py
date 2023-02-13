@@ -70,7 +70,8 @@ def main():
 
         compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
         n_internal_biparts = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
-                                                      options.midpoint, options.minvar, options.nowarn, options.outformat)
+                                                      options.midpoint, options.minvar, options.nowarn, options.outformat,
+                                                      options.mbc)
 
         theo_maxbip_internal = n_leafs - 3            # Maximum theoretical number of internal biparts = n-3
 
@@ -119,7 +120,7 @@ def build_parser():
     vers = "%prog 2.1.4"
     parser = OptionParser(usage=use, version=vers)
     parser.set_defaults(burninfrac=0.25, minfreq=0.1, allcomp=False, autoweight=False, outgroup=None,
-                        rootfile=None, midpoint=False, informat="NEXUS", outformat="NEXUS",
+                        rootfile=None, midpoint=False, informat="NEXUS", outformat="NEXUS", mbc=False,
                         nowarn=False, std=False, treeprobs=None, verbose=False, fileweights=None)
 
     parser.add_option("-I", type="choice", dest="informat",
@@ -129,6 +130,11 @@ def build_parser():
     parser.add_option("-O", type="choice", dest="outformat",
                       choices=["NEXUS", "nexus", "NEWICK", "newick"], metavar="FORM",
                       help="format of output: nexus or newick [default: nexus]")
+
+    parser.add_option("--mbc", action="store_true", dest="mbc",
+                      help="summarise trees with maximum bipartition credibility (mbc) tree instead of majority rule consensus tree. "
+                           + "mbc is similar to mcc (maximum clade credibility) tree "
+                           + "but counting bipartitions instead of clades, i.e. ignoring rooting")
 
     parser.add_option("-q", action="store_true", dest="quiet",
                       help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
@@ -359,7 +365,7 @@ def process_trees(wt_count_burnin_filename_list, options, outgroup):
             interner = treesummarylist[0].interner
         else:
             interner = None
-        if options.treeprobs:
+        if options.treeprobs or options.mbc:
             treesummary = treelib.BigTreeSummary(interner=interner,
                                                  store_trees=True)
         else:
@@ -599,10 +605,13 @@ def bipart_to_string(bipartition, position_dict, leaflist):
 ##########################################################################################
 
 def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
-                              midpoint, minvar, nowarn, outformat):
+                              midpoint, minvar, nowarn, outformat, mbc):
 
     # Construct consensus tree with bipart freq labels
-    contree = treesummary.contree(allcompat=allcomp)
+    if mbc:
+        contree, logbipcred = treesummary.max_clade_cred_tree()
+    else:
+        contree = treesummary.contree(allcompat=allcomp)
     n_biparts = contree.n_bipartitions()
 
     # If outgroup is given: attempt to root tree on provided outgroup.
@@ -622,7 +631,10 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
     newick_branchID = contree.newick(labelfield="branchID")
 
     # Before printing results: check whether files already exist
-    confilename = filename + ".con"
+    if mbc:
+        confilename = filename + ".mbc"
+    else:
+        confilename = filename + ".con"
     if nowarn:
         confile = open(confilename, "w")
     elif os.path.isfile(confilename):
@@ -652,7 +664,11 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
         confile.write(newick_branchID)
         confile.write("\nend;\n")
 
-    print("   Consensus tree written to {}".format(confilename))
+    if mbc:
+        print(f"   Maximum bipartition credibility tree written to {confilename}")
+        print(f"   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
+    else:
+        print("   Consensus tree written to {}".format(confilename))
 
     return n_biparts
 
