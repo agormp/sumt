@@ -68,7 +68,8 @@ def main():
         n_leafs = len(treesummarylist[0].leaves)
         total_unique_internal_biparts = len(treesummarylist[0].bipartsummary) - n_leafs
 
-        compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq, options.mbc)
+        compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq, options.mbc,
+                                                      options.allcomp)
 
         contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
                                                       options.midpoint, options.minvar, options.nowarn, options.outformat,
@@ -470,10 +471,10 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc):
+def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc, allcomp):
 
     # Compute and retrieve results
-    (leaflist, bipreslist) = bipart_report(treesummary, minf, mbc)
+    (leaflist, bipreslist) = bipart_report(treesummary, minf, mbc, allcomp)
 
     # Before printing results: check whether files already exist
     partsfilename = filename + ".parts"
@@ -512,7 +513,7 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc):
 ##########################################################################################
 ##########################################################################################
 
-def bipart_report(treesummary, minfreq, mbc):
+def bipart_report(treesummary, minfreq, mbc, allcomp):
     """Return processed, almost directly printable, summary of all observed bipartitions"""
 
     # Bipart report consists of a tuple containing:
@@ -531,7 +532,7 @@ def bipart_report(treesummary, minfreq, mbc):
 
     # Loop over all bipartitions in bipartsummary, build formatted result list in process
     bipreport = []
-    bipfreqlist = select_sort_biparts(treesummary, minfreq, mbc)
+    bipfreqlist = select_sort_biparts(treesummary, minfreq, mbc, allcomp)
     for freq,bipart in bipfreqlist:
         bipstring = bipart_to_string(bipart, position_dict, leaflist)
         bipsize = bipstring.count("*")              # Size of smaller set
@@ -573,10 +574,10 @@ def bipart_report(treesummary, minfreq, mbc):
 
 ##########################################################################################
 
-def select_sort_biparts(treesummary, minfreq, mbc):
+def select_sort_biparts(treesummary, minfreq, mbc, allcomp):
     bipfreqlist = []
     for bipartition, branch in treesummary.bipartsummary.items():
-        if mbc or (branch.freq > minfreq):
+        if mbc or allcomp or (branch.freq > minfreq):
             bipfreqlist.append((branch.freq, bipartition))
     bipfreqlist.sort(reverse=True)
     return bipfreqlist
