@@ -61,19 +61,21 @@ def main():
         if options.std:
             compute_and_print_converge_stats(treesummarylist, options.minfreq)
 
-        # Collect all trees in single treesummary so final contree and bipart stats can be computed
+        # Collect all trees in single treesummary so final summary tree and bipart stats can be computed
         for treesummary2 in treesummarylist[1:]:
             treesummarylist[0].update(treesummary2)
             del treesummary2
         n_leafs = len(treesummarylist[0].leaves)
         total_unique_internal_biparts = len(treesummarylist[0].bipartsummary) - n_leafs
 
-        compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq)
-        n_internal_biparts = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
+        compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq, options.mbc)
+
+        contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
                                                       options.midpoint, options.minvar, options.nowarn, options.outformat,
                                                       options.mbc)
 
         theo_maxbip_internal = n_leafs - 3            # Maximum theoretical number of internal biparts = n-3
+        n_internal_biparts = contree.n_bipartitions()
 
         if options.treeprobs:
             compute_and_print_trprobs(treesummarylist[0], options.treeprobs, outname, options.nowarn)
@@ -468,10 +470,10 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_biparts(treesummary, filename, nowarn, minf):
+def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc):
 
     # Compute and retrieve results
-    (leaflist, bipreslist) = bipart_report(treesummary, minfreq=minf)
+    (leaflist, bipreslist) = bipart_report(treesummary, minf, mbc)
 
     # Before printing results: check whether files already exist
     partsfilename = filename + ".parts"
@@ -500,18 +502,17 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf):
     partsfile.write("PART" + (stringwidth-1)*" " + "PROB      " + "BLEN      " + "VAR         " + "SEM         " + "ID\n")
 
     for (freq, bipsize, bipstring, mean, var, sem, branchID) in bipreslist:
-        if freq > 0.5:
-            partsfile.write("%s   %8.6f  %8.6f  (%8.6f)  (%8.6f)  %s\n" % (bipstring, freq, mean, var, sem, branchID))
+        if var == "NA":
+            partsfile.write(f"{bipstring}   {freq:8.6f}  {mean:8.6f}  ({var:>8})  ({sem:>8})  {branchID}\n")
         else:
-            partsfile.write("%s   %8.6f  %8.6f  (%8.6f)  (%8.6f)\n" % (bipstring, freq, mean, var, sem))
-
+            partsfile.write(f"{bipstring}   {freq:8.6f}  {mean:8.6f}  ({var:8.6f})  ({sem:8.6f})  {branchID}\n")
 
     print("   Bipartition list written to {}".format(partsfilename))
 
 ##########################################################################################
 ##########################################################################################
 
-def bipart_report(treesummary, minfreq=0.05):
+def bipart_report(treesummary, minfreq, mbc):
     """Return processed, almost directly printable, summary of all observed bipartitions"""
 
     # Bipart report consists of a tuple containing:
@@ -530,7 +531,7 @@ def bipart_report(treesummary, minfreq=0.05):
 
     # Loop over all bipartitions in bipartsummary, build formatted result list in process
     bipreport = []
-    bipfreqlist = select_sort_biparts(treesummary, minfreq)
+    bipfreqlist = select_sort_biparts(treesummary, minfreq, mbc)
     for freq,bipart in bipfreqlist:
         bipstring = bipart_to_string(bipart, position_dict, leaflist)
         bipsize = bipstring.count("*")              # Size of smaller set
@@ -552,17 +553,17 @@ def bipart_report(treesummary, minfreq=0.05):
     # Will be used to add label to consensus tree, so user can directly see which
     # branches are what in partslist
     # For external branches this is simply leaf.
-    # For internal branches: consecutively numbered, prepended by hash: #
+    # For internal branches: consecutively numbered
     i = 1
     for reslist in bipreport:
         bipart = reslist[-1]
         bip1,bip2 = bipart
-        if len(bip1)==1:
-            branchID, = bip1  # Tuple unpacking to get single element in frozenset. No pop...
-        elif len(bip2)==1:
-            branchID, = bip2
+        if len(bip1) == 1:
+            branchID = next(iter(bip1))
+        elif len(bip2) == 1:
+            branchID = next(iter(bip2))
         else:
-            branchID = "{}".format(i)
+            branchID = f"{i}"
             i += 1
         treesummary.bipartsummary[bipart].branchID = branchID
         reslist[-1] = branchID    # Replace bipartition with bipartID in individual reslist
@@ -572,10 +573,10 @@ def bipart_report(treesummary, minfreq=0.05):
 
 ##########################################################################################
 
-def select_sort_biparts(treesummary, minfreq):
+def select_sort_biparts(treesummary, minfreq, mbc):
     bipfreqlist = []
     for bipartition, branch in treesummary.bipartsummary.items():
-        if branch.freq > minfreq:
+        if mbc or (branch.freq > minfreq):
             bipfreqlist.append((branch.freq, bipartition))
     bipfreqlist.sort(reverse=True)
     return bipfreqlist
@@ -614,7 +615,6 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
         contree, logbipcred = treesummary.max_clade_cred_tree()
     else:
         contree = treesummary.contree(allcompat=allcomp)
-    n_biparts = contree.n_bipartitions()
 
     # If outgroup is given: attempt to root tree on provided outgroup.
     # If this is impossible then print warning and save midpoint rooted contree instead
@@ -672,7 +672,7 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
     else:
         print("   Consensus tree written to {}".format(confilename))
 
-    return n_biparts
+    return contree
 
 ##########################################################################################
 ##########################################################################################
