@@ -62,20 +62,23 @@ def main():
             compute_and_print_converge_stats(treesummarylist, options.minfreq)
 
         # Collect all trees in single treesummary so final summary tree and bipart stats can be computed
+        treesummary =  treesummarylist[0]
         for treesummary2 in treesummarylist[1:]:
-            treesummarylist[0].update(treesummary2)
+            treesummary.update(treesummary2)
             del treesummary2
-        n_leafs = len(treesummarylist[0].leaves)
-        total_unique_internal_biparts = len(treesummarylist[0].bipartsummary) - n_leafs
+        n_leafs = len(treesummary.leaves)
+        total_unique_internal_biparts = len(treesummary.bipartsummary) - n_leafs
 
-        compute_and_print_biparts(treesummarylist[0], outname, options.nowarn, options.minfreq, options.mbc,
-                                                      options.allcomp)
+        treesummary.add_branchid()
 
         contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
                                                       options.midpoint, options.minvar, options.nowarn, options.outformat,
                                                       options.mbc)
 
-        theo_maxbip_internal = n_leafs - 3            # Maximum theoretical number of internal biparts = n-3
+        compute_and_print_biparts(treesummary, outname, options.nowarn, options.minfreq, options.mbc,
+                                                      options.allcomp)
+
+        theo_maxbip_internal = n_leafs - 2            # Maximum theoretical number of internal biparts = n-2 (rooted)
         n_internal_biparts = contree.n_bipartitions()
 
         if options.treeprobs:
@@ -502,7 +505,7 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc, allcomp)
     stringwidth = len(leaflist)
     partsfile.write("PART" + (stringwidth-1)*" " + "PROB      " + "BLEN      " + "VAR         " + "SEM         " + "ID\n")
 
-    for (freq, bipsize, bipstring, mean, var, sem, branchID) in bipreslist:
+    for (_, _, bipstring, freq, mean, var, sem, branchID) in bipreslist:
         if var == "NA":
             partsfile.write(f"{bipstring}   {freq:8.6f}  {mean:8.6f}  ({var:>8})  ({sem:>8})  {branchID}\n")
         else:
@@ -516,71 +519,23 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc, allcomp)
 def bipart_report(treesummary, minfreq, mbc, allcomp):
     """Return processed, almost directly printable, summary of all observed bipartitions"""
 
-    # Bipart report consists of a tuple containing:
-    #       (0) a sorted list of leaves (for interpreting bipartstring)
-    #       (1) a sorted list of lists. Each item list is: [bipartstring, freq, mean, var, sem]
-    #           entire list is sorted on bipartition frequency
-
-    # Must first figure out which leaves correspond to which positions in bipartstring
-    # Note: leaves are ordered alphabetically, meaning first char in bipstring corresponds
-    # to first leaf in alphabetic sort
     leaflist = sorted(treesummary.leaves)
-
     position_dict = {}
     for position, leaf in enumerate(leaflist):
         position_dict[leaf] = position
-
-    # Loop over all bipartitions in bipartsummary, build formatted result list in process
     bipreport = []
-    bipfreqlist = select_sort_biparts(treesummary, minfreq, mbc, allcomp)
-    for freq,bipart in bipfreqlist:
-        bipstring = bipart_to_string(bipart, position_dict, leaflist)
-        bipsize = bipstring.count("*")              # Size of smaller set
-        length = treesummary.bipartsummary[bipart].length
-        var = treesummary.bipartsummary[bipart].var
-        sem = treesummary.bipartsummary[bipart].sem
-        bipreport.append([freq, bipsize, bipstring, length, var, sem, bipart])
+    for _,bipart in treesummary.sorted_biplist:
+        branch = treesummary.bipartsummary[bipart]
+        freq = branch.freq
+        if freq > minfreq:
+            bipstring = bipart_to_string(bipart, position_dict, leaflist)
+            bipsize = bipstring.count("*")              # Size of smaller set
+            bipreport.append([1-freq, bipsize, bipstring,
+                              freq, branch.length, branch.var, branch.sem, branch.branchID])
 
-    # Sort bipreport according to (1) frequency (higher values first), (2) size of
-    # smaller bipartition (external branches before internal branches), and
-    # (3) bipartstring (*.. before .*. before ..*)
-    # First construct temporary list of (1-freq, bipsize, bipstring, originial list-item)
-    # tuples. Sort this list of tuples and then re-extract the original list-item again
-    # (Example of Decorate, Sort, Undecorate idiom)
-    tmplist = sorted([(1-bip[0], bip[1], bip[2], bip) for bip in bipreport])
-    bipreport = [tup[-1] for tup in tmplist]        # Last element of tuple is orig list
-
-    # Add field to Branchstructs and result list indicating bipart-ID
-    # Will be used to add label to consensus tree, so user can directly see which
-    # branches are what in partslist
-    # For external branches this is simply leaf.
-    # For internal branches: consecutively numbered
-    i = 1
-    for reslist in bipreport:
-        bipart = reslist[-1]
-        bip1,bip2 = bipart
-        if len(bip1) == 1:
-            branchID = next(iter(bip1))
-        elif len(bip2) == 1:
-            branchID = next(iter(bip2))
-        else:
-            branchID = f"{i}"
-            i += 1
-        treesummary.bipartsummary[bipart].branchID = branchID
-        reslist[-1] = branchID    # Replace bipartition with bipartID in individual reslist
-
+        bipreport = sorted(bipreport, key=itemgetter(0,1,2))
     # Return tuple of (leaflist, bipreport)
     return (leaflist, bipreport)
-
-##########################################################################################
-
-def select_sort_biparts(treesummary, minfreq, mbc, allcomp):
-    bipfreqlist = []
-    for bipartition, branch in treesummary.bipartsummary.items():
-        if mbc or allcomp or (branch.freq > minfreq):
-            bipfreqlist.append((branch.freq, bipartition))
-    bipfreqlist.sort(reverse=True)
-    return bipfreqlist
 
 ##########################################################################################
 
