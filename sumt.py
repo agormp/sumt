@@ -72,7 +72,7 @@ def main():
         treesummary.add_branchid()
 
         contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
-                                                      options.midpoint, options.minvar, options.nowarn, options.outformat,
+                                                      options.midpoint, options.minvar, options.nowarn,
                                                       options.mbc)
 
         compute_and_print_biparts(treesummary, outname, options.nowarn, options.minfreq, options.mbc,
@@ -126,16 +126,12 @@ def build_parser():
     vers = "%prog 2.1.4"
     parser = OptionParser(usage=use, version=vers)
     parser.set_defaults(burninfrac=0.25, minfreq=0.1, allcomp=False, autoweight=False, outgroup=None,
-                        rootfile=None, midpoint=False, informat="NEXUS", outformat="NEXUS", mbc=False,
+                        rootfile=None, midpoint=False, informat="NEXUS", mbc=False,
                         nowarn=False, std=False, treeprobs=None, verbose=False, fileweights=None)
 
     parser.add_option("-I", type="choice", dest="informat",
                       choices=["NEXUS", "nexus", "NEWICK", "newick"], metavar="FORM",
                       help="format of input: nexus or newick [default: nexus]")
-
-    parser.add_option("-O", type="choice", dest="outformat",
-                      choices=["NEXUS", "nexus", "NEWICK", "newick"], metavar="FORM",
-                      help="format of output: nexus or newick [default: nexus]")
 
     parser.add_option("--mbc", action="store_true", dest="mbc",
                       help="summarise trees using Maximum Bipartition Credibility (MBC) tree instead of majority rule consensus tree. "
@@ -564,7 +560,7 @@ def bipart_to_string(bipartition, position_dict, leaflist):
 ##########################################################################################
 
 def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
-                              midpoint, minvar, nowarn, outformat, mbc):
+                              midpoint, minvar, nowarn, mbc):
 
     # Construct consensus tree with bipart freq labels
     if mbc:
@@ -607,21 +603,17 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
     else:
         confile = open(confilename, "w")
 
-    if outformat=="NEWICK" or outformat == "newick":
-        confile.write(newick)
-        confile.write("\n")
-    else:
-        confile.write("#NEXUS\n")
-        confile.write("\n")
-        confile.write("begin trees;\n")
-        confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
-        confile.write("   tree prob = ")
-        confile.write(newick_prob)
-        confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(filename + ".parts"))
-        confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
-        confile.write("   tree partID = ")
-        confile.write(newick_branchID)
-        confile.write("\nend;\n")
+    confile.write("#NEXUS\n")
+    confile.write("\n")
+    confile.write("begin trees;\n")
+    confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
+    confile.write("   tree prob = ")
+    confile.write(newick_prob)
+    confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(filename + ".parts"))
+    confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
+    confile.write("   tree partID = ")
+    confile.write(newick_branchID)
+    confile.write("\nend;\n")
 
     if mbc:
         print(f"   Maximum bipartition credibility tree written to {confilename}")
