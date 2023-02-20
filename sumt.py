@@ -571,6 +571,7 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
         contree, logbipcred = treesummary.max_clade_cred_tree()
     else:
         contree = treesummary.contree(allcompat=allcomp)
+        logbipcred = treesummary.log_clade_credibility(contree.topology())
 
     # If outgroup is given: attempt to root tree on provided outgroup.
     # If this is impossible then print warning and save midpoint rooted contree instead
@@ -627,6 +628,7 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
         print(f"   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
     else:
         print("   Consensus tree written to {}".format(confilename))
+        print(f"   Log Bipartition Credibility:  {logbipcred:.4g}")
 
     return contree
 
