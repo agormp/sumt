@@ -670,8 +670,8 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
     cum = 0.0
     for (freq, tree) in topolist:
         cum += freq
-        treestring = tree.newick(printdist=False, printlabels=False)
-        topofile.write(f"   tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
+        treestring = tree.newick(printdist=False, printlabels=False, transdict=treesummary.transdict)
+        topofile.write(f"    tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
         n += 1
         if cum > hpd_frac:
             break
