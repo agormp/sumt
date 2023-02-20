@@ -2,91 +2,45 @@
 ####################################################################################
 
 import phylotreelib as treelib
-import os, sys, time, math, copy, psutil
-from optparse import OptionParser
+import argparse, os, sys, time, math, copy, psutil
 from itertools import (takewhile,repeat)
 from operator import itemgetter
+from pathlib import Path
 import gc
 
 gc.disable()        # Faster. Assume no cyclic references will ever be created
 
-def main():
-
-    parser = build_parser()
-    (options, wt_file_list) = parse_commandline(parser)
+def main(commandlist=None):
+    # Python note: "commandlist" is to enable unit testing of argparse code
+    # https://jugmac00.github.io/blog/testing-argparse-applications-the-better-way/
     start=time.time()
-
+    args = parse_commandline(commandlist)
     try:
-        # Silence output to stdout if requested
-        # NOTE: automatically sets the "nowarn" option since interactivity is not possible
-        if options.quiet:
+        args.outbase.parent.mkdir(parents=True, exist_ok=True) # Create intermediate dirs
+        wt_file_list = parse_infilelist(args)
+        if args.quiet:
             sys.stdout = open(os.devnull, 'w')
-            options.nowarn = True
-
-        if options.rootfile:
-            outgroup = read_outgroup(options.rootfile)
-        else:
-            outgroup = options.outgroup
-
-        (n_trees_analyzed, wt_count_burnin_filename_list) = count_trees(wt_file_list, options)
-
-        if options.verbose:
+        n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args)
+        if args.verbose:
             pid = psutil.Process(os.getpid())
             memory1 = pid.memory_full_info().rss
-
-        treesummarylist = process_trees(wt_count_burnin_filename_list, options, outgroup)
-
-        # Get basename of output files.
-        # Use name supplied by user if present. Make sure all intermediate directories exist
-        if options.outbase:
-            filename = os.path.basename(options.outbase)     # NB: os.path.basename extracts filename from path
-            dirname = os.path.dirname(options.outbase)
-            if dirname and not os.path.isdir(dirname):
-                os.makedirs(dirname)                        # construct any missing dirs from path
-            outname = os.path.join(dirname, filename)
-
-        # If basename is not set: determine semi-intelligently from infilenames:
-        elif len(wt_file_list) > 1:
-            for (wt, outname) in wt_file_list:
-                if outname.endswith(".run1.t"):
-                    outname = outname[:-7]
-                    break
-                elif outname.endswith(".t"):
-                    outname = outname[:-2]
-        else:
-            outname = wt_file_list[0][1]
-            if outname.endswith(".t"):
-                outname = outname[:-2]
-
-        if options.std:
-            compute_and_print_converge_stats(treesummarylist, options.minfreq)
-
-        # Collect all trees in single treesummary so final summary tree and bipart stats can be computed
-        treesummary =  treesummarylist[0]
-        for treesummary2 in treesummarylist[1:]:
-            treesummary.update(treesummary2)
-            del treesummary2
+        treesummarylist = process_trees(wt_count_burnin_filename_list, args)
+        if args.std:
+            compute_and_print_converge_stats(treesummarylist, args.minfreq)
+        treesummary = merge_treesummaries(treesummarylist)
         n_leafs = len(treesummary.leaves)
         total_unique_internal_biparts = len(treesummary.bipartsummary) - n_leafs
-
         treesummary.add_branchid()
-
-        contree = compute_and_print_contree(treesummarylist[0], options.allcomp, outgroup, outname,
-                                                      options.midpoint, options.minvar, options.nowarn,
-                                                      options.mbc)
-
-        compute_and_print_biparts(treesummary, outname, options.nowarn, options.minfreq, options.mbc,
-                                                      options.allcomp)
-
+        contree = compute_and_print_contree(treesummary, args)
+        compute_and_print_biparts(treesummary, args)
         theo_maxbip_internal = n_leafs - 2            # Maximum theoretical number of internal biparts = n-2 (rooted)
         n_internal_biparts = contree.n_bipartitions()
-
-        if options.treeprobs:
-            compute_and_print_trprobs(treesummarylist[0], options.treeprobs, outname, options.nowarn)
-            n_topo_seen = len(treesummarylist[0].toposummary)
+        if args.treeprobs:
+            compute_and_print_trprobs(treesummary, args)
+            n_topo_seen = len(treesummary.toposummary)
         stop=time.time()
 
-        if options.verbose:
+        if args.verbose:
             memory2 = pid.memory_full_info().rss
             memorymax = max(memory1, memory2)
 
@@ -95,8 +49,8 @@ def main():
         m = int((time_spent % 3600)/60)
         s = int(time_spent % 60)
         print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)\n".format(n_trees_analyzed, h, m, s))
-        if options.verbose:
-            if options.treeprobs:
+        if args.verbose:
+            if args.treeprobs:
                 print("   Different topologies seen: {:8,d}".format(n_topo_seen))
                 print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(
                                                         total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
@@ -109,165 +63,194 @@ def main():
                 print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
             else:
                 print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
-    except treelib.TreeError as exc:
-        if options.verbose:
+    except treelib.TreeError as error:
+        print("Execution failed:\n")
+        if args.verbose:
             import traceback
             traceback.print_exc(file=sys.stdout)
         else:
-            print("Error: ", exc.errormessage)
+            print("Error: ", error)
 
         sys.exit()
 
 ####################################################################################
 ####################################################################################
 
+def parse_commandline(commandlist):
+    # Python note: "commandlist" is to enable unit testing of argparse code
+    # Will be "None" when run in script mode, and argparse will then automatically take values from sys.argv[1:]
+
+    parser = build_parser()
+    args = parser.parse_args(commandlist)
+
+    if args.infilelist and args.fileweights:
+        parser.error("When using option -w all input files need to have a weight specified")
+
+    if not args.infilelist and not args.fileweights:
+        parser.error("Please list one or more tree files.")
+
+    if not any([args.con, args.all, args.mbc]):
+        parser.error("Please select type of summary tree using one of these options: --con, --all, --mbc")
+
+    # If output basename is not set: determine semi-intelligently from infilenames:
+    if not args.outbase:
+        if args.infilelist:
+            infilename = args.infilelist[0]
+        else:
+            wt, infilename = args.fileweights[0]
+        if infilename.endswith(".run1.t"):
+            args.outbase = outname[:-7]
+        elif infilename.endswith(".t"):
+            args.outbase = outname[:-2]
+        else:
+            args.outbase = infilename.stem
+
+    if args.burninfrac > 1 or args.burninfrac < 0:
+        parser.error("option -b: NUM must be between 0.0 and 1.0")
+
+    if args.treeprobs and (args.treeprobs > 1 or args.treeprobs < 0):
+        parser.error("option -t: NUM must be between 0.0 and 1.0")
+
+    if args.infilelist:
+        nfiles = len(args.infilelist)
+    else:
+        nfiles = len(args.fileweights)
+    if args.std and nfiles==1:
+        parser.error("cannot compute standard deviation from one tree file")
+
+    if args.quiet:
+        args.nowarn = True
+
+    if args.rootfile:
+        args.outgroup = read_outgroup(args.rootfile)
+
+    return args
+
+####################################################################################
+####################################################################################
+
 def build_parser():
-    use = """usage: %prog [options] FILE [FILE ...]\n       %prog [options] -w WEIGHT FILE -w WEIGHT FILE ..."""
-    vers = "%prog 2.1.4"
-    parser = OptionParser(usage=use, version=vers)
-    parser.set_defaults(burninfrac=0.25, minfreq=0.1, allcomp=False, autoweight=False, outgroup=None,
-                        rootfile=None, midpoint=False, informat="NEXUS", mbc=False,
-                        nowarn=False, std=False, treeprobs=None, verbose=False, fileweights=None)
 
-    parser.add_option("-I", type="choice", dest="informat",
-                      choices=["NEXUS", "nexus", "NEWICK", "newick"], metavar="FORM",
-                      help="format of input: nexus or newick [default: nexus]")
+    parser = argparse.ArgumentParser(description = "Computes summary tree and statistics from set of phylogenetic trees")
 
-    parser.add_option("--mbc", action="store_true", dest="mbc",
-                      help="summarise trees using Maximum Bipartition Credibility (MBC) tree instead of majority rule consensus tree. "
-                           + "MBC is similar to MCC (Maximum Clade Credibility) tree "
-                           + "but counting bipartitions instead of clades, i.e. ignoring rooting. "
-                           + "Additionally, branch lengths are estimated from branch lengths of bipartitions "
-                           + "and not from node depths (i.e., again ignoring rooting)")
+    infilegroup = parser.add_argument_group("Input tree files")
 
-    parser.add_option("-q", action="store_true", dest="quiet",
-                      help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
+    infilegroup.add_argument('infilelist', nargs='*', metavar='INFILE', type=Path,
+                        help="input FILE(s) containing phylogenetic trees (can list several files)")
 
-    parser.add_option("-v", action="store_true", dest="verbose",
-                      help="verbose: more information, longer error messages")
+    infilegroup.add_argument("-w", action="append", dest="fileweights",
+                        nargs=2, metavar=("WEIGHT", "INFILE"),
+                        help="input FILEs with specified weights (repeat -w option for each input file)")
 
-    parser.add_option("-n", action="store_true", dest="nowarn",
-                      help="no warning when overwriting files")
+    infilegroup.add_argument("--autow", action="store_true", dest="autoweight",
+                     help="automatically assign file weights based on tree counts, so all files have equal impact"
+                         + "(default is for all trees, not files, to be equally important)")
 
-    parser.add_option("--basename", action="store", type="string", dest="outbase", metavar="NAME",
-                      help="base name of output files (default: derived from input file)")
+    infilegroup.add_argument("-i", action="store", dest="informat", metavar="FORMAT",
+                      choices=["nexus", "newick"], default="nexus",
+                      help="format of input files: %(choices)s [default: %(default)s]")
 
-    parser.add_option("-b", type="float", dest="burninfrac", metavar="NUM",
-                      help="burnin: fraction of trees to discard [0 - 1; default: 0.25]")
+    ####################################################################################
 
-    parser.add_option("-t", type="float", dest="treeprobs", metavar="NUM",
+    sumtypegroup = parser.add_argument_group("Type of summary tree")
+
+    sumtypecommands = sumtypegroup.add_mutually_exclusive_group()
+
+    sumtypecommands.add_argument("--con", action="store_true", default=True,
+                              help="majority rule consensus tree")
+
+    sumtypecommands.add_argument("--all", action="store_true",
+                              help="majority rule consensus tree with all compatible bipartitions added")
+
+    sumtypecommands.add_argument("--mbc", action="store_true",
+                              help="Maximum Bipartition Credibility (MBC) tree. "
+                              + "MBC is similar to MCC (Maximum Clade Credibility) tree "
+                              + "but counting bipartitions instead of clades, i.e. ignoring rooting. "
+                              + "Additionally, branch lengths are estimated from branch lengths of bipartitions "
+                              + "and not from node depths (i.e., again ignoring rooting)")
+
+    ####################################################################################
+
+    bayesgroup = parser.add_argument_group("Bayesian phylogeny options")
+
+    bayesgroup.add_argument("-b", type=float, dest="burninfrac", metavar="NUM", default=0.25,
+                      help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]")
+
+    bayesgroup.add_argument("-t", type=float, dest="treeprobs", metavar="NUM",
                       help="compute tree probabilities, report NUM percent credible interval [0 - 1]")
 
-    parser.add_option("-s", action="store_true", dest="std",
+    bayesgroup.add_argument("-s", action="store_true", dest="std",
                       help="compute average standard deviation of split frequencies (ASDSF)")
 
-    parser.add_option("-f", type="float", dest="minfreq", metavar="NUM",
-                      help="Min. frequency for including bipartitions in report and in computation of ASDSF [default: 0.1]")
+    bayesgroup.add_argument("-f", type=float, dest="minfreq", metavar="NUM", default=0.1,
+                      help="Minimum frequency for including bipartitions in report and in computation of ASDSF [default: %(default)s]")
 
-    parser.add_option("-a", action="store_true", dest="allcomp",
-                      help="add all compatible bipartitions to consensus tree")
+    ####################################################################################
 
-    parser.add_option("-w", action="append",
-                      type="string", dest="fileweights", nargs=2, metavar="WEIGHT FILE -w WEIGHT FILE ...",
-                      help="put different weights on different FILEs")
+    outformatgroup = parser.add_argument_group("Output to terminal and files")
 
-    parser.add_option("--autow", action="store_true", dest="autoweight",
-                    help="automatically assign file weights based on tree counts, so all files have equal impact")
+    outformatgroup.add_argument("-n", action="store_true", dest="nowarn",
+                      help="no warning when overwriting files")
 
-    parser.add_option("-m", "--rootmid", action="store_true", dest="midpoint",
+    outformatgroup.add_argument("-v", action="store_true", dest="verbose",
+                      help="verbose: more information, longer error messages")
+
+    outformatgroup.add_argument("-q", action="store_true", dest="quiet",
+                      help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
+
+    outformatgroup.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
+                      help="base name of output files (default: derived from input file)")
+
+    ####################################################################################
+
+    rootgroup = parser.add_argument_group("Rooting of summary tree")
+    rootcommands = rootgroup.add_mutually_exclusive_group()
+    rootcommands.add_argument("--rootmid", action="store_true", dest="midpoint",
                       help="perform midpoint rooting of tree")
-
-    parser.add_option("--rootminvar", action="store_true", dest="minvar",
+    rootcommands.add_argument("--rootminvar", action="store_true", dest="minvar",
                       help="perform minimum variance rooting of tree")
 
-    parser.add_option("-r", action="append",
-                      type="string", dest="outgroup", metavar="TAX [-r TAX ...]",
+    rootcommands.add_argument("-r", dest="outgroup", metavar="TAXON", nargs="+", default=None,
                       help="root consensus tree on specified outgroup taxon/taxa")
 
-    parser.add_option("--rootfile", action="store", type="string", dest="rootfile", metavar="FILE",
+    rootcommands.add_argument("--rootfile", action="store", metavar="FILE", default=None,
                       help="root consensus tree on outgroup taxa listed in file (one name per line)")
-
 
     return parser
 
 ####################################################################################
 ####################################################################################
 
-def parse_commandline(parser):
-
-    # Parse commandline, check for errors
-    (options, args) = parser.parse_args()
-
-    # If neither unweighted nor weighted filenames are listed: abort with error message
-    if len(args) == 0 and not options.fileweights:
-        parser.error("Please list one or more tree files.")
-
-    # If both weighted and unweighted filenames are listed: abort with error message
-    elif len(args) > 0 and options.fileweights:
-        print(("args: {}    op.fileweights: {}".format(args, options.fileweights)))
-        parser.error("Weights must be given for all listed tree files")
+def parse_infilelist(args):
 
     # If only unweighted filenames are given:
     # Reformat list of filenames into (weight, filename) tuple format expected by program
     # Set all weights to 1/n_files
-    elif len(args) > 0 and not options.fileweights:
-        wt_file_list = []
-        wt = 1.0 / len(args)
-        for filename in args:
-            wt_file_list.append((wt, filename))
+    if args.infilelist:
+        nfiles = len(args.infilelist)
+        wt_file_list = [(1/nfiles, filename) for filename in args.infilelist]
 
     # If only weighted filenames are listed:
     # reformat list of tuples such that weight is in float (not string). Normalize weights so they sum to one.
-    elif len(args) == 0 and options.fileweights:
-
-        tmp_wt_file_list = []
+    else:
+        wt_file_list = []
 
         # Attempt to convert weight string to float. Print sensible error message if this fails
-        for (wt_string, filename) in options.fileweights:
+        for (wt_string, filename) in args.fileweights:
             try:
                 wt = float(wt_string)
-            except ValueError as exc:
-                badfloat = exc[0].split()[-1]     # Last word in "exc" is the offending value
-                print(('Invalid file weight: "{}" - value has to be a real number.'.format(badfloat)))
-                sys.exit()
-
-            tmp_wt_file_list.append((wt, filename))
+            except ValueError:
+                msg = f'Invalid file weight: "{wt_string}" - value has to be a real number.'
+                raise Exception(msg)
+            wt_file_list.append((wt, filename))
 
         # Normalize weights, build final weight/file list:
         wtsum = 0.0
-        for (wt, filename) in tmp_wt_file_list:
+        for (wt, filename) in wt_file_list:
             wtsum += wt
-        wt_file_list = []
-        for (wt, filename) in tmp_wt_file_list:
-            wt_file_list.append((wt/wtsum, filename))
+        wt_file_list = [(wt/wtsum, filename) for (wt, filename) in wt_file_list]
 
-
-    for (wt, filename) in wt_file_list:
-        if not os.path.isfile(filename):
-            parser.error("File %s not found." % filename)
-
-    if options.burninfrac > 1 or options.burninfrac < 0:
-        parser.error("option -b: NUM must be between 0.0 and 1.0")
-
-    if options.treeprobs and (options.treeprobs > 1 or options.treeprobs < 0):
-        parser.error("option -t: NUM must be between 0.0 and 1.0")
-
-    if options.outgroup and options.rootfile:
-        parser.error("options -r and --rootfile are incompatible")
-
-    if options.std and len(wt_file_list)==1:
-        parser.error("cannot compute standard deviation from one tree file")
-
-    n_root_options = sum(1 for opt in [options.midpoint, options.minvar, options.outgroup, options.rootfile] if opt)
-    if n_root_options > 1:
-        parser.error("More than one option for rooting was specified. Please use only one.")
-
-    if options.rootfile:
-        if not os.path.isfile(options.rootfile):
-            parser.error("File %s not found." % options.rootfile)
-
-    # return options, weights, and filenames for external use:
-    return (options, wt_file_list)
+    return wt_file_list
 
 ####################################################################################
 ####################################################################################
@@ -284,7 +267,7 @@ def read_outgroup(rootfile):
 ####################################################################################
 ####################################################################################
 
-def count_trees(wt_file_list, options):
+def count_trees(wt_file_list, args):
 
     # fast counting of specific pattern.
     # from: https://stackoverflow.com/a/27517681/7836730
@@ -295,9 +278,9 @@ def count_trees(wt_file_list, options):
         bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
         return sum( buf.count(b');') for buf in bufgen if buf )
 
-    def count_trees_by_parsing(filename, options):
+    def count_trees_by_parsing(filename, args):
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
-        if options.informat.lower() == "nexus":
+        if args.informat == "nexus":
             treefile = treelib.Nexustreefile(filename)
         else:
             treefile = treelib.Newicktreefile(filename)
@@ -306,23 +289,22 @@ def count_trees(wt_file_list, options):
             treecount += 1
         return treecount
 
-
     count_list = []
     burnin_list = []
     sys.stdout.write("\n")
     for (wt, filename) in wt_file_list:
         treelist = []
-        sys.stdout.write("   Counting trees in file {:<40}".format("'" + filename + "'" ":"))
+        sys.stdout.write(f"   Counting trees in file {str(filename):<40}")
         sys.stdout.flush()
-        n_tot = count_trees_by_parsing(filename, options)
-        sys.stdout.write("{:>15,d}\n".format(n_tot))
+        n_tot = count_trees_by_parsing(filename, args)
+        sys.stdout.write(f"{n_tot:>15,d}\n")
         sys.stdout.flush()
-        burnin = int(options.burninfrac * n_tot)
+        burnin = int(args.burninfrac * n_tot)
         count_list.append(n_tot)
         burnin_list.append(burnin)
 
     # If automatic weighting requested: Compute new weights
-    if options.autoweight:
+    if args.autoweight:
         max_count = max(count_list)
         relwt_list = [max_count / count for count in count_list]
         relwtsum = sum(relwt_list)
@@ -334,7 +316,7 @@ def count_trees(wt_file_list, options):
         filename = wt_file_list[i][1]
         count = count_list[i]
         burnin = burnin_list[i]
-        if options.autoweight:
+        if args.autoweight:
             wt = new_wt_list[i]
         else:
             wt = wt_file_list[i][0]
@@ -347,7 +329,7 @@ def count_trees(wt_file_list, options):
 ####################################################################################
 ####################################################################################
 
-def process_trees(wt_count_burnin_filename_list, options, outgroup):
+def process_trees(wt_count_burnin_filename_list, args):
 
     treesummarylist = []
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
@@ -355,13 +337,13 @@ def process_trees(wt_count_burnin_filename_list, options, outgroup):
         sys.stdout.flush()
 
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
-        if options.informat.lower() == "nexus":
+        if args.informat == "nexus":
             treefile = treelib.Nexustreefile(filename)
         else:
             treefile = treelib.Newicktreefile(filename)
         for j in range(burnin):
             treefile.readtree()
-        sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={options.burninfrac:.2f})")
+        sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac:.2f})")
 
         # Instantiate Treesummary.
         # Re-use interner from first Treesummary to avoid duplication
@@ -369,7 +351,7 @@ def process_trees(wt_count_burnin_filename_list, options, outgroup):
             interner = treesummarylist[0].interner
         else:
             interner = None
-        if options.treeprobs or options.mbc:
+        if args.treeprobs or args.mbc:
             treesummary = treelib.BigTreeSummary(interner=interner,
                                                  store_trees=True)
         else:
@@ -388,9 +370,9 @@ def process_trees(wt_count_burnin_filename_list, options, outgroup):
             # Progress indicator
             if n_trees % 5000 == 0:
                 sys.stdout.write(".  %7d" % n_trees)
-                if options.verbose:
+                if args.verbose:
                     n_leaves = len(tree.leaves)
-                    if options.treeprobs:
+                    if args.treeprobs:
                         sys.stdout.write("   (# bip: %6d    # topo: %6d)\n   " % (len(treesummary.bipartsummary)-n_leaves, len(treesummary.toposummary)))
                     else:
                         sys.stdout.write("   (# bip: %6d)\n   " % (len(treesummary.bipartsummary)-n_leaves))
@@ -470,23 +452,35 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc, allcomp):
+def  merge_treesummaries(treesummarylist):
+
+    treesummary = treesummarylist[0]
+    for treesummary2 in treesummarylist[1:]:
+        treesummary.update(treesummary2)
+        del treesummary2
+    return treesummary
+
+##########################################################################################
+##########################################################################################
+
+
+def compute_and_print_biparts(treesummary, args):
 
     # Compute and retrieve results
-    (leaflist, bipreslist) = bipart_report(treesummary, minf, mbc, allcomp)
+    (leaflist, bipreslist) = bipart_report(treesummary, args)
 
     # Before printing results: check whether files already exist
-    partsfilename = filename + ".parts"
-    if nowarn:
+    partsfilename = args.outbase.parent / (args.outbase.name + ".parts")
+    if args.nowarn:
         partsfile = open(partsfilename, "w")
-    elif os.path.isfile(partsfilename):
-        overwrite = input("   File %s already exists.\n   Overwrite (y/n): " % partsfilename)
+    elif partsfilename.is_file():
+        overwrite = input(f"   File {partsfilename} already exists.\n   Overwrite (y/n): ")
         if overwrite== "y":
             partsfile = open(partsfilename, "w")            # Overwrite
-            print("   Overwriting file {}\n".format(partsfilename))
+            print(f"   Overwriting file {partsfilename}\n")
         else:
             partsfile = open(partsfilename, "a")            # Append
-            print("   Appending to file {}\n".format(partsfilename))
+            print(f"   Appending to file {partsfilename}\n")
     else:
         partsfile = open(partsfilename, "w")
 
@@ -499,20 +493,20 @@ def compute_and_print_biparts(treesummary, filename, nowarn, minf, mbc, allcomp)
                     "SEM  = Standard error of the mean for branch length\n"
                     "ID   = Leaf name or internal branch label, for those bipartitions that are included in consensus tree\n\n")
     stringwidth = len(leaflist)
-    partsfile.write("PART" + (stringwidth-1)*" " + "PROB      " + "BLEN      " + "VAR         " + "SEM         " + "ID\n")
+    partsfile.write("PART" + (stringwidth-1)*" " + "PROB      " + "BLEN       " + "VAR          " + "SEM          " + "ID\n")
 
     for (_, _, bipstring, freq, mean, var, sem, branchID) in bipreslist:
         if var == "NA":
-            partsfile.write(f"{bipstring}   {freq:8.6f}  {mean:8.6f}  ({var:>8})  ({sem:>8})  {branchID}\n")
+            partsfile.write(f"{bipstring}   {freq:<8.6f}  {mean:<9.4g}  ({var:<9.4g})  ({sem:<9.4g})  {branchID}\n")
         else:
-            partsfile.write(f"{bipstring}   {freq:8.6f}  {mean:8.6f}  ({var:8.6f})  ({sem:8.6f})  {branchID}\n")
-
-    print("   Bipartition list written to {}".format(partsfilename))
+            partsfile.write(f"{bipstring}   {freq:<8.6f}  {mean:<9.4g}  ({var:<9.4g})  ({sem:<9.4g})  {branchID}\n")
+    partsfile.close()
+    print(f"   Bipartition list written to {partsfilename}")
 
 ##########################################################################################
 ##########################################################################################
 
-def bipart_report(treesummary, minfreq, mbc, allcomp):
+def bipart_report(treesummary, args):
     """Return processed, almost directly printable, summary of all observed bipartitions"""
 
     leaflist = sorted(treesummary.leaves)
@@ -523,7 +517,7 @@ def bipart_report(treesummary, minfreq, mbc, allcomp):
     for _,bipart in treesummary.sorted_biplist:
         branch = treesummary.bipartsummary[bipart]
         freq = branch.freq
-        if freq > minfreq:
+        if freq > args.minfreq:
             bipstring = bipart_to_string(bipart, position_dict, leaflist)
             bipsize = bipstring.count("*")              # Size of smaller set
             bipreport.append([1-freq, bipsize, bipstring,
@@ -559,41 +553,31 @@ def bipart_to_string(bipartition, position_dict, leaflist):
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
-                              midpoint, minvar, nowarn, mbc):
+def compute_and_print_contree(treesummary, args):
 
-    # Construct consensus tree with bipart freq labels
-    if mbc:
+    if args.mbc:
         contree, logbipcred = treesummary.max_clade_cred_tree()
     else:
-        contree = treesummary.contree(allcompat=allcomp)
+        contree = treesummary.contree(allcompat=args.all)
         logbipcred = treesummary.log_clade_credibility(contree.topology())
 
-    # If outgroup is given: attempt to root tree on provided outgroup.
-    # If this is impossible then print warning and save midpoint rooted contree instead
-    if outgroup:
-        try:
-            contree.rootout(outgroup)
-        except treelib.TreeError as exc:
-            print("Warning: ", exc.errormessage)
-            print("Midpoint rooting used instead")
-            contree.rootmid()
-    elif midpoint:
+    if args.outgroup:
+        contree.rootout(args.outgroup)
+    elif args.midpoint:
         contree.rootmid()
-    elif minvar:
+    elif args.minvar:
         contree.rootminvar()
     newick_prob = contree.newick(labelfield="label")
     newick_branchID = contree.newick(labelfield="branchID")
 
-    # Before printing results: check whether files already exist
-    if mbc:
-        confilename = filename + ".mbc"
+    if args.mbc:
+        confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     else:
-        confilename = filename + ".con"
-    if nowarn:
+        confilename = args.outbase.parent / (args.outbase.name + ".con")
+    if args.nowarn:
         confile = open(confilename, "w")
-    elif os.path.isfile(confilename):
-        overwrite = input("\n   File %s already exists.\n   Overwrite (y/n): " % confilename)
+    elif confilename.is_file():
+        overwrite = input(f"\n   File {confilename} already exists.\n   Overwrite (y/n): ")
         if overwrite== "y":
             confile = open(confilename, "w")            # Overwrite
             print("   Overwriting file {}\n".format(confilename))
@@ -609,13 +593,14 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
     confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
     confile.write("   tree prob = ")
     confile.write(newick_prob)
-    confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(filename + ".parts"))
+    confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
     confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
     confile.write("   tree partID = ")
     confile.write(newick_branchID)
     confile.write("\nend;\n")
+    confile.close()
 
-    if mbc:
+    if args.mbc:
         print(f"   Maximum bipartition credibility tree written to {confilename}")
         print(f"   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
     else:
@@ -627,14 +612,14 @@ def compute_and_print_contree(treesummary, allcomp, outgroup, filename,
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
+def compute_and_print_trprobs(treesummary, args):
     topolist = topo_report(treesummary)
 
     # Before printing results: check whether file already exist
-    topofilename = filename + ".trprobs"
-    if nowarn:
+    topofilename = args.outbase.parent / (args.outbase.name + ".trprobs")
+    if args.nowarn:
         topofile = open(topofilename, "w")
-    elif os.path.isfile(topofilename):
+    elif topofilename.is_file():
         overwrite = input(f"\n   File {topofilename} already exists.\n   Overwrite (y/n): ")
         if overwrite== "y":
             topofile = open(topofilename, "w")            # Overwrite
@@ -647,9 +632,9 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
 
     topofile.write("#NEXUS\n")
     topofile.write("\n")
-    if hpd_frac < 1:
-        topofile.write(f"[This file contains the {round(hpd_frac*100)}% most probable trees found during the\n")
-        topofile.write(f"MCMC search, sorted by posterior probability (the {round(hpd_frac*100)}% HPD interval).\n")
+    if args.treeprobs < 1:
+        topofile.write(f"[This file contains the {round(args.treeprobs*100)}% most probable trees found during the\n")
+        topofile.write(f"MCMC search, sorted by posterior probability (the {round(args.treeprobs*100)}% HPD interval).\n")
     else:
         topofile.write("[This file contains all trees that were found during the MCMC\n")
         topofile.write("search, sorted by posterior probability. \n")
@@ -665,10 +650,11 @@ def compute_and_print_trprobs(treesummary, hpd_frac, filename, nowarn):
         treestring = tree.newick(printdist=False, printlabels=False, transdict=treesummary.transdict)
         topofile.write(f"    tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
         n += 1
-        if cum > hpd_frac:
+        if cum > args.treeprobs:
             break
 
     topofile.write("end;\n")
+    topofile.close()
     print(f"   Tree probabilities written to {topofilename}")
 
 ##########################################################################################
