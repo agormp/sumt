@@ -33,7 +33,7 @@ def main(commandlist=None):
         treesummary.add_branchid()
         contree, logbipcred = compute_and_print_contree(treesummary, args)
         compute_and_print_biparts(treesummary, args)
-        theo_maxbip_internal_unrooted = n_leafs - 3
+        theo_maxbip_internal = n_leafs - 3
         n_internal_biparts = contree.n_bipartitions()
         if args.treeprobs:
             compute_and_print_trprobs(treesummary, args)
@@ -63,11 +63,7 @@ def main(commandlist=None):
             if args.treeprobs:
                 print("\n   Different topologies seen: {:10,d}".format(n_topo_seen))
             print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
-                                                    total_unique_internal_biparts, theo_maxbip_internal_unrooted * n_topo_seen))
-            if args.rooted:
-                theo_maxbip_internal = theo_maxbip_internal_unrooted + 1
-            else:
-                theo_maxbip_internal = theo_maxbip_internal_unrooted
+                                                    total_unique_internal_biparts, theo_maxbip_internal * n_topo_seen))
             print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
             print(f"{n_internal_biparts:3,d} (theoretical maximum: {theo_maxbip_internal:,d})")
 
