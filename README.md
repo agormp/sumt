@@ -46,7 +46,7 @@ python3 -m pip install --upgrade sumt
 	* File containing summary tree with clade support values (= frequency of bipartition in input trees). Can be one of these:
 		* Majority rule consensus tree
 		* Majority rule consensus tree, with all compatible bipartitions added
-		* Maximum bipartition credibility tree (similar to maximum clade credibility tree)
+		* Maximum bipartition credibility tree (similar to maximum clade credibility tree, but ignoring location of root)
 	* The file also contains a second consensus tree where branch labels indicate bipartition IDs, which can be used for interpreting bipartition file below.
 	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
@@ -195,7 +195,7 @@ PART    PROB      BLEN       VAR          SEM          ID
 
 #### Tree probabilities
 
-This is the content of the file `primates.trprobs`. In this case there were only 5 leafs corresponding to a total of 15 possible trees, of which 3 were seen in the MCMC samples. Note: For data sets with more than about 15-20 taxa, each sampled tree will typically be unique and all topologies therefore have the same probability, meaning the credible set is not very useful. (Bipartitions on those trees will, however, not be unique, and clade probabilities carry useful information).
+This is the content of the file `primates.trprobs`. In this case there were only 5 leaves corresponding to a total of 15 possible trees, of which 3 were seen in the MCMC samples. Note: For data sets with more than about 15-20 taxa, each sampled tree will typically be unique and all topologies therefore have the same probability, meaning the credible set is not very useful. (Bipartitions on those trees will, however, not be unique, and clade probabilities carry useful information).
 
 ```
 #NEXUS
@@ -291,6 +291,7 @@ Finally the Highest Log Bipartition Credibility is output (this is the sum of th
 
    Max memory used: 1.77 GB.
 
+   Number of leaves on tree:          40
    Different topologies seen:     34,127
    Different bipartitions seen:    1,064 (theoretical maximum: 1,262,699)
    Bipartitions in MBC tree:          37 (theoretical maximum: 37)
@@ -344,9 +345,10 @@ sumt --all -b 0.1 -t 0.95 -nv -r macaque olive_baboon yellow_baboon mhc_align.ne
 
    Max memory used: 32.92 MB.
 
+   Number of leaves on tree:           9
    Different topologies seen:         16
    Different bipartitions seen:       15 (theoretical maximum: 96)
-   Bipartitions in Consensus tree:     7 (theoretical maximum: 7)
+   Bipartitions in Consensus tree:     6 (theoretical maximum: 6)
                                          (tree is fully resolved - no polytomies)
 
    Consensus tree has been explicitly rooted
