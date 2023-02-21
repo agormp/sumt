@@ -154,23 +154,6 @@ def build_parser():
 
     parser = argparse.ArgumentParser(description = "Computes summary tree and statistics from set of phylogenetic trees")
 
-    infilegroup = parser.add_argument_group("Input tree files")
-
-    infilegroup.add_argument('infilelist', nargs='*', metavar='INFILE', type=Path,
-                        help="input FILE(s) containing phylogenetic trees (can list several files)")
-
-    infilegroup.add_argument("-w", action="append", dest="fileweights",
-                        nargs=2, metavar=("WEIGHT", "INFILE"),
-                        help="input FILEs with specified weights (repeat -w option for each input file)")
-
-    infilegroup.add_argument("--autow", action="store_true", dest="autoweight",
-                     help="automatically assign file weights based on tree counts, so all files have equal impact "
-                         + "(default is for all trees, not files, to be equally important)")
-
-    infilegroup.add_argument("-i", action="store", dest="informat", metavar="FORMAT",
-                      choices=["nexus", "newick"], default="nexus",
-                      help="format of input files: %(choices)s [default: %(default)s]")
-
     ####################################################################################
 
     sumtypegroup = parser.add_argument_group("Type of summary tree")
@@ -236,6 +219,27 @@ def build_parser():
 
     rootcommands.add_argument("--rootfile", action="store", metavar="FILE", default=None,
                       help="root consensus tree on outgroup taxa listed in file (one name per line)")
+
+    ####################################################################################
+
+    infilegroup = parser.add_argument_group("Input tree files")
+
+    infilegroup.add_argument('infilelist', nargs='*', metavar='INFILE', type=Path,
+                        help="input FILE(s) containing phylogenetic trees (can list several files)")
+
+    infilegroup.add_argument("-w", action="append", dest="fileweights",
+                        nargs=2, metavar=("WEIGHT", "INFILE"),
+                        help="input FILEs with specified weights (repeat -w option for each input file)")
+
+    infilegroup.add_argument("--autow", action="store_true", dest="autoweight",
+                     help="automatically assign file weights based on tree counts, so all files have equal impact "
+                         + "(default is for all trees, not files, to be equally important)")
+
+    infilegroup.add_argument("-i", action="store", dest="informat", metavar="FORMAT",
+                      choices=["nexus", "newick"], default="nexus",
+                      help="format of input files: %(choices)s [default: %(default)s]")
+
+    ####################################################################################
 
     return parser
 
