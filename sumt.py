@@ -33,7 +33,7 @@ def main(commandlist=None):
         treesummary.add_branchid()
         contree, logbipcred = compute_and_print_contree(treesummary, args)
         compute_and_print_biparts(treesummary, args)
-        theo_maxbip_internal = n_leafs - 2            # Maximum theoretical number of internal biparts = n-2 (rooted)
+        theo_maxbip_internal_unrooted = n_leafs - 3
         n_internal_biparts = contree.n_bipartitions()
         if args.treeprobs:
             compute_and_print_trprobs(treesummary, args)
@@ -50,19 +50,45 @@ def main(commandlist=None):
         s = int(time_spent % 60)
         print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)\n".format(n_trees_analyzed, h, m, s))
         if args.verbose:
-            if args.treeprobs:
-                print("   Different topologies seen: {:8,d}".format(n_topo_seen))
-                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(
-                                                        total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
+            if args.mbc:
+                treetype = "MBC"
             else:
-                print("   Different bipartitions seen: {:6,d} (theoretical maximum: {:,d})".format(
-                                                        total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
-            print("   Bipartitions in consensus tree: {:3,d} (theoretical maximum: {:,d})".format(
-                                                        n_internal_biparts, theo_maxbip_internal))
+                treetype = "Consensus"
+
             if memorymax > 1E9:
                 print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
             else:
                 print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
+
+            if args.treeprobs:
+                print("\n   Different topologies seen: {:10,d}".format(n_topo_seen))
+            print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
+                                                    total_unique_internal_biparts, theo_maxbip_internal_unrooted * n_topo_seen))
+            if args.rooted:
+                theo_maxbip_internal = theo_maxbip_internal_unrooted + 1
+            else:
+                theo_maxbip_internal = theo_maxbip_internal_unrooted
+            print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
+            print(f"{n_internal_biparts:3,d} (theoretical maximum: {theo_maxbip_internal:,d})")
+
+            if n_internal_biparts < theo_maxbip_internal:
+                print("                                         (tree contains polytomies)")
+            else:
+                print("                                         (tree is fully resolved - no polytomies)")
+
+            if args.rooted:
+                print(f"\n   {treetype} tree has been explicitly rooted")
+                print(f"   (Root is at bifurcation)")
+            else:
+                print(f"\n   {treetype} tree has not been explicitly rooted")
+                print(f"   (Tree has been rooted at random internal node; root is at trifurcation)")
+
+            if args.mbc:
+                print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
+            else:
+                print(f"\n   Log Bipartition Credibility:  {logbipcred:.4g}")
+
+
     except treelib.TreeError as error:
         print("Execution failed:\n")
         if args.verbose:
