@@ -31,7 +31,7 @@ def main(commandlist=None):
         n_leafs = len(treesummary.leaves)
         total_unique_internal_biparts = len(treesummary.bipartsummary) - n_leafs
         treesummary.add_branchid()
-        contree = compute_and_print_contree(treesummary, args)
+        contree, logbipcred = compute_and_print_contree(treesummary, args)
         compute_and_print_biparts(treesummary, args)
         theo_maxbip_internal = n_leafs - 2            # Maximum theoretical number of internal biparts = n-2 (rooted)
         n_internal_biparts = contree.n_bipartitions()
@@ -602,12 +602,10 @@ def compute_and_print_contree(treesummary, args):
 
     if args.mbc:
         print(f"   Maximum bipartition credibility tree written to {confilename}")
-        print(f"   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
     else:
         print("   Consensus tree written to {}".format(confilename))
-        print(f"   Log Bipartition Credibility:  {logbipcred:.4g}")
 
-    return contree
+    return contree, logbipcred
 
 ##########################################################################################
 ##########################################################################################
