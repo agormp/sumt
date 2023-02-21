@@ -13,7 +13,7 @@ The command-line program `sumt` computes consensus trees and other tree-summary 
 
 Branch labels on these trees indicate clade support. 
 
-`sumt` also produces a summary of observed bipartitions along with branch length means and variances and optionally, a list of tree topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also is meant to resemble. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
+`sumt` also produces a summary of observed bipartitions along with branch length means and variances and, optionally, a list of tree topologies and how frequently they were observed. The name is taken from the `sumt` command in [MrBayes](https://nbisweden.github.io/MrBayes/index.html), whose functionality it also is meant to resemble. Clade support values and topology frequencies can be interpreted as posterior probabilities if the input trees are from a Bayesian MCMC analysis.
 
 
 ## Availability
