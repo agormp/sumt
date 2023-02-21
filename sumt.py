@@ -545,8 +545,7 @@ def bipart_report(treesummary, args):
             bipsize = bipstring.count("*")              # Size of smaller set
             bipreport.append([1-freq, bipsize, bipstring,
                               freq, branch.length, branch.var, branch.sem, branch.branchID])
-
-        bipreport = sorted(bipreport, key=itemgetter(0,1,2))
+    bipreport = sorted(bipreport, key=itemgetter(0,1,2))
     # Return tuple of (leaflist, bipreport)
     return (leaflist, bipreport)
 
