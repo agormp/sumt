@@ -122,8 +122,7 @@ Input tree files:
 ## Usage examples
 
 ### Example 1: 
-#### Majority rule consensus tree, bipartition summary, topology summary, 
-computation of average standard deviation of split frequencies, midpoint rooting
+#### Majority rule consensus tree, bipartition summary, topology summary, computation of average standard deviation of split frequencies, midpoint rooting
 
 The command below causes `sumt` to do the following:
 
