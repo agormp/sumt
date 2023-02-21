@@ -60,8 +60,10 @@ def main(commandlist=None):
             else:
                 print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
 
+
+            print(f"\n   Number of leaves on tree: {n_leafs:11,d}")
             if args.treeprobs:
-                print("\n   Different topologies seen: {:10,d}".format(n_topo_seen))
+                print("   Different topologies seen: {:10,d}".format(n_topo_seen))
             print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
                                                     total_unique_internal_biparts, theo_maxbip_internal * n_topo_seen))
             print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
