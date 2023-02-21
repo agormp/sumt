@@ -131,7 +131,7 @@ The command below causes `sumt` to do the following:
 * `-b 0.25`: Discard 25% of tree samples as burn-in
 * `-t 0.99`: Keep track of topology probabilities, report 99% credible set
 * `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence
-* `-f 0.1`: Report mean, variance, and standard error of the mean of branch lengths for all bipartitions seen in more than 10% of input trees
+* `-f 0.1`: Report mean, variance, and standard error of the mean, for branch lengths for all bipartitions seen in more than 10% of input trees
 * `--rootmid`: Perform midpoint rooting
 
 ```
@@ -308,7 +308,7 @@ Finally the Highest Log Bipartition Credibility is output (this is the sum of th
 The command below causes sumt to do the following:
 
 * Summarise the tree samples in the file `mhc_align.nexus.run1.t`
-* `--all`: Compute majority rule consensus tree with all compatible bipartitions added (bipartitions with frequency < 50% are checked for compatitibiliy with tree iteratively, and added if possible, until tree is fully resolved or all bipartitions have been checked)
+* `--all`: Compute majority rule consensus tree with all compatible bipartitions added (bipartitions with frequency < 50% are checked for compatitibiliy with tree iteratively in order of decreasing frequencies, and added if possible. Iteration stops when the consensus tree is fully resolved or all bipartitions have been checked)
 * `-b 0.1`: Discard 10% of tree samples as burn-in
 * `-t 0.95`: Report 95% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 95%)
 * `-n`: Overwrite any existing output files with no warning
