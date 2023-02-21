@@ -115,21 +115,13 @@ def parse_commandline(commandlist):
     if not args.infilelist and not args.fileweights:
         parser.error("Please list one or more tree files.")
 
-    if not any([args.con, args.all, args.mbc]):
-        parser.error("Please select type of summary tree using one of these options: --con, --all, --mbc")
-
-    # If output basename is not set: determine semi-intelligently from infilenames:
+    # If output basename is not set: use stem of infilenames minus all suffixes
     if not args.outbase:
         if args.infilelist:
-            infilename = args.infilelist[0]
+            infilepath = args.infilelist[0]
         else:
-            wt, infilename = args.fileweights[0]
-        if infilename.endswith(".run1.t"):
-            args.outbase = outname[:-7]
-        elif infilename.endswith(".t"):
-            args.outbase = outname[:-2]
-        else:
-            args.outbase = infilename.stem
+            wt, infilepath = args.fileweights[0]
+        args.outbase = Path(infilepath.stem.split('.')[0])
 
     if args.burninfrac > 1 or args.burninfrac < 0:
         parser.error("option -b: NUM must be between 0.0 and 1.0")
