@@ -166,7 +166,7 @@ def build_parser():
                         help="input FILEs with specified weights (repeat -w option for each input file)")
 
     infilegroup.add_argument("--autow", action="store_true", dest="autoweight",
-                     help="automatically assign file weights based on tree counts, so all files have equal impact"
+                     help="automatically assign file weights based on tree counts, so all files have equal impact "
                          + "(default is for all trees, not files, to be equally important)")
 
     infilegroup.add_argument("-i", action="store", dest="informat", metavar="FORMAT",
@@ -180,7 +180,7 @@ def build_parser():
     sumtypecommands = sumtypegroup.add_mutually_exclusive_group()
 
     sumtypecommands.add_argument("--con", action="store_true", default=True,
-                              help="majority rule consensus tree")
+                              help="majority rule consensus tree [default]")
 
     sumtypecommands.add_argument("--all", action="store_true",
                               help="majority rule consensus tree with all compatible bipartitions added")
