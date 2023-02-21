@@ -142,6 +142,11 @@ def parse_commandline(commandlist):
     if args.rootfile:
         args.outgroup = read_outgroup(args.rootfile)
 
+    if args.outgroup or args.midpoint or args.minvar:
+        args.rooted = True
+    else:
+        args.rooted = False
+
     return args
 
 ####################################################################################
