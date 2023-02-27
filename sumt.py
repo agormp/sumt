@@ -64,8 +64,10 @@ def main(commandlist=None):
             print(f"\n   Number of leaves on tree: {n_leafs:11,d}")
             if args.treeprobs:
                 print("   Different topologies seen: {:10,d}".format(n_topo_seen))
-            print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
+                print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
                                                     total_unique_internal_biparts, theo_maxbip_internal * n_topo_seen))
+            else:
+                print(f"   Different bipartitions seen: {total_unique_internal_biparts:8,d}")
             print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
             print(f"{n_internal_biparts:3,d} (theoretical maximum: {theo_maxbip_internal:,d})")
 
