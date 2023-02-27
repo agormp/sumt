@@ -67,7 +67,8 @@ def main(commandlist=None):
                 print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
                                                     total_unique_internal_biparts, theo_maxbip_internal * n_topo_seen))
             else:
-                print(f"   Different bipartitions seen: {total_unique_internal_biparts:8,d}")
+                print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
+                                                    total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
             print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
             print(f"{n_internal_biparts:3,d} (theoretical maximum: {theo_maxbip_internal:,d})")
 
