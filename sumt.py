@@ -110,9 +110,6 @@ def parse_commandline(commandlist):
     parser = build_parser()
     args = parser.parse_args(commandlist)
 
-    if args.infilelist and args.fileweights:
-        parser.error("When using option -w all input files need to have a weight specified")
-
     if not args.infilelist and not args.fileweights:
         parser.error("Please list one or more tree files.")
 
@@ -225,22 +222,28 @@ def build_parser():
 
     ####################################################################################
 
-    infilegroup = parser.add_argument_group("Input tree files")
+    othergroup = parser.add_argument_group("Other options")
 
-    infilegroup.add_argument('infilelist', nargs='*', metavar='INFILE', type=Path,
-                        help="input FILE(s) containing phylogenetic trees (can list several files)")
-
-    infilegroup.add_argument("-w", action="append", dest="fileweights",
-                        nargs=2, metavar=("WEIGHT", "INFILE"),
-                        help="input FILEs with specified weights (repeat -w option for each input file)")
-
-    infilegroup.add_argument("--autow", action="store_true", dest="autoweight",
+    othergroup.add_argument("--autow", action="store_true", dest="autoweight",
                      help="automatically assign file weights based on tree counts, so all files have equal impact "
                          + "(default is for all trees, not files, to be equally important)")
 
-    infilegroup.add_argument("-i", action="store", dest="informat", metavar="FORMAT",
+    othergroup.add_argument("--informat", action="store", dest="informat", metavar="FORMAT",
                       choices=["nexus", "newick"], default="nexus",
                       help="format of input files: %(choices)s [default: %(default)s]")
+
+
+    ####################################################################################
+
+    infilegroup = parser.add_argument_group("Input tree files")
+    infilecommands = infilegroup.add_mutually_exclusive_group()
+
+    infilecommands.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
+                        help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
+
+    infilecommands.add_argument("-w", action="append", dest="fileweights",
+                        nargs=2, metavar=("WEIGHT", "FILE"),
+                        help="input FILEs with specified weights (repeat -w WEIGHT FILE option for each input file)")
 
     ####################################################################################
 
