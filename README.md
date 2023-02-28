@@ -1,6 +1,6 @@
 # sumt
 
-![](https://img.shields.io/badge/version-3.1.0-blue)
+![](https://img.shields.io/badge/version-3.1.1-blue)
 [![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=downloads&service=github)](https://pepy.tech/project/sumt)
 
 The command-line program `sumt` computes consensus trees and other tree-summary statistics for sets of phylogenetic trees. The input trees can be in one or more input files, and will typically be from a Bayesian MCMC analysis (BEAST or MrBayes for instance) or from a bootstrap procedure. 
@@ -126,16 +126,16 @@ Input tree files:
 
 The command below causes `sumt` to do the following:
 
-* Summarise the tree samples in the files `hiv.nexus.run1.t` and `hiv.nexus.run2.t`
 * `--con`: Compute majority rule consensus tree (this is default and could have been omitted)
 * `-b 0.25`: Discard 25% of tree samples as burn-in
 * `-t 0.99`: Keep track of topology probabilities, report 99% credible set
 * `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence
 * `-f 0.1`: Report mean, variance, and standard error of the mean, for branch lengths for all bipartitions seen in more than 10% of input trees
 * `--rootmid`: Perform midpoint rooting
+* `-i primates.nexus.run1.t -i primates.nexus.run2.t `: Summarise the tree samples in the files `hiv.nexus.run1.t` and `hiv.nexus.run2.t`
 
 ```
-sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid primates.nexus.run1.t primates.nexus.run2.t 
+sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.nexus.run1.t -i primates.nexus.run2.t 
 ```
 
 #### Screen output
@@ -244,16 +244,16 @@ end;
 
 The command below causes sumt to do the following:
 
-* Summarise the tree samples in the file `gp120.nexus.trees`
 * `--mbc`: Compute maximum bipartition credibility tree (instead of majority rule consensus)
 * `-b 0.1`: Discard 10% of tree samples as burn-in
 * `-t 0.75`: Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
 * `-n`: Overwrite any existing output files with no warning
 * `-v`: Print more verbose output to screen, including running count of distinct bipartitions and topologies seen in input trees
 * `--basename /Users/bob/hiv`: produce output files with the indicated stem (/Users/bob/hiv.parts, /Users/bob/hiv.trprobs, /Users/bob/hiv.mbc)
+* `-i gp120.nexus.trees`: Summarise the tree samples in the file `gp120.nexus.trees`
 
 ```
-sumt --mbc -b 0.1 -t 0.75 -nv --basename /Users/bob/hiv gp120.nexus.trees
+sumt --mbc -b 0.1 -t 0.75 -nv --basename /Users/bob/hiv -i gp120.nexus.trees
 ```
 
 #### Screen output
@@ -308,16 +308,16 @@ Finally the Highest Log Bipartition Credibility is output (this is the sum of th
 
 The command below causes sumt to do the following:
 
-* Summarise the tree samples in the file `mhc_align.nexus.run1.t`
 * `--all`: Compute majority rule consensus tree with all compatible bipartitions added (bipartitions with frequency < 50% are checked for compatitibiliy with tree iteratively in order of decreasing frequencies, and added if possible. Iteration stops when the consensus tree is fully resolved or all bipartitions have been checked)
 * `-b 0.1`: Discard 10% of tree samples as burn-in
 * `-t 0.95`: Report 95% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 95%)
 * `-n`: Overwrite any existing output files with no warning
 * `-v`: Print more verbose output to screen, including running count of distinct bipartitions and topologies seen in input trees
 * `-r macaque olive_baboon yellow_baboon`: root consensus tree using outgroup consisting of the taxa "macaque", "olive_baboon", and "yellow_baboon".
+* `-i mhc_align.nexus.run1.t`: Summarise the tree samples in the file `mhc_align.nexus.run1.t`
 
 ```
-sumt --all -b 0.1 -t 0.95 -nv -r macaque olive_baboon yellow_baboon mhc_align.nexus.run1.t
+sumt --all -b 0.1 -t 0.95 -nv -r macaque olive_baboon yellow_baboon -i mhc_align.nexus.run1.t
 ```
 
 #### Screen output
