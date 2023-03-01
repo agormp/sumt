@@ -26,7 +26,7 @@ def main(commandlist=None):
             memory1 = pid.memory_full_info().rss
         treesummarylist = process_trees(wt_count_burnin_filename_list, args)
         if args.std:
-            compute_and_print_converge_stats(treesummarylist, args.minfreq)
+            ave_std = compute_converge_stats(treesummarylist, args.minfreq)
         treesummary = merge_treesummaries(treesummarylist)
         n_leafs = len(treesummary.leaves)
         total_unique_internal_biparts = len(treesummary.bipartsummary) - n_leafs
@@ -44,22 +44,11 @@ def main(commandlist=None):
             memory2 = pid.memory_full_info().rss
             memorymax = max(memory1, memory2)
 
-        time_spent=stop-start
-        h = int(time_spent/3600)
-        m = int((time_spent % 3600)/60)
-        s = int(time_spent % 60)
-        print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)\n".format(n_trees_analyzed, h, m, s))
         if args.verbose:
             if args.mbc:
                 treetype = "MBC"
             else:
                 treetype = "Consensus"
-
-            if memorymax > 1E9:
-                print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
-            else:
-                print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
-
 
             print(f"\n   Number of leaves on tree: {n_leafs:11,d}")
             if args.treeprobs:
@@ -88,6 +77,20 @@ def main(commandlist=None):
                 print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
             else:
                 print(f"\n   Log Bipartition Credibility:  {logbipcred:.4g}")
+
+        if args.std:
+            print(("   Average standard deviation of split frequencies: {:.6f}".format(ave_std)))
+
+        time_spent=stop-start
+        h = int(time_spent/3600)
+        m = int((time_spent % 3600)/60)
+        s = int(time_spent % 60)
+        print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
+        if args.verbose:
+            if memorymax > 1E9:
+                print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
+            else:
+                print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
 
 
     except treelib.TreeError as error:
@@ -422,7 +425,7 @@ def process_trees(wt_count_burnin_filename_list, args):
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_converge_stats(treesummarylist, minfreq):
+def compute_converge_stats(treesummarylist, minfreq):
     """Compute average bipartition frequency standard deviation between treesummaries"""
 
     # NOTES ON COMPUTATION:
@@ -476,9 +479,7 @@ def compute_and_print_converge_stats(treesummarylist, minfreq):
         sum_std += std
 
     ave_std = sum_std / len(bipset_keep)
-
-    print(("   Average standard deviation of split frequencies: {:.6f}\n".format(ave_std)))
-
+    return ave_std
 
 ##########################################################################################
 ##########################################################################################
