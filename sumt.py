@@ -325,7 +325,6 @@ def count_trees(wt_file_list, args):
 
     count_list = []
     burnin_list = []
-    sys.stdout.write("\n")
     for (wt, filename) in wt_file_list:
         treelist = []
         sys.stdout.write(f"   Counting trees in file {str(filename):<40}")

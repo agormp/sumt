@@ -49,6 +49,7 @@ python3 -m pip install --upgrade sumt
 		* Maximum bipartition credibility tree (similar to maximum clade credibility tree, but ignoring location of root)
 	* The file also contains a second consensus tree where branch labels indicate bipartition IDs, which can be used for interpreting bipartition file below.
 	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary
+	* During run: progress bar showing percentage of file analyzed
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 	* (Optionally) Progress indication is written to screen
 * Optimized for speed and memory usage:
@@ -62,8 +63,8 @@ python3 -m pip install --upgrade sumt
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to set basename of output files (default: basename will be stem of input file name)
 * Option to get verbose progress indication:
-	* Running counts of number of distinct bipartitions and topologies seen, along with theoretical maximum possible
 	* Count of number of bipartitions in consensus tree, along with theoretical maximum
+	* Count of number of topologies seen
 	* Report of maximum memory usage during processing
 
 ## Usage
@@ -143,27 +144,33 @@ sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.nexus.run1.t -i primates
 This is printed to screen during run:
 
 ```
-   Counting trees in file primates.nexus.run1.t          2,001
-   Counting trees in file primates.nexus.run2.t          2,001
+   Counting trees in file primates.nexus.run1.t                             2,501
+   Counting trees in file primates.nexus.run2.t                             2,501
 
    Analyzing file: primates.nexus.run1.t (Weight: 0.500)
-   Discarded 500 of 2,001 trees (burnin fraction=0.25)
-   Processing trees ('.' signifies 100 trees):
+   Discarded 625 of 2,501 trees (burnin fraction=0.25)
 
-   ...............
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
 
 
    Analyzing file: primates.nexus.run2.t (Weight: 0.500)
-   Discarded 500 of 2,001 trees (burnin fraction=0.25)
-   Processing trees ('.' signifies 100 trees):
+   Discarded 625 of 2,501 trees (burnin fraction=0.25)
 
-   ...............
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
 
    Consensus tree written to primates.con
    Bipartition list written to primates.parts
    Tree probabilities written to primates.trprobs
 
-   Done. 3,002 trees analyzed.
+   Done. 3,752 trees analyzed.
    Time spent: 0:00:00 (h:m:s)
 ```
 
@@ -184,13 +191,13 @@ SEM  = Standard error of the mean for branch length
 ID   = Leaf name or internal branch label, for those bipartitions that are included in consensus tree
 
 PART    PROB      BLEN       VAR          SEM          ID
-*....   1.000000  0.07585    (0.0003568)  (0.0003448)  Orangutan
-.*...   1.000000  0.4324     (0.02003  )  (0.002583 )  Gibbon
-..*..   1.000000  0.07269    (0.0005394)  (0.0004239)  Gorilla
-...*.   1.000000  0.05678    (0.0002647)  (0.000297 )  Human
-....*   1.000000  0.2834     (0.009653 )  (0.001793 )  Chimpanzee
-.*..*   1.000000  0.1449     (0.003743 )  (0.001117 )  6
-*..*.   0.965356  0.03702    (0.0004153)  (0.0003786)  7
+*....   1.000000  0.07601    (0.0003773)  (0.0003171)  Chimpanzee
+.*...   1.000000  0.3582     (0.01896  )  (0.002248 )  Gibbon
+..*..   1.000000  0.07316    (0.0005376)  (0.0003785)  Gorilla
+...*.   1.000000  0.05669    (0.0002765)  (0.0002715)  Human
+....*   1.000000  0.2833     (0.009456 )  (0.001588 )  Orangutan
+.*..*   1.000000  0.1454     (0.003596 )  (0.000979 )  6
+*..*.   0.969350  0.03699    (0.0003814)  (0.0003238)  7
 ```
 
 #### Tree probabilities
@@ -213,9 +220,9 @@ begin trees;
         4     Human,
         5     Orangutan
     ;
-    tree tree_1 [p = 0.965356] [P = 0.965356] = (((5,2),3),4,1);
-    tree tree_2 [p = 0.018321] [P = 0.983678] = ((5,2),(3,1),4);
-    tree tree_3 [p = 0.016322] [P = 1.000000] = (((5,2),1),4,3);
+    tree tree_1 [p = 0.969350] [P = 0.969350] = (((5,2),3),4,1);
+    tree tree_2 [p = 0.016258] [P = 0.985608] = (((5,2),1),4,3);
+    tree tree_3 [p = 0.014392] [P = 1.000000] = ((5,2),(1,3),4);
 end;
 ```
 
@@ -231,11 +238,11 @@ This is the content of the file `primates.nexus.con`. The difference between the
 
 begin trees;
    [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]
-   tree prob = (((Human:0.056782,Chimpanzee:0.0758462)0.965:0.0370172,Gorilla:0.0726937)1.000:0.144909,Orangutan:0.283409,Gibbon:0.432437);
+   tree prob = ((((Human:0.0566895,Chimpanzee:0.0760097)0.969:0.0369884,Gorilla:0.0731637)1.000:0.145374,Orangutan:0.283342)1.000:0.0748381,Gibbon:0.35818);
 
    [In this tree branch labels indicate the bipartition ID listed in the file primates.parts.
     These branch labels can be used for interpreting the table of branch lenght info in that file]
-   tree partID = (((Human:0.056782,Chimpanzee:0.0758462)7:0.0370172,Gorilla:0.0726937)6:0.144909,Orangutan:0.283409,Gibbon:0.432437);
+   tree partID = ((((Human:0.0566895,Chimpanzee:0.0760097)7:0.0369884,Gorilla:0.0731637)6:0.145374,Orangutan:0.283342)Gibbon:0.0748381,Gibbon:0.35818);
 end;
 ```
 
@@ -258,38 +265,29 @@ sumt --mbc -b 0.1 -t 0.75 -nv --basename /Users/bob/hiv -i gp120.nexus.trees
 
 #### Screen output
 
-This is printed to screen during run. Numbers in parentheses (after lines of dots) give a running count of how many distinct bipartitions and topologies we have seen so far (so after the first 5000 trees have been analyzed, we have seen 4732 different tree topologies, and these contain a total of 842 different bipartitions). 
+This is printed to screen during run. The progress bar gradually fills up over the 20 seconds it takes to process the 36,001 post-burnin trees.
 
-At the end of the run the actual and theoretical maximum for number of bipartitions in the consensus tree is reported. The total number of observed topologies and bipartitions (and the theoretical maximal possible number of bipartitions) is also reported. In this case we have seen 34,127 distint tree topologies among the 36,001 trees analyzed, meaning that about 95% of the sampled trees are unique. In these topologies we have seen 1,064 distinct bipartitions. If the 34,127 topologies had been completely different (in the sense of not sharing any bipartitions), then the number of distinct bipartitions would have been 1,262,699 (so 1,064 is a small fraction of that, indicating that some bipartitions are observed in a large fraction of the tree samples).
+At the end of the run the actual and theoretical maximum for number of bipartitions in the MBC tree is reported. The total number of observed topologies and bipartitions (and the theoretical maximal possible number of bipartitions) is also reported. In this case we have seen 34,127 distint tree topologies among the 36,001 trees analyzed, meaning that about 95% of the sampled trees are unique. In these topologies we have seen 1,064 distinct bipartitions. If the 34,127 topologies had been completely different (in the sense of not sharing any bipartitions), then the number of distinct bipartitions would have been 1,262,699 (so 1,064 is a small fraction of that, indicating that some bipartitions are observed in a large fraction of the tree samples).
 
 The ouput also indicates that the summary tree is fully resolved (has no polytomies). This will always be the case for a maximum bipartition credibility tree (because individual tree samples are typically fully resolved). It is further stated that the MBC tree has not been explicitly rooted (none of `sumt`'s rooting options were used).
 
 Finally the Highest Log Bipartition Credibility is output (this is the sum of the logs of the bipartition frequencies, for those bipartitions that are present in the MBC tree).
 
 ```
-   Counting trees in file gp120.nexus.trees         40,001
+   Counting trees in file gp120.DNA.align.nexus.run1.t                     40,001
 
-   Analyzing file: gp120.nexus.trees (Weight: 1.000)
+   Analyzing file: gp120.DNA.align.nexus.run1.t (Weight: 1.000)
    Discarded 4,000 of 40,001 trees (burnin fraction=0.10)
-   Processing trees ('.' signifies 100 trees):
 
-   ..................................................     5000   (# bip:    842    # topo:   4732)
-   ..................................................    10000   (# bip:    920    # topo:   9483)
-   ..................................................    15000   (# bip:    965    # topo:  14253)
-   ..................................................    20000   (# bip:    989    # topo:  18985)
-   ..................................................    25000   (# bip:   1022    # topo:  23720)
-   ..................................................    30000   (# bip:   1037    # topo:  28433)
-   ..................................................    35000   (# bip:   1063    # topo:  33175)
-   ..........
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
 
-   Maximum bipartition credibility tree written to /Users/bob/hiv.mbc
-   Bipartition list written to /Users/bob/hiv.parts
-   Tree probabilities written to /Users/bob/hiv.trprobs
-
-   Done. 36,001 trees analyzed.
-   Time spent: 0:00:20 (h:m:s)
-
-   Max memory used: 1.77 GB.
+   Maximum bipartition credibility tree written to bobhiv.mbc
+   Bipartition list written to bobhiv.parts
+   Tree probabilities written to bobhiv.trprobs
 
    Number of leaves on tree:          40
    Different topologies seen:     34,127
@@ -301,6 +299,10 @@ Finally the Highest Log Bipartition Credibility is output (this is the sum of th
    (Tree has been rooted at random internal node; root is at trifurcation)
 
    Highest Log Bipartition Credibility:  -28.96
+
+   Done. 36,001 trees analyzed.
+   Time spent: 0:00:20 (h:m:s)
+   Max memory used: 1.50 GB.
 ```
 
 ### Example 3: 
@@ -323,27 +325,21 @@ sumt --all -b 0.1 -t 0.95 -nv -r macaque olive_baboon yellow_baboon -i mhc_align
 #### Screen output
 
 ```
-   Counting trees in file mhc_align.nexus.run1.t         30,001
+
+   Counting trees in file mhc_align.nexus.run1.t                           30,001
 
    Analyzing file: mhc_align.nexus.run1.t (Weight: 1.000)
    Discarded 3,000 of 30,001 trees (burnin fraction=0.10)
-   Processing trees ('.' signifies 100 trees):
 
-   ..................................................     5000   (# bip:     14    # topo:     12)
-   ..................................................    10000   (# bip:     14    # topo:     13)
-   ..................................................    15000   (# bip:     15    # topo:     14)
-   ..................................................    20000   (# bip:     15    # topo:     16)
-   ..................................................    25000   (# bip:     15    # topo:     16)
-   ....................
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
 
-   Consensus tree written to mhc.con
-   Bipartition list written to mhc.parts
-   Tree probabilities written to mhc.trprobs
-
-   Done. 27,001 trees analyzed.
-   Time spent: 0:00:02 (h:m:s)
-
-   Max memory used: 32.92 MB.
+   Consensus tree written to mhc_align.con
+   Bipartition list written to mhc_align.parts
+   Tree probabilities written to mhc_align.trprobs
 
    Number of leaves on tree:           9
    Different topologies seen:         16
@@ -355,4 +351,8 @@ sumt --all -b 0.1 -t 0.95 -nv -r macaque olive_baboon yellow_baboon -i mhc_align
    (Root is at bifurcation)
 
    Log Bipartition Credibility:  -0.1825
+
+   Done. 27,001 trees analyzed.
+   Time spent: 0:00:02 (h:m:s)
+   Max memory used: 30.67 MB.
 ```
