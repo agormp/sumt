@@ -51,7 +51,6 @@ python3 -m pip install --upgrade sumt
 	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary
 	* During run: progress bar showing percentage of file analyzed
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
-	* (Optionally) Progress indication is written to screen
 * Optimized for speed and memory usage:
 	* 100,000 trees with 41 leaves processed in 41 s, using max 50 MB memory on 2021 MacBook (4,440 distinct bipartitions seen)
 	* Same file processed in 45 s, using max 4.0 GB memory when also keeping track of topologies (74,283 distinct topologies seen)
@@ -62,9 +61,14 @@ python3 -m pip install --upgrade sumt
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to set basename of output files (default: basename will be stem of input file name)
-* Option to get verbose progress indication:
-	* Count of number of bipartitions in consensus tree, along with theoretical maximum
-	* Count of number of topologies seen
+* Option to get more verbose information about run:
+	* Number of leaves on tree
+	* Number of different toplogies seen in input trees (if also using option -t)
+	* Number of bipartitions seen in input trees, along with theoretical maximum
+	* Number of bipartitions in summary tree, along with theoretical maximum
+	* Indication of whether summary tree is resolved
+	* Indication of whether summary tree has been explicitly rooted
+	* Log bipartition credibility (sum of logs of bipartition frequencies in summary tree)
 	* Report of maximum memory usage during processing
 
 ## Usage
