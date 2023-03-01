@@ -409,14 +409,14 @@ def process_trees(wt_count_burnin_filename_list, args):
         n_trees = 0
         n_dotsprinted = 0
         for tree in treefile:
-            n_trees += 1
             treesummary.add_tree(tree, weight)
-
-            # Progress indicator
-            if( n_trees / trees_per_dot) > n_dotsprinted:
-                n_dotsprinted += 1
-                sys.stdout.write("*")
+            n_trees += 1
+            n_dots_expected = math.floor(n_trees / trees_per_dot)
+            if n_dotsprinted < n_dots_expected:
+                n_missing = n_dots_expected - n_dotsprinted
+                sys.stdout.write("*" * n_missing)
                 sys.stdout.flush()
+                n_dotsprinted += n_missing
 
         treesummarylist.append(treesummary)
         print("\n")
