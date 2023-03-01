@@ -367,6 +367,7 @@ def process_trees(wt_count_burnin_filename_list, args):
 
     treesummarylist = []
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
+
         sys.stdout.write("\n   Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
         sys.stdout.flush()
 
@@ -392,29 +393,29 @@ def process_trees(wt_count_burnin_filename_list, args):
             treesummary = treelib.TreeSummary(interner=interner)
 
         # Read remaining trees from file, add to treesummary
-        sys.stdout.write("\n   Processing trees ('.' signifies 100 trees):\n")
+        sys.stdout.write("\n\n   Processing trees:")
         sys.stdout.flush()
         sys.stdout.write("\n   ")
 
+        # Progress indicator (bar going to 100%)
+        progscale = "0      10      20      30      40      50      60      70      80      90     100"
+        progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
+        ndots = len(progticks)
+        n_tot = count - burnin
+        trees_per_dot = n_tot / ndots
+        sys.stdout.write(f"\n   {progscale}\n")
+        sys.stdout.write(f"   {progticks}\n   ")
+
         n_trees = 0
+        n_dotsprinted = 0
         for tree in treefile:
             n_trees += 1
             treesummary.add_tree(tree, weight)
 
             # Progress indicator
-            if n_trees % 5000 == 0:
-                sys.stdout.write(".  %7d" % n_trees)
-                if args.verbose:
-                    n_leaves = len(tree.leaves)
-                    if args.treeprobs:
-                        sys.stdout.write("   (# bip: %6d    # topo: %6d)\n   " % (len(treesummary.bipartsummary)-n_leaves, len(treesummary.toposummary)))
-                    else:
-                        sys.stdout.write("   (# bip: %6d)\n   " % (len(treesummary.bipartsummary)-n_leaves))
-                else:
-                    sys.stdout.write("\n   ")
-                sys.stdout.flush()
-            elif n_trees % 100 == 0:
-                sys.stdout.write(".")
+            if( n_trees / trees_per_dot) > n_dotsprinted:
+                n_dotsprinted += 1
+                sys.stdout.write("*")
                 sys.stdout.flush()
 
         treesummarylist.append(treesummary)
