@@ -587,11 +587,14 @@ def bipart_to_string(bipartition, position_dict, leaflist):
 def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
 
     if args.mbc:
-        filelist = [tup[3] for tup in wt_count_burnin_filename_list]
-        skiplist = [tup[2] for tup in wt_count_burnin_filename_list]
         sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
         sys.stdout.flush()
-        contree, logbipcred = treesummary.max_clade_cred_tree(filelist, skiplist)
+        if args.treeprobs:
+            contree, logbipcred = treesummary.max_clade_cred_tree()
+        else:
+            filelist = [tup[3] for tup in wt_count_burnin_filename_list]
+            skiplist = [tup[2] for tup in wt_count_burnin_filename_list]
+            contree, logbipcred = treesummary.max_clade_cred_tree(filelist, skiplist)
         sys.stdout.write("done.\n")
         sys.stdout.flush()
     else:
