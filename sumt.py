@@ -31,7 +31,7 @@ def main(commandlist=None):
         n_leafs = len(treesummary.leaves)
         total_unique_internal_biparts = len(treesummary.bipartsummary) - n_leafs
         treesummary.add_branchid()
-        contree, logbipcred = compute_and_print_contree(treesummary, args)
+        contree, logbipcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
         compute_and_print_biparts(treesummary, args)
         theo_maxbip_internal = n_leafs - 3
         n_internal_biparts = contree.n_bipartitions()
@@ -68,10 +68,10 @@ def main(commandlist=None):
 
             if args.rooted:
                 print(f"\n   {treetype} tree has been explicitly rooted")
-                print(f"   (Root is at bifurcation)")
+                print(f"   Root is at bifurcation")
             else:
                 print(f"\n   {treetype} tree has not been explicitly rooted")
-                print(f"   (Tree has been rooted at random internal node; root is at trifurcation)")
+                print(f"   Tree has been rooted at random internal node; root is at trifurcation")
 
             if args.mbc:
                 print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
@@ -385,7 +385,7 @@ def process_trees(wt_count_burnin_filename_list, args):
             interner = treesummarylist[0].interner
         else:
             interner = None
-        if args.treeprobs or args.mbc:
+        if args.treeprobs:
             treesummary = treelib.BigTreeSummary(interner=interner,
                                                  store_trees=True)
         else:
@@ -584,10 +584,16 @@ def bipart_to_string(bipartition, position_dict, leaflist):
 ##########################################################################################
 ##########################################################################################
 
-def compute_and_print_contree(treesummary, args):
+def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
 
     if args.mbc:
-        contree, logbipcred = treesummary.max_clade_cred_tree()
+        filelist = [tup[3] for tup in wt_count_burnin_filename_list]
+        skiplist = [tup[2] for tup in wt_count_burnin_filename_list]
+        sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
+        sys.stdout.flush()
+        contree, logbipcred = treesummary.max_clade_cred_tree(filelist, skiplist)
+        sys.stdout.write("done.\n")
+        sys.stdout.flush()
     else:
         contree = treesummary.contree(allcompat=args.all)
         logbipcred = treesummary.log_clade_credibility(contree.topology())
