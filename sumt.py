@@ -607,6 +607,19 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree.rootmid()
     elif args.minvar:
         contree.rootminvar()
+
+    # If root is bifurcation and one child is leaf: Remove branchID (=leafname) and label from other child-branch
+    # (In this case both branches from root are the same bipartition, so not useful to label internal branch part)
+    rootkids = contree.children(contree.root)
+    if (len(rootkids) == 2) and (rootkids & contree.leaves):
+        rootkids = list(rootkids)
+        if rootkids[0] in contree.leaves:
+            node2 = rootkids[1]
+        else:
+            node2 = rootkids[0]
+        contree.set_branch_attribute(contree.root, node2, "branchID", "")
+        contree.set_branch_attribute(contree.root, node2, "label", "")
+
     newick_prob = contree.newick(labelfield="label")
     newick_branchID = contree.newick(labelfield="branchID")
 
