@@ -1,7 +1,7 @@
 # sumt
 
 ![](https://img.shields.io/badge/version-3.2.4-blue)
-[![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=downloads&service=github)](https://pepy.tech/project/sumt)
+[![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=PyPI%20downloads&service=github)](https://pepy.tech/project/sumt)
 
 The command-line program `sumt` computes consensus trees and other tree-summary statistics for sets of phylogenetic trees. The input trees can be in one or more input files, and will typically be from a Bayesian MCMC analysis (BEAST or MrBayes for instance) or from a bootstrap procedure. 
 
@@ -137,8 +137,8 @@ The command below causes `sumt` to do the following:
 * `--con`: Compute majority rule consensus tree (this is default and could have been omitted)
 * `-b 0.25`: Discard 25% of tree samples as burn-in
 * `-t 0.99`: Keep track of topology probabilities, report 99% credible set
-* `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence
-* `-f 0.1`: Report mean, variance, and standard error of the mean, for branch lengths for all bipartitions seen in more than 10% of input trees
+* `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence (asdsf)
+* `-f 0.1`: Include bipartitions seen in more than 10% of input trees for computations of (1) asdsf and of (2) branch lengt mean, variance, and standard error of the mean
 * `--rootmid`: Perform midpoint rooting
 * `-i primates.nexus.run1.t -i primates.nexus.run2.t `: Summarise the tree samples in the files `hiv.nexus.run1.t` and `hiv.nexus.run2.t`
 
