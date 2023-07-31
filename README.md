@@ -140,7 +140,7 @@ The command below causes `sumt` to do the following:
 * `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence (asdsf)
 * `-f 0.1`: Include bipartitions seen in more than 10% of input trees for computations of (1) asdsf and of (2) branch lengt mean, variance, and standard error of the mean
 * `--rootmid`: Perform midpoint rooting
-* `-i primates.nexus.run1.t -i primates.nexus.run2.t `: Summarise the tree samples in the files `hiv.nexus.run1.t` and `hiv.nexus.run2.t`
+* `-i primates.nexus.run1.t -i primates.nexus.run2.t `: Summarise the tree samples in the files `primates.nexus.run1.t` and `primates.nexus.run2.t`
 
 ```
 sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.nexus.run1.t -i primates.nexus.run2.t 
