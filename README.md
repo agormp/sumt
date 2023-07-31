@@ -1,6 +1,6 @@
 # sumt
 
-![](https://img.shields.io/badge/version-3.2.4-blue)
+![](https://img.shields.io/badge/version-3.2.5-blue)
 [![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=PyPI%20downloads&service=github)](https://pepy.tech/project/sumt)
 
 The command-line program `sumt` computes consensus trees and other tree-summary statistics for sets of phylogenetic trees. The input trees can be in one or more input files, and will typically be from a Bayesian MCMC analysis (BEAST or MrBayes for instance) or from a bootstrap procedure. 
@@ -86,11 +86,16 @@ options:
 Type of summary tree:
   --con                 majority rule consensus tree [default]
   --all                 majority rule consensus tree with all compatible bipartitions added
-  --mbc                 Maximum Bipartition Credibility (MBC) tree. MBC is similar to MCC
-                        (Maximum Clade Credibility) tree but counting bipartitions instead
-                        of clades, i.e. ignoring rooting. Additionally, branch lengths are
-                        estimated from branch lengths of bipartitions and not from node
-                        depths (i.e., again ignoring rooting)
+  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC is similar to
+                        the MCC (Maximum Clade Credibility) tree but counting bipartitions
+                        instead of clades, i.e. ignoring rooting. Specifically, the MBC tree
+                        is determined by inspecting tree samples and selecting the tree that
+                        has the highest sum of log of bipartition frequencies. Hence, the
+                        MBC tree is an actual observed tree from the pool of tree samples,
+                        differing from the consensus tree which typically does not match any
+                        individual sample. Furthermore, branch lengths are estimated from
+                        branch lengths of bipartitions and not from node depths (i.e., again
+                        ignoring rooting).
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.25]
