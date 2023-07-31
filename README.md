@@ -1,6 +1,6 @@
 # sumt
 
-![](https://img.shields.io/badge/version-3.2.3-blue)
+![](https://img.shields.io/badge/version-3.2.4-blue)
 [![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=downloads&service=github)](https://pepy.tech/project/sumt)
 
 The command-line program `sumt` computes consensus trees and other tree-summary statistics for sets of phylogenetic trees. The input trees can be in one or more input files, and will typically be from a Bayesian MCMC analysis (BEAST or MrBayes for instance) or from a bootstrap procedure. 
@@ -74,10 +74,9 @@ python3 -m pip install --upgrade sumt
 ## Usage
 
 ```
-usage: sumt    [-h] [--con | --all | --mbc] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q]
-               [--basename NAME] [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile
-               FILE] [-w WEIGHT INFILE] [--autow] [-i FORMAT]
-               [INFILE ...]
+usage: sumt [-h] [--con | --all | --mbc] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q]
+            [--basename NAME] [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile
+            FILE] [--autow] [--informat FORMAT] [-i FILE | -w WEIGHT FILE]
 
 Computes summary tree and statistics from set of phylogenetic trees
 
@@ -88,15 +87,15 @@ Type of summary tree:
   --con                 majority rule consensus tree [default]
   --all                 majority rule consensus tree with all compatible bipartitions added
   --mbc                 Maximum Bipartition Credibility (MBC) tree. MBC is similar to MCC
-                        (Maximum Clade Credibility) tree but counting bipartitions instead of
-                        clades, i.e. ignoring rooting. Additionally, branch lengths are
-                        estimated from branch lengths of bipartitions and not from node depths
-                        (i.e., again ignoring rooting)
+                        (Maximum Clade Credibility) tree but counting bipartitions instead
+                        of clades, i.e. ignoring rooting. Additionally, branch lengths are
+                        estimated from branch lengths of bipartitions and not from node
+                        depths (i.e., again ignoring rooting)
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.25]
-  -t NUM                compute tree probabilities, report NUM percent credible interval [0 -
-                        1]
+  -t NUM                compute tree probabilities, report NUM percent credible interval [0
+                        - 1]
   -s                    compute average standard deviation of split frequencies (ASDSF)
   -f NUM                Minimum frequency for including bipartitions in report and in
                         computation of ASDSF [default: 0.1]
@@ -104,24 +103,28 @@ Bayesian phylogeny options:
 Output to terminal and files:
   -n                    no warning when overwriting files
   -v                    verbose: more information, longer error messages
-  -q                    quiet: don't print progress indication to terminal window. NOTE: also
-                        turns on the -n option
+  -q                    quiet: don't print progress indication to terminal window. NOTE:
+                        also turns on the -n option
   --basename NAME       base name of output files (default: derived from input file)
 
 Rooting of summary tree:
   --rootmid             perform midpoint rooting of tree
   --rootminvar          perform minimum variance rooting of tree
   -r TAXON [TAXON ...]  root consensus tree on specified outgroup taxon/taxa
-  --rootfile FILE       root consensus tree on outgroup taxa listed in file (one name per line)
+  --rootfile FILE       root consensus tree on outgroup taxa listed in file (one name per
+                        line)
+
+Other options:
+  --autow               automatically assign file weights based on tree counts, so all files
+                        have equal impact (default is for all trees, not files, to be
+                        equally important)
+  --informat FORMAT     format of input files: nexus, newick [default: nexus]
 
 Input tree files:
-  INFILE                input FILE(s) containing phylogenetic trees (can list several files)
-  -w WEIGHT INFILE      input FILEs with specified weights (repeat -w option for each input
-                        file)
-  --autow               automatically assign file weights based on tree counts, so all files
-                        have equal impact (default is for all trees, not files, to be equally
-                        important)
-  -i FORMAT             format of input files: nexus, newick [default: nexus]
+  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option
+                        for each input file)
+  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for
+                        each input file)
 ```
 
 ## Usage examples
