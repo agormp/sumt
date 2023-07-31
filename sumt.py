@@ -171,10 +171,16 @@ def build_parser():
 
     sumtypecommands.add_argument("--mbc", action="store_true",
                               help="Maximum Bipartition Credibility (MBC) tree. "
-                              + "MBC is similar to MCC (Maximum Clade Credibility) tree "
+                              + "The MBC is similar to the MCC (Maximum Clade Credibility) tree "
                               + "but counting bipartitions instead of clades, i.e. ignoring rooting. "
-                              + "Additionally, branch lengths are estimated from branch lengths of bipartitions "
-                              + "and not from node depths (i.e., again ignoring rooting)")
+                              + "Specifically, the MBC tree is "
+                              + "determined by inspecting tree samples and selecting the tree that has the "
+                              + "highest sum of log of bipartition frequencies. Hence, the MBC tree is an actual "
+                              + "observed tree from the pool of tree samples, differing from the consensus tree "
+                              + "which typically does not match any individual sample. "
+                              + "Furthermore, branch lengths are estimated from branch lengths of bipartitions "
+                              + "and not from node depths (i.e., again ignoring rooting).")
+
 
     ####################################################################################
 
