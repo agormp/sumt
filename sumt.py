@@ -448,43 +448,29 @@ def compute_converge_stats(treesummarylist, minfreq):
     N = float(len(treesummarylist))
 
     # Find combined set of bipartitions (excluding external branches)
+    # Discard rare bipartitions: Only biparts that have freq >= minfreq are kept
     bipset = set()
     for treesummary in treesummarylist:
-        for bipart in treesummary.bipartsummary:
+        for bipart,branch in treesummary.bipartsummary.items():
             (bip1, bip2) = bipart
-            if (len(bip1)==1 or len(bip2)==1):
-                pass
-            else:
+            if len(bip1)>1 and len(bip2)>1 and branch.freq > minfreq:
                 bipset.add(bipart)
 
-    # Discard rare bipartitions: Only biparts that have freq >= minfreq are kept
-    bipset_keep = set()
-    for bipart in bipset:
-        for treesummary in treesummarylist:
-            try:
-                if treesummary.bipartsummary[bipart].freq >= minfreq:
-                    bipset_keep.add(bipart)
-                    break
-            except:
-                pass
-    del(bipset)
-
     # For each internal bipart: compute std of freq of this bipart across all treesummaries
-    for bipart in bipset_keep:
-
+    for bipart in bipset:
         freqsum = 0
         sumsq = 0
         for treesummary in treesummarylist:
             # If current bipartition in treesummary, add freq etc. Otherwise add zero (=do nothing)
             if bipart in treesummary.bipartsummary:
-                freqsum += treesummary.bipartsummary[bipart].freq
-                sumsq += (treesummary.bipartsummary[bipart].freq)**2
-
+                freq = treesummary.bipartsummary[bipart].freq
+                freqsum += freq
+                sumsq += freq**2
         meansq = (freqsum/N)**2
         std = math.sqrt((sumsq-N*meansq)/(N-1))
         sum_std += std
 
-    ave_std = sum_std / len(bipset_keep)
+    ave_std = sum_std / len(bipset)
     return ave_std
 
 ##########################################################################################
