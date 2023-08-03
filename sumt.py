@@ -2,7 +2,7 @@
 ####################################################################################
 
 import phylotreelib as treelib
-import argparse, os, sys, time, math, copy, psutil
+import argparse, os, sys, time, math, copy, psutil, statistics
 from itertools import (takewhile,repeat)
 from operator import itemgetter
 from pathlib import Path
@@ -448,27 +448,24 @@ def compute_converge_stats(treesummarylist, minfreq):
     N = float(len(treesummarylist))
 
     # Find combined set of bipartitions (excluding external branches)
-    # Discard rare bipartitions: Only biparts that have freq >= minfreq are kept
+    # Only biparts that have freq >= minfreq are kept
     bipset = set()
     for treesummary in treesummarylist:
         for bipart,branch in treesummary.bipartsummary.items():
             (bip1, bip2) = bipart
-            if len(bip1)>1 and len(bip2)>1 and branch.freq > minfreq:
+            if len(bip1)>1 and len(bip2)>1 and branch.freq >= minfreq:
                 bipset.add(bipart)
 
     # For each internal bipart: compute std of freq of this bipart across all treesummaries
     for bipart in bipset:
-        freqsum = 0
-        sumsq = 0
+        freqlist = []
         for treesummary in treesummarylist:
-            # If current bipartition in treesummary, add freq etc. Otherwise add zero (=do nothing)
+            # If current bipartition not in current treesummary: set freq=0.0
             if bipart in treesummary.bipartsummary:
-                freq = treesummary.bipartsummary[bipart].freq
-                freqsum += freq
-                sumsq += freq**2
-        meansq = (freqsum/N)**2
-        std = math.sqrt((sumsq-N*meansq)/(N-1))
-        sum_std += std
+                freqlist.append(treesummary.bipartsummary[bipart].freq)
+            else:
+                freqlist.append(0.0)
+        sum_std += statistics.stdev(freqlist)
 
     ave_std = sum_std / len(bipset)
     return ave_std
