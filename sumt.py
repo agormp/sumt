@@ -484,7 +484,6 @@ def  merge_treesummaries(treesummarylist):
 ##########################################################################################
 ##########################################################################################
 
-
 def compute_and_print_biparts(treesummary, args):
 
     # Compute and retrieve results
@@ -518,7 +517,7 @@ def compute_and_print_biparts(treesummary, args):
 
     for (_, _, bipstring, freq, mean, var, sem, branchID) in bipreslist:
         if var == "NA":
-            partsfile.write(f"{bipstring}   {freq:<8.6f}  {mean:<9.4g}  ({var:<9.4g})  ({sem:<9.4g})  {branchID}\n")
+            partsfile.write(f"{bipstring}   {freq:<8.6f}  {mean:<9.4g}  ({var:<9})  ({sem:<9})  {branchID}\n")
         else:
             partsfile.write(f"{bipstring}   {freq:<8.6f}  {mean:<9.4g}  ({var:<9.4g})  ({sem:<9.4g})  {branchID}\n")
     partsfile.close()
@@ -717,5 +716,6 @@ def topo_report(treesummary):
 ##########################################################################################
 
 if __name__ == "__main__":
-    main()
-
+    # main()
+    import cProfile
+    cProfile.run('main()', 'tmp/profile.pstats')
