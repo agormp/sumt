@@ -716,6 +716,4 @@ def topo_report(treesummary):
 ##########################################################################################
 
 if __name__ == "__main__":
-    # main()
-    import cProfile
-    cProfile.run('main()', 'tmp/profile.pstats')
+    main()
