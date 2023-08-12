@@ -307,27 +307,70 @@ def read_outgroup(rootfile):
 ####################################################################################
 ####################################################################################
 
-def count_trees(wt_file_list, args):
+def count_trees_by_parsing(filename, args):
+    # Open treefile. Discard (i.e., silently pass by) the requested number of trees
+    if args.informat == "nexus":
+        treefile = treelib.Nexustreefile(filename)
+    else:
+        treefile = treelib.Newicktreefile(filename)
+    treecount = 0
+    for tree in treefile:
+        treecount += 1
+    return treecount
 
-    # fast counting of specific pattern.
+####################################################################################
+
+def count_bytestring(filename, bytestring):
+    """Fast counting of specific pattern. Bytestring argument must be given
+    with b modifier (e.g., b');')"""
+
     # from: https://stackoverflow.com/a/27517681/7836730
-    # Assumes all treestrings (and nothing else) ends in ");"
-    def count_treestring_terminators(filename):
-        f = open(filename, 'rb')
-        bufsize = 1024*1024
-        bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
-        return sum( buf.count(b');') for buf in bufgen if buf )
+    f = open(filename, 'rb')
+    bufsize = 1024*1024
+    bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
+    return sum( buf.count(bytestring) for buf in bufgen)
 
-    def count_trees_by_parsing(filename, args):
-        # Open treefile. Discard (i.e., silently pass by) the requested number of trees
-        if args.informat == "nexus":
-            treefile = treelib.Nexustreefile(filename)
-        else:
-            treefile = treelib.Newicktreefile(filename)
-        treecount = 0
-        for tree in treefile:
-            treecount += 1
-        return treecount
+####################################################################################
+
+def fast_treecount(filename, args):
+    """Count patterns (semicolons, parentheses, etc) to infer number of trees"""
+
+    # Empirically: if ); is in file, then this == number of trees
+    n_terminators = count_bytestring(filename, b");")
+    if n_terminators > 0:
+        return n_terminators
+
+    # Alternative: use counts of ; and () to deduce no. trees:
+    # 1) Number of parenthesis pairs must be divisible by number of trees
+    # 2) There is one ; per tree + possibly some extra ;
+    # So: first subtract non-tree ; from count.
+    # Then: Starting at n_semicolon, find next lower number that is
+    # divisor in n_parentheses. Assume this is n_trees
+    # Python note: what if there are non-tree parenthesis pairs?
+    n_semicolons = count_bytestring(filename, b";")
+    if args.informat == "nexus":
+        # Python note: consider different capitalizations (begin, Taxa, ...)?
+        n_other_semicolon_patterns  = count_bytestring(filename, b"Begin taxa;")
+        n_other_semicolon_patterns += count_bytestring(filename, b"Begin trees;")
+        n_other_semicolon_patterns += count_bytestring(filename, b"End;")
+        n_other_semicolon_patterns += count_bytestring(filename, b"Dimensions ntax")
+        n_other_semicolon_patterns += count_bytestring(filename, b"Taxlabels")
+        n_other_semicolon_patterns += count_bytestring(filename, b"Translate")
+        n_semicolons -= n_other_semicolon_patterns
+    if n_semicolons == 1:
+        return 1
+
+    n_lparen = count_bytestring(filename, b"(")
+    n_rparen = count_bytestring(filename, b")")
+    n_paren = min(n_lparen, n_rparen)     # Attempt to not count non-tree ()
+
+    for n_trees in range(n_semicolons, 1, -1):
+        if n_paren % n_trees == 0:
+            return n_trees
+
+####################################################################################
+
+def count_trees(wt_file_list, args):
 
     count_list = []
     burnin_list = []
@@ -335,7 +378,7 @@ def count_trees(wt_file_list, args):
         treelist = []
         sys.stdout.write(f"   Counting trees in file {str(filename):<40}")
         sys.stdout.flush()
-        n_tot = count_trees_by_parsing(filename, args)
+        n_tot = fast_treecount(filename, args)
         sys.stdout.write(f"{n_tot:>15,d}\n")
         sys.stdout.flush()
         burnin = int(args.burninfrac * n_tot)
@@ -717,3 +760,5 @@ def topo_report(treesummary):
 
 if __name__ == "__main__":
     main()
+    # import cProfile
+    # cProfile.run('main()', 'tmp/profile.pstats')
