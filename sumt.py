@@ -2,7 +2,7 @@
 ####################################################################################
 
 import phylotreelib as treelib
-import argparse, os, sys, time, math, copy, psutil, statistics
+import argparse, os, sys, time, math, copy, psutil, statistics, configparser
 from itertools import (takewhile,repeat)
 from operator import itemgetter
 from pathlib import Path
@@ -113,6 +113,16 @@ def parse_commandline(commandlist):
     parser = build_parser()
     args = parser.parse_args(commandlist)
 
+    if args.version:
+        config = configparser.ConfigParser()
+        config.read('setup.cfg')
+        try:
+            print(config['metadata']['version'])
+            exit()
+        except KeyError:
+            print("Unknown")
+            exit()
+
     if not args.infilelist and not args.fileweights:
         parser.error("Please list one or more tree files.")
 
@@ -156,6 +166,9 @@ def parse_commandline(commandlist):
 def build_parser():
 
     parser = argparse.ArgumentParser(description = "Computes summary tree and statistics from set of phylogenetic trees")
+
+    parser.add_argument('--version', action='store_true', dest="version",
+                        help="Show the program's version number and exit")
 
     ####################################################################################
 
