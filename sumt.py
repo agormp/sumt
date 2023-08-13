@@ -319,54 +319,82 @@ def count_trees_by_parsing(filename, args):
     return treecount
 
 ####################################################################################
+#
+# def count_bytestring(filename, bytestring):
+#     """Fast counting of specific pattern. Bytestring argument must be given
+#     with b modifier (e.g., b');')"""
+#
+#     # from: https://stackoverflow.com/a/27517681/7836730
+#     f = open(filename, 'rb')
+#     bufsize = 1024*1024
+#     bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
+#     return sum( buf.count(bytestring) for buf in bufgen)
+#
+####################################################################################
 
 def count_bytestring(filename, bytestring):
     """Fast counting of specific pattern. Bytestring argument must be given
     with b modifier (e.g., b');')"""
 
-    # from: https://stackoverflow.com/a/27517681/7836730
-    f = open(filename, 'rb')
-    bufsize = 1024*1024
-    bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
-    return sum( buf.count(bytestring) for buf in bufgen)
+    # Modified from: https://stackoverflow.com/a/27517681/7836730
+    with open(filename, 'rb') as f:
+        bufsize = 1024*1024
+        bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
+
+        prev_buf = b""
+        count = 0
+
+        for buf in bufgen:
+            count += buf.count(bytestring)
+
+            # For multi-byte patterns, consider overlaps between buffers
+            if len(bytestring) > 1 and len(prev_buf) > 0:
+                merged = prev_buf[-len(bytestring)+1:] + buf[:len(bytestring)-1]
+                count += merged.count(bytestring)
+
+            prev_buf = buf
+
+    return count
 
 ####################################################################################
 
 def fast_treecount(filename, args):
-    """Count patterns (semicolons, parentheses, etc) to infer number of trees"""
+    """Heuristic: count patterns ([;=\n] etc) to infer number of trees"""
 
     # Empirically: if ); is in file, then this == number of trees
     n_terminators = count_bytestring(filename, b");")
     if n_terminators > 0:
         return n_terminators
 
-    # Alternative: use counts of ; and () to deduce no. trees:
-    # 1) Number of parenthesis pairs must be divisible by number of trees
-    # 2) There is one ; per tree + possibly some extra ;
-    # So: first subtract non-tree ; from count.
-    # Then: Starting at n_semicolon, find next lower number that is
-    # divisor in n_parentheses. Assume this is n_trees
-    # Python note: what if there are non-tree parenthesis pairs?
+    # Count semicolon: if == 1 (possibly after nexus correction): 1 tree
     n_semicolons = count_bytestring(filename, b";")
-    if args.informat == "nexus":
-        # Python note: consider different capitalizations (begin, Taxa, ...)?
-        n_other_semicolon_patterns  = count_bytestring(filename, b"Begin taxa;")
-        n_other_semicolon_patterns += count_bytestring(filename, b"Begin trees;")
-        n_other_semicolon_patterns += count_bytestring(filename, b"End;")
-        n_other_semicolon_patterns += count_bytestring(filename, b"Dimensions ntax")
-        n_other_semicolon_patterns += count_bytestring(filename, b"Taxlabels")
-        n_other_semicolon_patterns += count_bytestring(filename, b"Translate")
+    if n_semicolons == 1:
+        return 1
+    if ftype == "nexus":
+        n_other_semicolon_patterns  = count_bytestring(filename, b"egin taxa;")
+        n_other_semicolon_patterns += count_bytestring(filename, b"egin trees;")
+        n_other_semicolon_patterns += count_bytestring(filename, b"nd;")
+        n_other_semicolon_patterns += count_bytestring(filename, b"imensions ntax")
+        n_other_semicolon_patterns += count_bytestring(filename, b"axlabels")
+        n_other_semicolon_patterns += count_bytestring(filename, b"ranslate")
         n_semicolons -= n_other_semicolon_patterns
     if n_semicolons == 1:
         return 1
 
-    n_lparen = count_bytestring(filename, b"(")
-    n_rparen = count_bytestring(filename, b")")
-    n_paren = min(n_lparen, n_rparen)     # Attempt to not count non-tree ()
+    # If we got this far, and filetype is newick then bail out and use precise counting
+    if args.informat == "newick":
+        return count_trees_by_parsing(filename, args)
 
-    for n_trees in range(n_semicolons, 1, -1):
-        if n_paren % n_trees == 0:
-            return n_trees
+    # Final attempt to infer ntrees for nexus files:
+    # count "= (", "= [", and "tree "
+    # Add the values that are not 0 to list, choose minimum as count
+    # Should be robust to most variations, but should check at end of sumt...
+    n_eqparen = count_bytestring(filename, b"= (")
+    n_eqbrack = count_bytestring(filename, b"= [")
+    n_treestr = count_bytestring(filename, b"tree ")
+    countlist = [n_semicolons, n_eqparen, n_eqbrack, n_treestr]
+    notzero = [val for val in countlist if val>0]
+    return min(countlist)
 
 ####################################################################################
 
