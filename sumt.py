@@ -87,11 +87,6 @@ def main(commandlist=None):
         s = int(time_spent % 60)
         print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
 
-        from collections import Counter #DEBUG
-        print(f"Objects being tracked: {len(gc.get_objects())}")   #DEBUG
-        object_types = Counter([type(obj).__name__ for obj in gc.get_objects()]) #DEBUG
-        print(object_types.most_common(10)) #DEBUG
-
         if args.verbose:
             if memorymax > 1E9:
                 print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
