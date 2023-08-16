@@ -466,7 +466,7 @@ def process_trees(wt_count_burnin_filename_list, args):
         else:
             treefile = treelib.Newicktreefile(filename)
         for j in range(burnin):
-            treefile.readtree()
+            treefile.readtree(returntree=False)
         sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac:.2f})")
 
         # Instantiate Treesummary.
