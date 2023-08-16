@@ -86,6 +86,7 @@ def main(commandlist=None):
         m = int((time_spent % 3600)/60)
         s = int(time_spent % 60)
         print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
+
         if args.verbose:
             if memorymax > 1E9:
                 print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
@@ -470,16 +471,10 @@ def process_trees(wt_count_burnin_filename_list, args):
         sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac:.2f})")
 
         # Instantiate Treesummary.
-        # Re-use interner from first Treesummary to avoid duplication
-        if i>0:
-            interner = treesummarylist[0].interner
-        else:
-            interner = None
         if args.treeprobs:
-            treesummary = treelib.BigTreeSummary(interner=interner,
-                                                 store_trees=True)
+            treesummary = treelib.BigTreeSummary(store_trees=True)
         else:
-            treesummary = treelib.TreeSummary(interner=interner)
+            treesummary = treelib.TreeSummary()
 
         # Read remaining trees from file, add to treesummary
         sys.stdout.write("\n\n   Processing trees:")
@@ -506,6 +501,7 @@ def process_trees(wt_count_burnin_filename_list, args):
                 sys.stdout.write("*" * n_missing)
                 sys.stdout.flush()
                 n_dotsprinted += n_missing
+            del tree
 
         treesummarylist.append(treesummary)
         print("\n")
