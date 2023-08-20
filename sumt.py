@@ -500,6 +500,7 @@ def process_trees(wt_count_burnin_filename_list, args):
         n_dotsprinted = 0
         for tree in treefile:
             treesummary.add_tree(tree, weight)
+            tree.clear_attributes(keeplist=["root", "child_dict", "leaves"])
             n_trees += 1
             n_dots_expected = math.floor(n_trees / trees_per_dot)
             if n_dotsprinted < n_dots_expected:
