@@ -1,7 +1,7 @@
 ####################################################################################
 ####################################################################################
 
-import phylotreelib as treelib
+import phylotreelib as pt
 import argparse, os, sys, time, math, copy, psutil, statistics, configparser
 from itertools import (takewhile,repeat)
 from operator import itemgetter
@@ -94,7 +94,7 @@ def main(commandlist=None):
                 print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
 
 
-    except treelib.TreeError as error:
+    except pt.TreeError as error:
         print("Execution failed:\n")
         if args.verbose:
             import traceback
@@ -324,9 +324,9 @@ def read_outgroup(rootfile):
 def count_trees_by_parsing(filename, args):
     # Open treefile. Discard (i.e., silently pass by) the requested number of trees
     if args.informat == "nexus":
-        treefile = treelib.Nexustreefile(filename)
+        treefile = pt.Nexustreefile(filename)
     else:
-        treefile = treelib.Newicktreefile(filename)
+        treefile = pt.Newicktreefile(filename)
     treecount = 0
     for tree in treefile:
         treecount += 1
@@ -463,9 +463,9 @@ def process_trees(wt_count_burnin_filename_list, args):
 
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
         if args.informat == "nexus":
-            treefile = treelib.Nexustreefile(filename)
+            treefile = pt.Nexustreefile(filename)
         else:
-            treefile = treelib.Newicktreefile(filename)
+            treefile = pt.Newicktreefile(filename)
         for j in range(burnin):
             treefile.readtree(returntree=False)
         sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac:.2f})")
@@ -474,7 +474,7 @@ def process_trees(wt_count_burnin_filename_list, args):
         if args.treeprobs:
             treesummary = treelib.BigTreeSummary(store_trees=True)
         else:
-            treesummary = treelib.TreeSummary()
+            treesummary = pt.TreeSummary()
 
         # Read remaining trees from file, add to treesummary
         sys.stdout.write("\n\n   Processing trees:")
