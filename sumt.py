@@ -471,8 +471,14 @@ def process_trees(wt_count_burnin_filename_list, args):
         sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac:.2f})")
 
         # Instantiate Treesummary.
+
+        # Re-use interner from first Treesummary to avoid duplication
         if args.treeprobs:
-            treesummary = treelib.BigTreeSummary(store_trees=True)
+            if i==0:
+                interner = pt.Interner()
+            else:
+                interner = treesummarylist[0].interner
+            treesummary = pt.BigTreeSummary(interner=interner, store_trees=True)
         else:
             treesummary = pt.TreeSummary()
 
