@@ -456,6 +456,7 @@ def count_trees(wt_file_list, args):
 def process_trees(wt_count_burnin_filename_list, args):
 
     treesummarylist = []
+    interner = pt.Interner()
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
 
         sys.stdout.write("\n   Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
@@ -463,22 +464,16 @@ def process_trees(wt_count_burnin_filename_list, args):
 
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
         if args.informat == "nexus":
-            treefile = pt.Nexustreefile(filename)
+            treefile = pt.Nexustreefile(filename, interner=interner)
         else:
-            treefile = pt.Newicktreefile(filename)
+            treefile = pt.Newicktreefile(filename, interner=interner)
         for j in range(burnin):
             treefile.readtree(returntree=False)
         sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac:.2f})")
 
         # Instantiate Treesummary.
-
-        # Re-use interner from first Treesummary to avoid duplication
         if args.treeprobs:
-            if i==0:
-                interner = pt.Interner()
-            else:
-                interner = treesummarylist[0].interner
-            treesummary = pt.BigTreeSummary(interner=interner, store_trees=True)
+            treesummary = pt.BigTreeSummary(store_trees=True)
         else:
             treesummary = pt.TreeSummary()
 
@@ -500,7 +495,6 @@ def process_trees(wt_count_burnin_filename_list, args):
         n_dotsprinted = 0
         for tree in treefile:
             treesummary.add_tree(tree, weight)
-            tree.clear_attributes(keeplist=["root", "child_dict", "leaves"])
             n_trees += 1
             n_dots_expected = math.floor(n_trees / trees_per_dot)
             if n_dotsprinted < n_dots_expected:
