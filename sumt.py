@@ -474,6 +474,8 @@ def process_trees(wt_count_burnin_filename_list, args):
         # Instantiate Treesummary.
         if args.treeprobs:
             treesummary = pt.BigTreeSummary(store_trees=True)
+        elif args.mbc:
+            treesummary = pt.BigTreeSummary(store_trees=False)
         else:
             treesummary = pt.TreeSummary()
 
@@ -658,12 +660,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     if args.mbc:
         sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
         sys.stdout.flush()
-        if args.treeprobs:
-            contree, logbipcred = treesummary.max_clade_cred_tree()
-        else:
-            filelist = [tup[3] for tup in wt_count_burnin_filename_list]
-            skiplist = [tup[2] for tup in wt_count_burnin_filename_list]
-            contree, logbipcred = treesummary.max_clade_cred_tree(filelist, skiplist)
+        contree, logbipcred = treesummary.max_clade_cred_tree()
         sys.stdout.write("done.\n")
         sys.stdout.flush()
     else:
