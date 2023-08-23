@@ -49,14 +49,14 @@ python3 -m pip install --upgrade sumt
 		    * Majority rule consensus tree, with all compatible bipartitions added
 		    * Maximum bipartition credibility tree (similar to maximum clade credibility tree, but ignoring location of root)
 	    * The file also contains a second consensus tree where branch labels indicate bipartition IDs, which can be used for interpreting bipartition file below.
-	* File containing list of bipartitions (in "*." format) present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary
+	* File containing list of bipartitions (in "*." format) present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary tree (e.g., low frequency bipartitions).
 	* During run: progress bar showing percentage of file analyzed
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 * Optimized for speed and memory usage:
 	* 100,000 trees with 41 leaves processed in 28 s, using max 49 MB memory on 2021 MacBook (4,440 distinct bipartitions seen)
 	* Same file processed in 30 s, using max 2.83 GB memory when also keeping track of topologies (74,283 distinct topologies seen)
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
-* Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC samples.
+* Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC chains.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
 * Option to root consensus tree using either outgroup, midpoint, or [minimum variance](https://pubmed.ncbi.nlm.nih.gov/28800608/) rooting.
 * Option to assign specific weights to different input files.
@@ -75,62 +75,60 @@ python3 -m pip install --upgrade sumt
 ## Usage
 
 ```
-usage: sumt [-h] [--con | --all | --mbc] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q]
-            [--basename NAME] [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile
+usage: sumt [-h] [--version] [--con | --all | --mbc] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v]
+            [-q] [--basename NAME] [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile
             FILE] [--autow] [--informat FORMAT] [-i FILE | -w WEIGHT FILE]
 
 Computes summary tree and statistics from set of phylogenetic trees
 
 options:
   -h, --help            show this help message and exit
+  --version             Show the program's version number and exit
 
 Type of summary tree:
   --con                 majority rule consensus tree [default]
   --all                 majority rule consensus tree with all compatible bipartitions added
-  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC is similar to
-                        the MCC (Maximum Clade Credibility) tree but counting bipartitions
-                        instead of clades, i.e. ignoring rooting. Specifically, the MBC tree
-                        is determined by inspecting tree samples and selecting the tree that
-                        has the highest sum of log of bipartition frequencies. Hence, the
-                        MBC tree is an actual observed tree from the pool of tree samples,
-                        differing from the consensus tree which typically does not match any
-                        individual sample. Furthermore, branch lengths are estimated from
-                        branch lengths of bipartitions and not from node depths (i.e., again
-                        ignoring rooting).
+  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC is similar to the MCC
+                        (Maximum Clade Credibility) tree but counting bipartitions instead of
+                        clades, i.e. ignoring rooting. Specifically, the MBC tree is determined by
+                        inspecting tree samples and selecting the tree that has the highest sum of
+                        log of bipartition frequencies. Hence, the MBC tree is an actual observed
+                        tree from the pool of tree samples, differing from the consensus tree
+                        which typically does not match any individual sample. Furthermore, branch
+                        lengths are estimated from branch lengths of bipartitions and not from
+                        node depths (i.e., again ignoring rooting).
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.25]
-  -t NUM                compute tree probabilities, report NUM percent credible interval [0
-                        - 1]
+  -t NUM                compute tree probabilities, report NUM percent credible interval [0 - 1]
   -s                    compute average standard deviation of split frequencies (ASDSF)
-  -f NUM                Minimum frequency for including bipartitions in report and in
-                        computation of ASDSF [default: 0.1]
+  -f NUM                Minimum frequency for including bipartitions in report and in computation
+                        of ASDSF [default: 0.1]
 
 Output to terminal and files:
   -n                    no warning when overwriting files
   -v                    verbose: more information, longer error messages
-  -q                    quiet: don't print progress indication to terminal window. NOTE:
-                        also turns on the -n option
+  -q                    quiet: don't print progress indication to terminal window. NOTE: also
+                        turns on the -n option
   --basename NAME       base name of output files (default: derived from input file)
 
 Rooting of summary tree:
   --rootmid             perform midpoint rooting of tree
   --rootminvar          perform minimum variance rooting of tree
   -r TAXON [TAXON ...]  root consensus tree on specified outgroup taxon/taxa
-  --rootfile FILE       root consensus tree on outgroup taxa listed in file (one name per
-                        line)
+  --rootfile FILE       root consensus tree on outgroup taxa listed in file (one name per line)
 
 Other options:
-  --autow               automatically assign file weights based on tree counts, so all files
-                        have equal impact (default is for all trees, not files, to be
-                        equally important)
+  --autow               automatically assign file weights based on tree counts, so all files have
+                        equal impact (default is for all trees, not files, to be equally
+                        important)
   --informat FORMAT     format of input files: nexus, newick [default: nexus]
 
 Input tree files:
-  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option
-                        for each input file)
-  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for
+  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option for
                         each input file)
+  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for each
+                        input file)
 ```
 
 ## Usage examples
