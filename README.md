@@ -49,7 +49,7 @@ python3 -m pip install --upgrade sumt
 		    * Majority rule consensus tree, with all compatible bipartitions added
 		    * Maximum bipartition credibility tree (similar to maximum clade credibility tree, but ignoring location of root)
 	    * The file also contains a second consensus tree where branch labels indicate bipartition IDs, which can be used for interpreting bipartition file below.
-	* File containing list of bipartitions present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary
+	* File containing list of bipartitions (in "*." format) present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary
 	* During run: progress bar showing percentage of file analyzed
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 * Optimized for speed and memory usage:
