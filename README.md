@@ -76,8 +76,8 @@ python3 -m pip install --upgrade sumt
 
 ```
 usage: sumt [-h] [--version] [--con | --all | --mbc] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v]
-            [-q] [--basename NAME] [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile
-            FILE] [--autow] [--informat FORMAT] [-i FILE | -w WEIGHT FILE]
+            [-q] [--basename NAME] [--rootmid | --rootminvar | -r TAXON [TAXON ...] |
+            --rootfile FILE] [--autow] [--informat FORMAT] [-i FILE | -w WEIGHT FILE]
 
 Computes summary tree and statistics from set of phylogenetic trees
 
@@ -88,22 +88,24 @@ options:
 Type of summary tree:
   --con                 majority rule consensus tree [default]
   --all                 majority rule consensus tree with all compatible bipartitions added
-  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC is similar to the MCC
-                        (Maximum Clade Credibility) tree but counting bipartitions instead of
-                        clades, i.e. ignoring rooting. Specifically, the MBC tree is determined by
-                        inspecting tree samples and selecting the tree that has the highest sum of
-                        log of bipartition frequencies. Hence, the MBC tree is an actual observed
-                        tree from the pool of tree samples, differing from the consensus tree
-                        which typically does not match any individual sample. Furthermore, branch
-                        lengths are estimated from branch lengths of bipartitions and not from
-                        node depths (i.e., again ignoring rooting).
+  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC is similar to the
+                        MCC (Maximum Clade Credibility) tree but counting bipartitions instead
+                        of clades, i.e. ignoring rooting. Specifically, the MBC tree is
+                        determined by inspecting tree samples and selecting the tree that has
+                        the highest sum of log of bipartition frequencies. Hence, the MBC tree
+                        is an actual observed tree from the pool of tree samples, differing
+                        from the consensus tree which typically does not match any individual
+                        sample. Furthermore, branch lengths are estimated from branch lengths
+                        of bipartitions and not from node depths (i.e., again ignoring
+                        rooting).
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.25]
-  -t NUM                compute tree probabilities, report NUM percent credible interval [0 - 1]
+  -t NUM                compute tree probabilities, report NUM percent credible interval [0 -
+                        1]
   -s                    compute average standard deviation of split frequencies (ASDSF)
-  -f NUM                Minimum frequency for including bipartitions in report and in computation
-                        of ASDSF [default: 0.1]
+  -f NUM                Minimum frequency for including bipartitions in report and in
+                        computation of ASDSF [default: 0.1]
 
 Output to terminal and files:
   -n                    no warning when overwriting files
@@ -119,16 +121,16 @@ Rooting of summary tree:
   --rootfile FILE       root consensus tree on outgroup taxa listed in file (one name per line)
 
 Other options:
-  --autow               automatically assign file weights based on tree counts, so all files have
-                        equal impact (default is for all trees, not files, to be equally
+  --autow               automatically assign file weights based on tree counts, so all files
+                        have equal impact (default is for all trees, not files, to be equally
                         important)
   --informat FORMAT     format of input files: nexus, newick [default: nexus]
 
 Input tree files:
   -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option for
                         each input file)
-  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for each
-                        input file)
+  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for
+                        each input file)
 ```
 
 ## Usage examples
