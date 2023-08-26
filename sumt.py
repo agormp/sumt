@@ -384,7 +384,7 @@ def fast_treecount(filename, args):
     n_semicolons = count_bytestring(filename, b";")
     if n_semicolons == 1:
         return 1
-    if ftype == "nexus":
+    if args.informat == "nexus":
         n_other_semicolon_patterns  = count_bytestring(filename, b"egin taxa;")
         n_other_semicolon_patterns += count_bytestring(filename, b"egin trees;")
         n_other_semicolon_patterns += count_bytestring(filename, b"nd;")
