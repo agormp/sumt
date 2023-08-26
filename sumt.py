@@ -50,16 +50,16 @@ def main(commandlist=None):
             else:
                 treetype = "Consensus"
 
-            print(f"\n   Number of leaves on tree: {n_leafs:11,d}")
+            print(f"\n   Number of leaves on tree: {n_leafs:>14,d}")
             if args.treeprobs:
-                print("   Different topologies seen: {:10,d}".format(n_topo_seen))
-                print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
+                print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
+                print("   Different bipartitions seen: {:>11,d} (theoretical maximum: {:,d})".format(
                                                     total_unique_internal_biparts, theo_maxbip_internal * n_topo_seen))
             else:
-                print("   Different bipartitions seen: {:8,d} (theoretical maximum: {:,d})".format(
+                print("   Different bipartitions seen: {:>11,d} (theoretical maximum: {:,d})".format(
                                                     total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
             print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
-            print(f"{n_internal_biparts:3,d} (theoretical maximum: {theo_maxbip_internal:,d})")
+            print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_maxbip_internal:,d})")
 
             if n_internal_biparts < theo_maxbip_internal:
                 print("                                         (tree contains polytomies)")
