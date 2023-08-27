@@ -62,9 +62,9 @@ def main(commandlist=None):
             print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_maxbip_internal:,d})")
 
             if n_internal_biparts < theo_maxbip_internal:
-                print("                                         (tree contains polytomies)")
+                print("                                            (tree contains polytomies)")
             else:
-                print("                                         (tree is fully resolved - no polytomies)")
+                print("                                            (tree is fully resolved - no polytomies)")
 
             if args.rooted:
                 print(f"\n   {treetype} tree has been explicitly rooted")
