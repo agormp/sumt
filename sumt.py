@@ -50,7 +50,7 @@ def main(commandlist=None):
             else:
                 treetype = "Consensus"
 
-            print(f"\n   Number of leaves on tree: {n_leafs:>14,d}")
+            print(f"\n   Number of leaves on input trees: {n_leafs:>7,d}")
             if args.treeprobs:
                 print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
                 print("   Different bipartitions seen: {:>11,d} (theoretical maximum: {:,d})".format(
@@ -670,8 +670,12 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         sys.stdout.write("done.\n")
         sys.stdout.flush()
     else:
+        sys.stdout.write("\n   Computing consensus tree...")
+        sys.stdout.flush()
         contree = treesummary.contree(allcompat=args.all)
         logbipcred = treesummary.log_clade_credibility(contree.topology())
+        sys.stdout.write("done.\n")
+        sys.stdout.flush()
 
     if args.outgroup:
         contree.rootout(args.outgroup)
