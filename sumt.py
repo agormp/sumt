@@ -701,6 +701,8 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
 
     if args.mbc:
         confilename = args.outbase.parent / (args.outbase.name + ".mbc")
+    elif args.all:
+        confilename = args.outbase.parent / (args.outbase.name + ".all")
     else:
         confilename = args.outbase.parent / (args.outbase.name + ".con")
     if args.nowarn:
