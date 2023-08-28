@@ -506,6 +506,12 @@ def process_trees(wt_count_burnin_filename_list, args):
                 n_dotsprinted += n_missing
             del tree
 
+        # Ensure all dots are printed at the end if they haven't been already
+        if n_dotsprinted < ndots:
+            n_missing = ndots - n_dotsprinted
+            sys.stdout.write("*" * n_missing)
+            sys.stdout.flush()
+
         treesummarylist.append(treesummary)
         print("\n")
 
