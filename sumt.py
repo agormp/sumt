@@ -73,6 +73,9 @@ def main(commandlist=None):
                 print(f"\n   {treetype} tree has not been explicitly rooted")
                 print(f"   Tree has been rooted at random internal node; root is at trifurcation")
 
+            if args.rootmaxfreq:
+                print(f"\n   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}")
+
             if args.mbc:
                 print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
             else:
@@ -154,10 +157,13 @@ def parse_commandline(commandlist):
     if args.rootfile:
         args.outgroup = read_outgroup(args.rootfile)
 
-    if args.outgroup or args.midpoint or args.minvar:
+    if args.outgroup or args.midpoint or args.minvar or args.rootmaxfreq:
         args.rooted = True
     else:
         args.rooted = False
+
+    if sum([args.outgroup, args.midpoint, args.minvar, args.rootmaxfreq]) > 1:
+        parser.error("only specify one option for rooting")
 
     return args
 
@@ -236,6 +242,9 @@ def build_parser():
                       help="perform midpoint rooting of tree")
     rootcommands.add_argument("--rootminvar", action="store_true", dest="minvar",
                       help="perform minimum variance rooting of tree")
+
+    rootcommands.add_argument("--rootmaxfreq", action="store_true",
+                      help="root tree on bipartition where root is located most frequently in input trees")
 
     rootcommands.add_argument("-r", dest="outgroup", metavar="TAXON", nargs="+", default=None,
                       help="root consensus tree on specified outgroup taxon/taxa")
@@ -472,11 +481,11 @@ def process_trees(wt_count_burnin_filename_list, args):
 
         # Instantiate Treesummary.
         if args.treeprobs:
-            treesummary = pt.BigTreeSummary(store_trees=True)
+            treesummary = pt.BigTreeSummary(store_trees=True, trackroot=args.rootmaxfreq)
         elif args.mbc:
-            treesummary = pt.BigTreeSummary(store_trees=False)
+            treesummary = pt.BigTreeSummary(store_trees=False, trackroot=args.rootmaxfreq)
         else:
-            treesummary = pt.TreeSummary()
+            treesummary = pt.TreeSummary(trackroot=args.rootmaxfreq)
 
         # Read remaining trees from file, add to treesummary
         sys.stdout.write("\n\n   Processing trees:")
