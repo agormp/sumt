@@ -74,7 +74,7 @@ def main(commandlist=None):
                 print(f"   Tree has been rooted at random internal node; root is at trifurcation")
 
             if args.rootmaxfreq:
-                print(f"\n   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}")
+                print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
 
             if args.mbc:
                 print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
