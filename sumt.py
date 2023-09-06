@@ -240,18 +240,20 @@ def build_parser():
     rootgroup = parser.add_argument_group("Rooting of summary tree")
     rootcommands = rootgroup.add_mutually_exclusive_group()
     rootcommands.add_argument("--rootmid", action="store_true", dest="midpoint",
-                      help="perform midpoint rooting of tree")
+                      help="perform midpoint rooting of summary tree")
     rootcommands.add_argument("--rootminvar", action="store_true", dest="minvar",
-                      help="perform minimum variance rooting of tree")
+                      help="perform minimum variance rooting of summary tree")
 
     rootcommands.add_argument("--rootmaxfreq", action="store_true",
-                      help="root tree on bipartition where root is located most frequently in input trees")
+                      help="root summary tree on bipartition where root is located most frequently in input trees. " +
+                           "Note: requires that input tree samples are meaningfully rooted " +
+                           "(e.g., using an outgroup or a clock model)")
 
     rootcommands.add_argument("-r", dest="outgroup", metavar="TAXON", nargs="+", default=None,
-                      help="root consensus tree on specified outgroup taxon/taxa")
+                      help="root summary tree on specified outgroup taxon/taxa")
 
     rootcommands.add_argument("--rootfile", action="store", metavar="FILE", default=None,
-                      help="root consensus tree on outgroup taxa listed in file (one name per line)")
+                      help="root summary tree on outgroup taxa listed in file (one name per line)")
 
     ####################################################################################
 
