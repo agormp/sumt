@@ -97,7 +97,7 @@ def main(commandlist=None):
                 print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
 
 
-    except pt.TreeError as error:
+    except Exception as error:
         print("Execution failed:\n")
         if args.verbose:
             import traceback
