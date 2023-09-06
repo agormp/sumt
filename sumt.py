@@ -162,7 +162,8 @@ def parse_commandline(commandlist):
     else:
         args.rooted = False
 
-    if sum([args.outgroup, args.midpoint, args.minvar, args.rootmaxfreq]) > 1:
+    root_options = [args.outgroup, args.midpoint, args.minvar, args.rootmaxfreq]
+    if sum(1 for option in root_options if option is True) > 1:
         parser.error("only specify one option for rooting")
 
     return args
