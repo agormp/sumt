@@ -154,6 +154,17 @@ def parse_commandline(commandlist):
     if args.quiet:
         args.nowarn = True
 
+    if args.meandepth:
+        args.trackclades = True
+        args.rootmaxfreq = True  # NOTE: forces this, otherwise not possible
+    else:
+        args.trackclades = False
+    if args.rootmaxfreq:
+        args.trackroot = True
+    else:
+        args.trackroot = False
+    args.trackbips = True  # Python note: may be False if I implement MCC tree
+
     if args.rootfile:
         args.outgroup = read_outgroup(args.rootfile)
 
@@ -166,15 +177,6 @@ def parse_commandline(commandlist):
     if sum(1 for option in root_options if option is True) > 1:
         parser.error("only specify one option for rooting")
 
-    if args.rootmaxfreq:
-        args.trackroot = True
-    else:
-        args.trackroot = False
-    if args.meandepth:
-        args.trackclades = True
-    else:
-        args.trackclades = False
-    args.trackbips = True  # Python note: may be False if I implement MCC tree
     return args
 
 ####################################################################################
@@ -217,8 +219,9 @@ def build_parser():
                       help="set branch lengths to mean length observed for the corresponding bipartition")
     blencommands.add_argument("--meandepth", action="store_true",
                       help="set node depths to mean node depth observed for that clade " +
-                           "(and branch lengths are then based on these depths). NOTE: only " +
-                           "meaningful if input trees are based on a clock model")
+                           "(and branch lengths are then based on these depths). NOTE 1: only " +
+                           "meaningful if input trees are based on a clock model. " +
+                           "NOTE 2: automatically forces tree to be rooted with --rootmaxfreq")
 
     ####################################################################################
 
