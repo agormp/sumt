@@ -166,6 +166,11 @@ def parse_commandline(commandlist):
     if sum(1 for option in root_options if option is True) > 1:
         parser.error("only specify one option for rooting")
 
+    if args.rootmaxfreq:
+        args.trackroot = True
+    if args.meandepth:
+        args.trackclades = True
+    args.trackbips = True  # Python note: may be False if I implement MCC tree
     return args
 
 ####################################################################################
@@ -198,10 +203,18 @@ def build_parser():
                               + "determined by inspecting tree samples and selecting the tree that has the "
                               + "highest sum of log of bipartition frequencies. Hence, the MBC tree is an actual "
                               + "observed tree from the pool of tree samples, differing from the consensus tree "
-                              + "which typically does not match any individual sample. "
-                              + "Furthermore, branch lengths are estimated from branch lengths of bipartitions "
-                              + "and not from node depths (i.e., again ignoring rooting).")
+                              + "which typically does not match any individual sample. ")
 
+    ####################################################################################
+
+    blengroup = parser.add_argument_group("Estimation of branch lengths for summary tree")
+    blencommands = blengroup.add_mutually_exclusive_group()
+    blencommands.add_argument("--meanblen", action="store_true",
+                      help="set branch lengths to mean length observed for the corresponding bipartition")
+    blencommands.add_argument("--meandepth", action="store_true",
+                      help="set node depths to mean node depth observed for that clade " +
+                           "(and branch lengths are then based on these depths). NOTE: only " +
+                           "meaningful if input trees are based on a clock model")
 
     ####################################################################################
 
@@ -483,12 +496,17 @@ def process_trees(wt_count_burnin_filename_list, args):
         sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac:.2f})")
 
         # Instantiate Treesummary.
+        trackbips = args.trackbips
+        trackclades = args.trackclades
+        trackroot = args.trackroot
         if args.treeprobs:
-            treesummary = pt.BigTreeSummary(store_trees=True, trackroot=args.rootmaxfreq)
+            treesummary = pt.BigTreeSummary(store_trees=True,
+                                            trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
         elif args.mbc:
-            treesummary = pt.BigTreeSummary(store_trees=False, trackroot=args.rootmaxfreq)
+            treesummary = pt.BigTreeSummary(store_trees=False,
+                                            trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
         else:
-            treesummary = pt.TreeSummary(trackroot=args.rootmaxfreq)
+            treesummary = pt.TreeSummary(trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
 
         # Read remaining trees from file, add to treesummary
         sys.stdout.write("\n\n   Processing trees:")
@@ -694,6 +712,11 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree.rootmid()
     elif args.minvar:
         contree.rootminvar()
+    elif args.rootmaxfreq:
+        treesummary.root_maxfreq(contree)
+
+    if args.meandepth:
+        contree = treesummary.set_mean_node_depths(contree)
 
     # If root is bifurcation and one child is leaf: Remove branchID (=leafname) and label from other child-branch
     # (In this case both branches from root are the same bipartition, so not useful to label internal branch part)
