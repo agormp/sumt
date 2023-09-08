@@ -168,8 +168,12 @@ def parse_commandline(commandlist):
 
     if args.rootmaxfreq:
         args.trackroot = True
+    else:
+        args.trackroot = False
     if args.meandepth:
         args.trackclades = True
+    else:
+        args.trackclades = False
     args.trackbips = True  # Python note: may be False if I implement MCC tree
     return args
 
