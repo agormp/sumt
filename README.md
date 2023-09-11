@@ -75,29 +75,41 @@ python3 -m pip install --upgrade sumt
 ## Usage
 
 ```
-usage: sumt [-h] [--version] [--con | --all | --mbc] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v]
-            [-q] [--basename NAME]
-            [--rootmid | --rootminvar | --rootmaxfreq | -r TAXON [TAXON ...] | --rootfile FILE]
+usage: sumt [-h] [--version] [--con | --all | --mcc | --mbc]
+            [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile FILE | --rootmaxfreq]
+            [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q] [--basename NAME] [--meandepth]
             [--autow] [--informat FORMAT] [-i FILE | -w WEIGHT FILE]
 
 Computes summary tree and statistics from set of phylogenetic trees
 
 options:
   -h, --help            show this help message and exit
-  --version             Show the program's version number and exit
+  --version             show the program's version number and exit
 
-Type of summary tree:
+Type of summary tree (pick one option):
   --con                 majority rule consensus tree [default]
   --all                 majority rule consensus tree with all compatible bipartitions added
-  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC is similar to the MCC
-                        (Maximum Clade Credibility) tree but counting bipartitions instead of
-                        clades, i.e. ignoring rooting. Specifically, the MBC tree is determined
-                        by inspecting tree samples and selecting the tree that has the highest
-                        sum of log of bipartition frequencies. Hence, the MBC tree is an actual
-                        observed tree from the pool of tree samples, differing from the consensus
-                        tree which typically does not match any individual sample. Furthermore,
-                        branch lengths are estimated from branch lengths of bipartitions and not
-                        from node depths (i.e., again ignoring rooting).
+  --mcc                 Maximum Clade Credibility (MCC) tree. The MCC tree is determined by
+                        inspecting tree samples and selecting the tree that has the highest product
+                        of clade frequencies (= highest sum of log of clade frequencies). The MCC
+                        tree is therefore a tree that has been observed in the pool of tree
+                        samples, differing from the consensus tree which typically does not match
+                        any individual sample. NOTE 1: only meaningful if input trees are estimated
+                        using clock model. NOTE 2: this option automatically causes tree to be
+                        rooted at the most frequently observed root-bipartition (corresponding to
+                        option --rootmaxfreq).
+  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC tree is similar to the
+                        MCC tree but counting bipartitions instead of clades, i.e. ignoring
+                        rooting.
+
+Rooting of summary tree (pick one option):
+  --rootmid             perform midpoint rooting of summary tree
+  --rootminvar          perform minimum variance rooting of summary tree
+  -r TAXON [TAXON ...]  root summary tree on specified outgroup taxon/taxa
+  --rootfile FILE       root summary tree on outgroup taxa listed in file (one name per line)
+  --rootmaxfreq         root summary tree on bipartition where root is located most frequently in
+                        input trees. NOTE: only meaningful if input trees are estimated using clock
+                        model
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.25]
@@ -109,28 +121,25 @@ Bayesian phylogeny options:
 Output to terminal and files:
   -n                    no warning when overwriting files
   -v                    verbose: more information, longer error messages
-  -q                    quiet: don't print progress indication to terminal window. NOTE: also
-                        turns on the -n option
+  -q                    quiet: don't print progress indication to terminal window. NOTE: also turns
+                        on the -n option
   --basename NAME       base name of output files (default: derived from input file)
 
-Rooting of summary tree:
-  --rootmid             perform midpoint rooting of summary tree
-  --rootminvar          perform minimum variance rooting of summary tree
-  --rootmaxfreq         root summary tree on bipartition where root is located most frequently in
-                        input trees. Note: requires that input tree samples are meaningfully
-                        rooted (e.g., using an outgroup or a clock model)
-  -r TAXON [TAXON ...]  root summary tree on specified outgroup taxon/taxa
-  --rootfile FILE       root summary tree on outgroup taxa listed in file (one name per line)
+Estimation of node depths for clock trees:
+  --meandepth           set node depths to mean node depth observed for that clade (and branch
+                        lengths are then based on these depths). NOTE 1: only meaningful if input
+                        trees are estimated using clock model. NOTE 2: automatically forces tree to
+                        be rooted with --rootmaxfreq. NOTE 3: default for MCC trees, but needs to
+                        be set for other summary types (con, all, mbc)
 
 Other options:
   --autow               automatically assign file weights based on tree counts, so all files have
-                        equal impact (default is for all trees, not files, to be equally
-                        important)
+                        equal impact (default is for all trees, not files, to be equally important)
   --informat FORMAT     format of input files: nexus, newick [default: nexus]
 
 Input tree files:
-  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option for
-                        each input file)
+  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option for each
+                        input file)
   -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for each
                         input file)
 ```
