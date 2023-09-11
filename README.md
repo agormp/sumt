@@ -47,29 +47,32 @@ python3 -m pip install --upgrade sumt
 	    * The summary tree can be one of these:
 		    * Majority rule consensus tree
 		    * Majority rule consensus tree, with all compatible bipartitions added
-		    * Maximum bipartition credibility tree (similar to maximum clade credibility tree, but ignoring location of root)
+			* Maximum clade credibility (MCC) tree 
+		    * Maximum bipartition credibility (MBC) tree - this is similar to MCC, but ignoring location of root.
 	    * The file also contains a second consensus tree where branch labels indicate bipartition IDs, which can be used for interpreting bipartition file below.
 	* File containing list of bipartitions (in "*." format) present in input trees, along with mean and variance of corresponding branch lengths. This list includes both bipartitions that correspond to branches in the summary tree, and bipartitions not included in the summary tree (e.g., low frequency bipartitions).
 	* During run: progress bar showing percentage of file analyzed
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 * Optimized for speed and memory usage:
-	* 100,000 trees with 41 leaves processed in 28 s, using max 49 MB memory on 2021 MacBook (4,440 distinct bipartitions seen)
+	* Consensus tree computed from 100,000 trees with 41 leaves in 28 s, using max 49 MB memory on 2021 MacBook (4,440 distinct bipartitions seen)
 	* Same file processed in 30 s, using max 2.83 GB memory when also keeping track of topologies (74,283 distinct topologies seen)
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC chains.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
 * Options to root consensus tree using either outgroup, midpoint, [minimum variance](https://pubmed.ncbi.nlm.nih.gov/28800608/) rooting, or based on where root is most frequently placed in input tree sample
+* Option to set node depths to mean of those observed in input trees (only useful when input trees are based on clock model)
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to set basename of output files (default: basename will be stem of input file name)
 * Option to get more verbose information about run:
 	* Number of leaves on tree
 	* Number of different toplogies seen in input trees (if also using option -t)
-	* Number of bipartitions seen in input trees, along with theoretical maximum
+	* Number of bipartitions or clades seen in input trees, along with theoretical maximum
 	* Number of bipartitions in summary tree, along with theoretical maximum
 	* Indication of whether summary tree is resolved
 	* Indication of whether summary tree has been explicitly rooted
 	* Log bipartition credibility (sum of logs of bipartition frequencies in summary tree)
+	* Root credibility (when input trees are clock trees)
 	* Report of maximum memory usage during processing
 
 ## Usage
