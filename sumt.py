@@ -15,6 +15,7 @@ def main(commandlist=None):
     # https://jugmac00.github.io/blog/testing-argparse-applications-the-better-way/
     start=time.time()
     args = parse_commandline(commandlist)
+
     try:
         args.outbase.parent.mkdir(parents=True, exist_ok=True) # Create intermediate dirs
         wt_file_list = parse_infilelist(args)
@@ -26,18 +27,27 @@ def main(commandlist=None):
             memory1 = pid.memory_full_info().rss
         treesummarylist = process_trees(wt_count_burnin_filename_list, args)
         if args.std:
-            ave_std = compute_converge_stats(treesummarylist, args.minfreq)
+            ave_std = compute_converge_stats(treesummarylist, args)
         treesummary = merge_treesummaries(treesummarylist)
         n_leafs = len(treesummary.leaves)
-        total_unique_internal_biparts = len(treesummary.bipartsummary) - n_leafs
+        if args.mcc:
+            n_uniq_groupings = len(treesummary.cladesummary) - n_leafs
+        else:
+            n_uniq_groupings = len(treesummary.bipartsummary) - n_leafs
         treesummary.add_branchid()
         contree, logbipcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
         compute_and_print_biparts(treesummary, args)
-        theo_maxbip_internal = n_leafs - 3
+        if args.mcc:
+            theo_max_groups = n_leafs - 1
+        else:
+            theo_max_groups = n_leafs - 3
         n_internal_biparts = contree.n_bipartitions()
         if args.treeprobs:
             compute_and_print_trprobs(treesummary, args)
-            n_topo_seen = len(treesummary.toposummary)
+            if args.trackclades:
+                n_topo_seen = len(treesummary.cladetoposummary)
+            elif args.trackbips:
+                n_topo_seen = len(treesummary.biptoposummary)
         stop=time.time()
 
         if args.verbose:
@@ -45,23 +55,29 @@ def main(commandlist=None):
             memorymax = max(memory1, memory2)
 
         if args.verbose:
-            if args.mbc:
+            if args.mcc:
+                treetype = "MCC"
+                branchtype = "clades"
+                space = " " * 7
+            elif args.mbc:
                 treetype = "MBC"
+                branchtype = "bipartitions"
+                space = " " * 1
             else:
                 treetype = "Consensus"
+                branchtype = "bipartitions"
+                space = " " * 1
 
             print(f"\n   Number of leaves on input trees: {n_leafs:>7,d}")
             if args.treeprobs:
                 print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
-                print("   Different bipartitions seen: {:>11,d} (theoretical maximum: {:,d})".format(
-                                                    total_unique_internal_biparts, theo_maxbip_internal * n_topo_seen))
+                print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
             else:
-                print("   Different bipartitions seen: {:>11,d} (theoretical maximum: {:,d})".format(
-                                                    total_unique_internal_biparts, theo_maxbip_internal * n_trees_analyzed))
+                print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
             print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
-            print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_maxbip_internal:,d})")
+            print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
 
-            if n_internal_biparts < theo_maxbip_internal:
+            if n_internal_biparts < theo_max_groups:
                 print("                                            (tree contains polytomies)")
             else:
                 print("                                            (tree is fully resolved - no polytomies)")
@@ -76,7 +92,7 @@ def main(commandlist=None):
             if args.rootmaxfreq:
                 print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
 
-            if args.mbc:
+            if args.mbc or args.mcc:
                 print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
             else:
                 print(f"\n   Log Bipartition Credibility:  {logbipcred:.4g}")
@@ -127,6 +143,9 @@ def parse_commandline(commandlist):
             print("Unknown")
             exit()
 
+    if not (args.con or args.all or args.mcc or args.mbc):
+        parser.error("One of --con, --all, --mcc, or --mbc must be specified.")
+
     if not args.infilelist and not args.fileweights:
         parser.error("Please list one or more tree files.")
 
@@ -142,40 +161,53 @@ def parse_commandline(commandlist):
         parser.error("option -b: NUM must be between 0.0 and 1.0")
 
     if args.treeprobs and (args.treeprobs > 1 or args.treeprobs < 0):
-        parser.error("option -t: NUM must be between 0.0 and 1.0")
+        parser.error(f"option -t: NUM must be between 0.0 and 1.0 (provided value: -t {args.treeprobs})")
 
     if args.infilelist:
         nfiles = len(args.infilelist)
     else:
         nfiles = len(args.fileweights)
     if args.std and nfiles==1:
-        parser.error("cannot compute standard deviation from one tree file")
+        parser.error("cannot compute standard deviation (option -s) from one tree file")
 
     if args.quiet:
         args.nowarn = True
 
-    if args.meandepth:
+    if args.meandepth and not args.mcc:
+        args.rootmaxfreq = True
+    if args.mcc and (args.rootfile or args.outgroup or args.rootmid or args.rootminvar):
+        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootout, --rootfile")
+    if args.meandepth and (args.rootfile or args.outgroup or args.rootmid or args.rootminvar):
+        parser.error("option --meandepth is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootout, --rootfile")
+
+    if args.mcc:
+        args.meandepth = True  # Python note: will not be true by default when I implement CA heights
+
+    # Bipartitions need to be tracked in these situations
+    if args.con or args.all or args.mbc:
+        args.trackbips = True
+    else:
+        args.trackbips = False
+
+    # Clades need to be tracked in these situations:
+    if args.mcc or args.meandepth:
         args.trackclades = True
-        args.rootmaxfreq = True  # NOTE: forces this, otherwise not possible
     else:
         args.trackclades = False
-    if args.rootmaxfreq:
+
+    # Root needs to be tracked in these situations:
+    if args.mcc or args.meandepth or args.rootmaxfreq:
         args.trackroot = True
     else:
         args.trackroot = False
-    args.trackbips = True  # Python note: may be False if I implement MCC tree
 
     if args.rootfile:
         args.outgroup = read_outgroup(args.rootfile)
 
-    if args.outgroup or args.midpoint or args.minvar or args.rootmaxfreq:
+    if args.outgroup or args.rootmid or args.rootminvar or args.rootmaxfreq:
         args.rooted = True
     else:
         args.rooted = False
-
-    root_options = [args.outgroup, args.midpoint, args.minvar, args.rootmaxfreq]
-    if sum(1 for option in root_options if option is True) > 1:
-        parser.error("only specify one option for rooting")
 
     return args
 
@@ -187,116 +219,119 @@ def build_parser():
     parser = argparse.ArgumentParser(description = "Computes summary tree and statistics from set of phylogenetic trees")
 
     parser.add_argument('--version', action='store_true', dest="version",
-                        help="Show the program's version number and exit")
+                        help="show the program's version number and exit")
 
     ####################################################################################
 
-    sumtypegroup = parser.add_argument_group("Type of summary tree")
+    sumtype_grp = parser.add_argument_group("Type of summary tree (pick one option)")
+    sumtype_excl = sumtype_grp.add_mutually_exclusive_group()
 
-    sumtypecommands = sumtypegroup.add_mutually_exclusive_group()
-
-    sumtypecommands.add_argument("--con", action="store_true", default=True,
+    sumtype_excl.add_argument("--con", action="store_true",
                               help="majority rule consensus tree [default]")
 
-    sumtypecommands.add_argument("--all", action="store_true",
+    sumtype_excl.add_argument("--all", action="store_true",
                               help="majority rule consensus tree with all compatible bipartitions added")
 
-    sumtypecommands.add_argument("--mbc", action="store_true",
+    sumtype_excl.add_argument("--mcc", action="store_true",
+                              help="Maximum Clade Credibility (MCC) tree. "
+                              + "The MCC tree is determined by inspecting tree samples and selecting the "
+                              + "tree that has the highest product of clade frequencies (= highest sum of "
+                              + "log of clade frequencies). The MCC tree is therefore a tree that has been "
+                              + "observed in the pool of tree samples, differing from the consensus tree "
+                              + "which typically does not match any individual sample. "
+                              + "NOTE 1: only meaningful if input trees are estimated using clock model. "
+                              + "NOTE 2: this option automatically causes tree to be rooted at the most "
+                              + "frequently observed root-bipartition (corresponding to option --rootmaxfreq).")
+
+    sumtype_excl.add_argument("--mbc", action="store_true",
                               help="Maximum Bipartition Credibility (MBC) tree. "
-                              + "The MBC is similar to the MCC (Maximum Clade Credibility) tree "
-                              + "but counting bipartitions instead of clades, i.e. ignoring rooting. "
-                              + "Specifically, the MBC tree is "
-                              + "determined by inspecting tree samples and selecting the tree that has the "
-                              + "highest sum of log of bipartition frequencies. Hence, the MBC tree is an actual "
-                              + "observed tree from the pool of tree samples, differing from the consensus tree "
-                              + "which typically does not match any individual sample. ")
+                              + "The MBC tree is similar to the MCC tree "
+                              + "but counting bipartitions instead of clades, i.e. ignoring rooting. ")
 
     ####################################################################################
 
-    blengroup = parser.add_argument_group("Estimation of branch lengths for summary tree")
-    blencommands = blengroup.add_mutually_exclusive_group()
-    blencommands.add_argument("--meanblen", action="store_true",
-                      help="set branch lengths to mean length observed for the corresponding bipartition")
-    blencommands.add_argument("--meandepth", action="store_true",
-                      help="set node depths to mean node depth observed for that clade " +
-                           "(and branch lengths are then based on these depths). NOTE 1: only " +
-                           "meaningful if input trees are based on a clock model. " +
-                           "NOTE 2: automatically forces tree to be rooted with --rootmaxfreq")
+    root_grp = parser.add_argument_group("Rooting of summary tree (pick one option)")
+    root_excl = root_grp.add_mutually_exclusive_group()
+    root_excl.add_argument("--rootmid", action="store_true",
+                      help="perform midpoint rooting of summary tree")
+    root_excl.add_argument("--rootminvar", action="store_true",
+                      help="perform minimum variance rooting of summary tree")
+
+    root_excl.add_argument("-r", dest="outgroup", metavar="TAXON", nargs="+", default=None,
+                      help="root summary tree on specified outgroup taxon/taxa")
+
+    root_excl.add_argument("--rootfile", action="store", metavar="FILE", default=None,
+                      help="root summary tree on outgroup taxa listed in file (one name per line)")
+
+    root_excl.add_argument("--rootmaxfreq", action="store_true",
+                      help="root summary tree on bipartition where root is located most frequently in input trees. " +
+                           "NOTE: only meaningful if input trees are estimated using clock model")
 
     ####################################################################################
 
-    bayesgroup = parser.add_argument_group("Bayesian phylogeny options")
+    bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
 
-    bayesgroup.add_argument("-b", type=float, dest="burninfrac", metavar="NUM", default=0.25,
+    bayes_grp.add_argument("-b", type=float, dest="burninfrac", metavar="NUM", default=0.25,
                       help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]")
 
-    bayesgroup.add_argument("-t", type=float, dest="treeprobs", metavar="NUM",
+    bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="NUM",
                       help="compute tree probabilities, report NUM percent credible interval [0 - 1]")
 
-    bayesgroup.add_argument("-s", action="store_true", dest="std",
+    bayes_grp.add_argument("-s", action="store_true", dest="std",
                       help="compute average standard deviation of split frequencies (ASDSF)")
 
-    bayesgroup.add_argument("-f", type=float, dest="minfreq", metavar="NUM", default=0.1,
+    bayes_grp.add_argument("-f", type=float, dest="minfreq", metavar="NUM", default=0.1,
                       help="Minimum frequency for including bipartitions in report and in computation of ASDSF [default: %(default)s]")
 
     ####################################################################################
 
-    outformatgroup = parser.add_argument_group("Output to terminal and files")
+    outformat_grp = parser.add_argument_group("Output to terminal and files")
 
-    outformatgroup.add_argument("-n", action="store_true", dest="nowarn",
+    outformat_grp.add_argument("-n", action="store_true", dest="nowarn",
                       help="no warning when overwriting files")
 
-    outformatgroup.add_argument("-v", action="store_true", dest="verbose",
+    outformat_grp.add_argument("-v", action="store_true", dest="verbose",
                       help="verbose: more information, longer error messages")
 
-    outformatgroup.add_argument("-q", action="store_true", dest="quiet",
+    outformat_grp.add_argument("-q", action="store_true", dest="quiet",
                       help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
 
-    outformatgroup.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
+    outformat_grp.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
                       help="base name of output files (default: derived from input file)")
 
     ####################################################################################
 
-    rootgroup = parser.add_argument_group("Rooting of summary tree")
-    rootcommands = rootgroup.add_mutually_exclusive_group()
-    rootcommands.add_argument("--rootmid", action="store_true", dest="midpoint",
-                      help="perform midpoint rooting of summary tree")
-    rootcommands.add_argument("--rootminvar", action="store_true", dest="minvar",
-                      help="perform minimum variance rooting of summary tree")
-
-    rootcommands.add_argument("--rootmaxfreq", action="store_true",
-                      help="root summary tree on bipartition where root is located most frequently in input trees. " +
-                           "Note: requires that input tree samples are meaningfully rooted " +
-                           "(e.g., using an outgroup or a clock model)")
-
-    rootcommands.add_argument("-r", dest="outgroup", metavar="TAXON", nargs="+", default=None,
-                      help="root summary tree on specified outgroup taxon/taxa")
-
-    rootcommands.add_argument("--rootfile", action="store", metavar="FILE", default=None,
-                      help="root summary tree on outgroup taxa listed in file (one name per line)")
+    depth_grp = parser.add_argument_group("Estimation of node depths for clock trees")
+    depth_excl = depth_grp.add_mutually_exclusive_group()
+    depth_excl.add_argument("--meandepth", action="store_true",
+                      help="set node depths to mean node depth observed for that clade "
+                           + "(and branch lengths are then based on these depths). "
+                           + "NOTE 1: only meaningful if input trees are estimated using clock model. "
+                           + "NOTE 2: automatically forces tree to be rooted with --rootmaxfreq. "
+                           + "NOTE 3: default for MCC trees, but needs to be set for other summary types (con, all, mbc)" )
 
     ####################################################################################
 
-    othergroup = parser.add_argument_group("Other options")
+    other_grp = parser.add_argument_group("Other options")
 
-    othergroup.add_argument("--autow", action="store_true", dest="autoweight",
+    other_grp.add_argument("--autow", action="store_true", dest="autoweight",
                      help="automatically assign file weights based on tree counts, so all files have equal impact "
                          + "(default is for all trees, not files, to be equally important)")
 
-    othergroup.add_argument("--informat", action="store", dest="informat", metavar="FORMAT",
+    other_grp.add_argument("--informat", action="store", dest="informat", metavar="FORMAT",
                       choices=["nexus", "newick"], default="nexus",
                       help="format of input files: %(choices)s [default: %(default)s]")
 
 
     ####################################################################################
 
-    infilegroup = parser.add_argument_group("Input tree files")
-    infilecommands = infilegroup.add_mutually_exclusive_group()
+    infile_grp = parser.add_argument_group("Input tree files")
+    infile_excl = infile_grp.add_mutually_exclusive_group()
 
-    infilecommands.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
+    infile_excl.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
                         help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
 
-    infilecommands.add_argument("-w", action="append", dest="fileweights",
+    infile_excl.add_argument("-w", action="append", dest="fileweights",
                         nargs=2, metavar=("WEIGHT", "FILE"),
                         help="input FILEs with specified weights (repeat -w WEIGHT FILE option for each input file)")
 
@@ -506,11 +541,8 @@ def process_trees(wt_count_burnin_filename_list, args):
         trackbips = args.trackbips
         trackclades = args.trackclades
         trackroot = args.trackroot
-        if args.treeprobs:
-            treesummary = pt.BigTreeSummary(store_trees=True,
-                                            trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
-        elif args.mbc:
-            treesummary = pt.BigTreeSummary(store_trees=False,
+        if args.mcc or args.mbc or args.treeprobs:
+            treesummary = pt.BigTreeSummary(store_trees=args.treeprobs,
                                             trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
         else:
             treesummary = pt.TreeSummary(trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
@@ -556,11 +588,11 @@ def process_trees(wt_count_burnin_filename_list, args):
 ##########################################################################################
 ##########################################################################################
 
-def compute_converge_stats(treesummarylist, minfreq):
-    """Compute average bipartition frequency standard deviation between treesummaries"""
+def compute_converge_stats(treesummarylist, args):
+    """Compute average bipartition/clade frequency standard deviation between treesummaries"""
 
     # NOTES ON COMPUTATION:
-    #   (1) all bipartitions are included in computation, regardless of whether they are present
+    #   (1) all bipartitions/clades are included in computation, regardless of whether they are present
     #       in only one of the treesummaries (their freq is set to zero in those treesummaries
     #       where they are not present)
     #   (2) external branches (leading to leafs) are not included in computation since they
@@ -569,6 +601,16 @@ def compute_converge_stats(treesummarylist, minfreq):
     #       population estimates of std, and is in accordance with what MrBayes does. One could
     #       argue that N should be used instead of N-1 (to get the Max Likelihood estimate of std).
 
+    if args.mcc:
+        ave_std = compute_converge_clades(treesummarylist, args)
+    else:
+        ave_std = compute_converge_biparts(treesummarylist, args)
+    return ave_std
+
+##########################################################################################
+##########################################################################################
+
+def compute_converge_biparts(treesummarylist, args):
     sum_std = 0
     N = float(len(treesummarylist))
 
@@ -578,7 +620,7 @@ def compute_converge_stats(treesummarylist, minfreq):
     for treesummary in treesummarylist:
         for bipart,branch in treesummary.bipartsummary.items():
             (bip1, bip2) = bipart
-            if len(bip1)>1 and len(bip2)>1 and branch.freq >= minfreq:
+            if len(bip1)>1 and len(bip2)>1 and branch.freq >= args.minfreq:
                 bipset.add(bipart)
 
     # For each internal bipart: compute std of freq of this bipart across all treesummaries
@@ -593,6 +635,36 @@ def compute_converge_stats(treesummarylist, minfreq):
         sum_std += statistics.stdev(freqlist)
 
     ave_std = sum_std / len(bipset)
+    return ave_std
+
+##########################################################################################
+##########################################################################################
+
+def compute_converge_clades(treesummarylist, args):
+    sum_std = 0
+    N = float(len(treesummarylist))
+
+    # Find combined set of clades (excluding leaves)
+    # Only clades that have freq >= minfreq are kept
+    cladeset = set()
+    for treesummary in treesummarylist:
+        for clade,node in treesummary.cladesummary.items():
+            leafset = clade.get_clade()
+            if len(leafset)>1 and node.freq >= args.minfreq:
+                cladeset.add(clade)
+
+    # For each internal bipart: compute std of freq of this bipart across all treesummaries
+    for clade in cladeset:
+        freqlist = []
+        for treesummary in treesummarylist:
+            # If current clade not in current treesummary: set freq=0.0
+            if clade in treesummary.cladesummary:
+                freqlist.append(treesummary.cladesummary[clade].freq)
+            else:
+                freqlist.append(0.0)
+        sum_std += statistics.stdev(freqlist)
+
+    ave_std = sum_std / len(cladeset)
     return ave_std
 
 ##########################################################################################
@@ -699,34 +771,41 @@ def bipart_to_string(bipartition, position_dict, leaflist):
 
 def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
 
-    if args.mbc:
-        sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
+    if args.mcc:
+        sys.stdout.write("\n   Finding Maximum Clade Credibility tree...")
         sys.stdout.flush()
         contree, logbipcred = treesummary.max_clade_cred_tree()
-        sys.stdout.write("done.\n")
+        contree.rootcred = treesummary.compute_rootcred(contree)
+    elif args.mbc:
+        sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
         sys.stdout.flush()
+        contree, logbipcred = treesummary.max_bipart_cred_tree()
     else:
         sys.stdout.write("\n   Computing consensus tree...")
         sys.stdout.flush()
         contree = treesummary.contree(allcompat=args.all)
-        logbipcred = treesummary.log_clade_credibility(contree.topology())
-        sys.stdout.write("done.\n")
-        sys.stdout.flush()
+        logbipcred = treesummary.log_bipart_credibility(contree.topology())
+    sys.stdout.write("done.\n")
+    sys.stdout.flush()
 
-    if args.outgroup:
-        contree.rootout(args.outgroup)
-    elif args.midpoint:
-        contree.rootmid()
-    elif args.minvar:
-        contree.rootminvar()
-    elif args.rootmaxfreq:
-        treesummary.root_maxfreq(contree)
+    # MCC trees are automatically rooted. For other types: root using requested method
+    if not args.mcc:
+        if args.outgroup:
+            contree.rootout(args.outgroup)
+        elif args.rootmid:
+            contree.rootmid()
+        elif args.rootminvar:
+            contree.rootminvar()
+        elif args.rootmaxfreq:
+            treesummary.root_maxfreq(contree)
 
+    # meandepth can be requested for all contree types (but will only make sense if they are based on clock trees)
     if args.meandepth:
         contree = treesummary.set_mean_node_depths(contree)
 
     # If root is bifurcation and one child is leaf: Remove branchID (=leafname) and label from other child-branch
     # (In this case both branches from root are the same bipartition, so not useful to label internal branch part)
+    # Python note: not sure this generalizes to all tree types. think...
     rootkids = contree.children(contree.root)
     if (len(rootkids) == 2) and (rootkids & contree.leaves):
         rootkids = list(rootkids)
@@ -737,11 +816,14 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree.set_branch_attribute(contree.root, node2, "branchID", "")
         contree.set_branch_attribute(contree.root, node2, "label", "")
 
-    newick_prob = contree.newick(labelfield="label")
-    newick_branchID = contree.newick(labelfield="branchID")
+    newick_prob_tree = contree.newick(labelfield="label")
+    if not args.mcc:
+        newick_branchID_tree = contree.newick(labelfield="branchID")
 
     if args.mbc:
         confilename = args.outbase.parent / (args.outbase.name + ".mbc")
+    elif args.mcc:
+        confilename = args.outbase.parent / (args.outbase.name + ".mcc")
     elif args.all:
         confilename = args.outbase.parent / (args.outbase.name + ".all")
     else:
@@ -764,18 +846,21 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     confile.write("begin trees;\n")
     confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
     confile.write("   tree prob = ")
-    confile.write(newick_prob)
-    confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
-    confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
-    confile.write("   tree partID = ")
-    confile.write(newick_branchID)
+    confile.write(newick_prob_tree)
+    if not args.mcc:
+        confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
+        confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
+        confile.write("   tree partID = ")
+        confile.write(newick_branchID_tree)
     confile.write("\nend;\n")
     confile.close()
 
     if args.mbc:
         print(f"   Maximum bipartition credibility tree written to {confilename}")
+    elif args.mcc:
+        print(f"   Maximum clade credibility tree written to {confilename}")
     else:
-        print("   Consensus tree written to {}".format(confilename))
+        print(f"   Consensus tree written to {confilename}")
 
     return contree, logbipcred
 
@@ -783,7 +868,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
 ##########################################################################################
 
 def compute_and_print_trprobs(treesummary, args):
-    topolist = topo_report(treesummary)
+    topolist = topo_report(treesummary, args)
 
     # Before printing results: check whether file already exist
     topofilename = args.outbase.parent / (args.outbase.name + ".trprobs")
@@ -830,12 +915,16 @@ def compute_and_print_trprobs(treesummary, args):
 ##########################################################################################
 ##########################################################################################
 
-def topo_report(treesummary):
+def topo_report(treesummary, args):
     """Returns list of [freq, treestring] lists"""
 
     # Python note: root trees in trprobs?
+    if treesummary.trackclades:
+        toposummary = treesummary.cladetoposummary
+    elif treesummary.trackbips:
+        toposummary = treesummary.biptoposummary
     toporeport = []
-    for topology, topostruct in treesummary.toposummary.items():
+    for topology, topostruct in toposummary.items():
         toporeport.append((topostruct.freq, topostruct.tree))
 
     # Sort report according to frequency (higher values first) and return
