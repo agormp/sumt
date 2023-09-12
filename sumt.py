@@ -22,9 +22,8 @@ def main(commandlist=None):
         if args.quiet:
             sys.stdout = open(os.devnull, 'w')
         n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args)
-        if args.verbose:
-            pid = psutil.Process(os.getpid())
-            memory1 = pid.memory_full_info().rss
+        pid = psutil.Process(os.getpid())
+        memory1 = pid.memory_full_info().rss
         treesummarylist = process_trees(wt_count_burnin_filename_list, args)
         if args.std:
             ave_std = compute_converge_stats(treesummarylist, args)
@@ -50,52 +49,50 @@ def main(commandlist=None):
                 n_topo_seen = len(treesummary.biptoposummary)
         stop=time.time()
 
-        if args.verbose:
-            memory2 = pid.memory_full_info().rss
-            memorymax = max(memory1, memory2)
+        memory2 = pid.memory_full_info().rss
+        memorymax = max(memory1, memory2)
 
-        if args.verbose:
-            if args.mcc:
-                treetype = "MCC"
-                branchtype = "clades"
-                space = " " * 7
-            elif args.mbc:
-                treetype = "MBC"
-                branchtype = "bipartitions"
-                space = " " * 1
-            else:
-                treetype = "Consensus"
-                branchtype = "bipartitions"
-                space = " " * 1
+        if args.mcc:
+            treetype = "MCC"
+            branchtype = "clades"
+            space = " " * 7
+        elif args.mbc:
+            treetype = "MBC"
+            branchtype = "bipartitions"
+            space = " " * 1
+        else:
+            treetype = "Consensus"
+            branchtype = "bipartitions"
+            space = " " * 1
 
-            print(f"\n   Number of leaves on input trees: {n_leafs:>7,d}")
-            if args.treeprobs:
-                print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
-                print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
-            else:
-                print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
-            print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
-            print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
+        print(f"\n   Number of leaves on input trees: {n_leafs:>7,d}")
+        if args.treeprobs:
+            print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
+            print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
+        else:
+            print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
+        print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
+        print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
 
-            if n_internal_biparts < theo_max_groups:
-                print("                                            (tree contains polytomies)")
-            else:
-                print("                                            (tree is fully resolved - no polytomies)")
+        if n_internal_biparts < theo_max_groups:
+            print("                                            (tree contains polytomies)")
+        else:
+            print("                                            (tree is fully resolved - no polytomies)")
 
-            if args.rooted:
-                print(f"\n   {treetype} tree has been explicitly rooted")
-                print(f"   Root is at bifurcation")
-            else:
-                print(f"\n   {treetype} tree has not been explicitly rooted")
-                print(f"   Tree has been rooted at random internal node; root is at trifurcation")
+        if args.rooted:
+            print(f"\n   {treetype} tree has been explicitly rooted")
+            print(f"   Root is at bifurcation")
+        else:
+            print(f"\n   {treetype} tree has not been explicitly rooted")
+            print(f"   Tree has been rooted at random internal node; root is at trifurcation")
 
-            if args.rootmaxfreq:
-                print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
+        if args.rootmaxfreq:
+            print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
 
-            if args.mbc or args.mcc:
-                print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
-            else:
-                print(f"\n   Log Bipartition Credibility:  {logbipcred:.4g}")
+        if args.mbc or args.mcc:
+            print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
+        else:
+            print(f"\n   Log Bipartition Credibility:  {logbipcred:.4g}")
 
         if args.std:
             print(("   Average standard deviation of split frequencies: {:.6f}".format(ave_std)))
@@ -106,11 +103,10 @@ def main(commandlist=None):
         s = int(time_spent % 60)
         print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
 
-        if args.verbose:
-            if memorymax > 1E9:
-                print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
-            else:
-                print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
+        if memorymax > 1E9:
+            print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
+        else:
+            print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
 
 
     except Exception as error:
@@ -291,7 +287,7 @@ def build_parser():
                       help="no warning when overwriting files")
 
     outformat_grp.add_argument("-v", action="store_true", dest="verbose",
-                      help="verbose: more information, longer error messages")
+                      help="verbose: show full traceback in the event of failed python execution")
 
     outformat_grp.add_argument("-q", action="store_true", dest="quiet",
                       help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
