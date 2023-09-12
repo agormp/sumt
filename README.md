@@ -5,10 +5,11 @@
 
 The command-line program `sumt` computes consensus trees and other tree-summary statistics for sets of phylogenetic trees. The input trees can be in one or more input files, and will typically be from a Bayesian MCMC analysis (BEAST or MrBayes for instance) or from a bootstrap procedure. 
 
-`sumt` can compute three different kinds of main tree summaries:
+`sumt` can compute four different kinds of main tree summaries:
 
 * Majority rule consensus tree
 * Majority rule consensus tree, with all compatible bipartitions added
+* Maximum clade credibility tree
 * Maximum bipartition credibility tree
 
 Branch labels on these trees indicate clade support. 
