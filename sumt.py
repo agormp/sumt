@@ -1,5 +1,4 @@
-####################################################################################
-####################################################################################
+# By Anders Gorm Pedersen, agpe@dtu.dk
 
 import phylotreelib as pt
 import argparse, os, sys, time, math, copy, psutil, statistics, configparser
@@ -17,40 +16,60 @@ def main(commandlist=None):
     args = parse_commandline(commandlist)
 
     try:
+        pid = psutil.Process(os.getpid())
         args.outbase.parent.mkdir(parents=True, exist_ok=True) # Create intermediate dirs
-        wt_file_list = parse_infilelist(args)
         if args.quiet:
             sys.stdout = open(os.devnull, 'w')
+
+        wt_file_list = parse_infilelist(args)
+
         n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args)
-        pid = psutil.Process(os.getpid())
+
         memory1 = pid.memory_full_info().rss
+
         treesummarylist = process_trees(wt_count_burnin_filename_list, args)
+
         if args.std:
             ave_std = compute_converge_stats(treesummarylist, args)
+
         treesummary = merge_treesummaries(treesummarylist)
-        n_leafs = len(treesummary.leaves)
-        if args.mcc:
-            n_uniq_groupings = len(treesummary.cladesummary) - n_leafs
-        else:
-            n_uniq_groupings = len(treesummary.bipartsummary) - n_leafs
         treesummary.add_branchid()
+
         contree, logbipcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
+
         compute_and_print_biparts(treesummary, args)
-        if args.mcc:
-            theo_max_groups = n_leafs - 1
-        else:
-            theo_max_groups = n_leafs - 3
-        n_internal_biparts = contree.n_bipartitions()
+
         if args.treeprobs:
             compute_and_print_trprobs(treesummary, args)
             if args.trackclades:
                 n_topo_seen = len(treesummary.cladetoposummary)
             elif args.trackbips:
                 n_topo_seen = len(treesummary.biptoposummary)
+
         stop=time.time()
 
         memory2 = pid.memory_full_info().rss
         memorymax = max(memory1, memory2)
+
+        nrootkids = len(contree.children(contree.root))
+        if nrootkids == 2:
+            rootdegree = "bifurcation"
+        elif nrootkids == 3:
+            rootdegree = "trifurcation"
+        else:
+            rootdegree = "multifurcation"
+
+        n_leaves = len(treesummary.leaves)
+        if args.mcc:
+            n_uniq_groupings = len(treesummary.cladesummary) - n_leaves
+        else:
+            n_uniq_groupings = len(treesummary.bipartsummary) - n_leaves
+
+        if args.mcc:
+            theo_max_groups = n_leaves - 1
+        else:
+            theo_max_groups = n_leaves - 3
+        n_internal_biparts = contree.n_bipartitions()
 
         if args.mcc:
             treetype = "MCC"
@@ -65,7 +84,7 @@ def main(commandlist=None):
             branchtype = "bipartition"
             space = " " * 1
 
-        print(f"\n   Number of leaves on input trees: {n_leafs:>7,d}")
+        print(f"\n   Number of leaves on input trees: {n_leaves:>7,d}")
         if args.treeprobs:
             print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
             print(f"   Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
@@ -87,7 +106,7 @@ def main(commandlist=None):
             print(f"   Root is at bifurcation")
         else:
             print(f"\n   {treetype} tree has not been explicitly rooted")
-            print(f"   Tree has been rooted at random internal node; root is at trifurcation")
+            print(f"   Tree has been rooted at random internal node; root is at {rootdegree}")
 
         if args.rootmaxfreq or args.mcc:
             print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
@@ -238,9 +257,7 @@ def build_parser():
                               + "log of clade frequencies). The MCC tree is therefore a tree that has been "
                               + "observed in the pool of tree samples, differing from the consensus tree "
                               + "which typically does not match any individual sample. "
-                              + "NOTE 1: only meaningful if input trees are estimated using clock model. "
-                              + "NOTE 2: this option automatically causes tree to be rooted at the most "
-                              + "frequently observed root-bipartition (corresponding to option --rootmaxfreq).")
+                              + "NOTE: only meaningful if input trees are estimated using clock model. ")
 
     sumtype_excl.add_argument("--mbc", action="store_true",
                               help="Maximum Bipartition Credibility (MBC) tree. "
