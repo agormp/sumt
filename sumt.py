@@ -54,23 +54,23 @@ def main(commandlist=None):
 
         if args.mcc:
             treetype = "MCC"
-            branchtype = "clades"
+            branchtype = "clade"
             space = " " * 7
         elif args.mbc:
             treetype = "MBC"
-            branchtype = "bipartitions"
+            branchtype = "bipartition"
             space = " " * 1
         else:
             treetype = "Consensus"
-            branchtype = "bipartitions"
+            branchtype = "bipartition"
             space = " " * 1
 
         print(f"\n   Number of leaves on input trees: {n_leafs:>7,d}")
         if args.treeprobs:
             print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
-            print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
+            print(f"   Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
         else:
-            print(f"   Different {branchtype} seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
+            print(f"   Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
         print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
         print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
 
@@ -90,9 +90,9 @@ def main(commandlist=None):
             print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
 
         if args.mbc or args.mcc:
-            print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.6g}")
+            print(f"\n   Highest log {branchtype} credibility:  {logbipcred:.6g}")
         else:
-            print(f"\n   Log Bipartition Credibility:  {logbipcred:.6g}")
+            print(f"\n   Log {branchtype} credibility:  {logbipcred:.6g}")
 
         if args.std:
             print(("   Average standard deviation of split frequencies: {:.6f}".format(ave_std)))
@@ -110,7 +110,7 @@ def main(commandlist=None):
 
 
     except Exception as error:
-        print("Execution failed:\n")
+        print("\n\nExecution failed:\n")
         if args.verbose:
             import traceback
             traceback.print_exc(file=sys.stdout)
