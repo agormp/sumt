@@ -79,14 +79,17 @@ def main(commandlist=None):
         else:
             print("                                            (tree is fully resolved - no polytomies)")
 
-        if args.rooted:
+        if args.mcc:
+            print(f"\n   MCC tree rooted at most frequently observed bipartition")
+            print(f"   Root is at bifurcation")
+        elif args.rooted:
             print(f"\n   {treetype} tree has been explicitly rooted")
             print(f"   Root is at bifurcation")
         else:
             print(f"\n   {treetype} tree has not been explicitly rooted")
             print(f"   Tree has been rooted at random internal node; root is at trifurcation")
 
-        if args.rootmaxfreq:
+        if args.rootmaxfreq or args.mcc:
             print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
 
         if args.mbc or args.mcc:
