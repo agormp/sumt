@@ -3,3 +3,4 @@ tmp/
 tests/
 notes/
 __pycache__
+sumt.egg-info
