@@ -90,9 +90,9 @@ def main(commandlist=None):
             print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.0f}%")
 
         if args.mbc or args.mcc:
-            print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.4g}")
+            print(f"\n   Highest Log Bipartition Credibility:  {logbipcred:.6g}")
         else:
-            print(f"\n   Log Bipartition Credibility:  {logbipcred:.4g}")
+            print(f"\n   Log Bipartition Credibility:  {logbipcred:.6g}")
 
         if args.std:
             print(("   Average standard deviation of split frequencies: {:.6f}".format(ave_std)))
