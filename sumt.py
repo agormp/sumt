@@ -342,13 +342,13 @@ def parse_infilelist(args):
 
     # If only unweighted filenames are given:
     # Reformat list of filenames into (weight, filename) tuple format expected by program
-    # Set all weights to 1/n_files
+    # Set all weights to 1
     if args.infilelist:
-        nfiles = len(args.infilelist)
-        wt_file_list = [(1/nfiles, filename) for filename in args.infilelist]
+        wt_file_list = [(1, filename) for filename in args.infilelist]
 
     # If only weighted filenames are listed:
-    # reformat list of tuples such that weight is in float (not string). Normalize weights so they sum to one.
+    # Reformat list of tuples such that weight is in float (not string).
+    # Normalize weights so their average is one.
     else:
         wt_file_list = []
 
@@ -363,9 +363,11 @@ def parse_infilelist(args):
 
         # Normalize weights, build final weight/file list:
         wtsum = 0.0
+        n_files = len(wt_file_list)
         for (wt, filename) in wt_file_list:
             wtsum += wt
-        wt_file_list = [(wt/wtsum, filename) for (wt, filename) in wt_file_list]
+        wt_avg = wtsum / n_files
+        wt_file_list = [(wt / wt_avg, filename) for (wt, filename) in wt_file_list]
 
     return wt_file_list
 
@@ -491,10 +493,9 @@ def count_trees(wt_file_list, args):
 
     # If automatic weighting requested: Compute new weights
     if args.autoweight:
-        max_count = max(count_list)
-        relwt_list = [max_count / count for count in count_list]
-        relwtsum = sum(relwt_list)
-        new_wt_list = [relwt / relwtsum for relwt in relwt_list]    # Normalized so sum=1
+        countsum = sum(count_list)
+        countavg = countsum / len(count_list)
+        new_wt_list = [count / countavg for count in count_list]  # Normalized so avg=1
 
     # Construct final combined wt + count + burnin + filename list
     wt_count_burnin_filename_list = []
