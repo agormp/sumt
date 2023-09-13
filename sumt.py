@@ -101,8 +101,20 @@ def main(commandlist=None):
 
 
         # Information about rooting
+        if not (args.actively_rooted or args.mcc):
             print(f"\n   {treetype} tree has not been explicitly rooted")
             print(f"   Tree has been rooted at random internal node; root is at {rootdegree}")
+        else:
+            if args.outgroup:
+                print(f"\n   {treetype} tree has been rooted based on outgroup")
+            elif args.rootmid:
+                print(f"\n   {treetype} tree has been midpoint-rooted")
+            elif args.rootminvar:
+                print(f"\n   {treetype} tree has been rooted using minimum variance-rooting")
+            elif args.rootmaxfreq:
+                print(f"\n   {treetype} tree has been rooted at location most frequently observed in input trees")
+            elif args.mcc:
+                print(f"\n   MCC tree is rooted at original location of tree sample having highest clade credibility")
 
         if args.rootmaxfreq or args.mcc:
             print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.1f}%")
