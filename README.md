@@ -108,14 +108,14 @@ Type of summary tree (pick one option):
                         rooting (two input trees can have the same set of bipartitions, but be
                         rooted in different locations).
 
-Rooting of summary tree (pick one option):
+Rooting of summary tree:
   --rootmid             perform midpoint rooting of summary tree
   --rootminvar          perform minimum variance rooting of summary tree
   -r TAXON [TAXON ...]  root summary tree on specified outgroup taxon/taxa
   --rootfile FILE       root summary tree on outgroup taxa listed in file (one name per line)
   --rootmaxfreq         root summary tree on bipartition where root is located most frequently in
-                        input trees. NOTE: only meaningful if input trees are estimated using clock
-                        model
+                        input trees. NOTE: only meaningful if input trees are estimated using
+                        clock model
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.25]
