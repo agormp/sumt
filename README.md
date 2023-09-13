@@ -81,9 +81,10 @@ python3 -m pip install --upgrade sumt
 
 ```
 usage: sumt [-h] [--version] [--con | --all | --mcc | --mbc]
-            [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile FILE | --rootmaxfreq]
-            [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q] [--basename NAME] [--meandepth]
-            [--autow] [--informat FORMAT] [-i FILE | -w WEIGHT FILE]
+            [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile FILE |
+            --rootmaxfreq] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q]
+            [--basename NAME] [--meandepth] [--autow] [--informat FORMAT]
+            [-i FILE | -w WEIGHT FILE]
 
 Computes summary tree and statistics from set of phylogenetic trees
 
@@ -93,63 +94,70 @@ options:
 
 Type of summary tree (pick one option):
   --con                 majority rule consensus tree
-  --all                 majority rule consensus tree with all compatible bipartitions added
-  --mcc                 Maximum Clade Credibility (MCC) tree. The MCC tree is determined by
-                        inspecting tree samples and selecting the tree that has the highest
-                        product of clade frequencies (= highest sum of log of clade frequencies).
-                        The MCC tree is therefore a tree that has been observed in the pool of
-                        tree samples, differing from the consensus tree which typically does not
-                        match any individual sample. NOTE 1: only meaningful if input trees are
-                        estimated using clock model. NOTE 2: by default, the MCC tree uses the
-                        rooting of the specific tree sample. This will often (but not always)
-                        correspond to the bipartition where the root is most commonly found in the
-                        input trees.
-  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC tree is similar to the
-                        MCC tree but counting bipartitions instead of clades, i.e. ignoring
-                        rooting (two input trees can have the same set of bipartitions, but be
-                        rooted in different locations).
+  --all                 majority rule consensus tree with all compatible bipartitions
+                        added
+  --mcc                 Maximum Clade Credibility (MCC) tree. The MCC tree is
+                        determined by inspecting tree samples and selecting the tree
+                        that has the highest product of clade frequencies (= highest
+                        sum of log of clade frequencies). The MCC tree is therefore a
+                        tree that has been observed in the pool of tree samples,
+                        differing from the consensus tree which typically does not
+                        match any individual sample. NOTE 1: only meaningful if input
+                        trees are estimated using clock model. NOTE 2: by default, the
+                        MCC tree uses the rooting of the specific tree sample. This
+                        will often (but not always) correspond to the bipartition where
+                        the root is most commonly found in the input trees.
+  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC tree is
+                        similar to the MCC tree but counting bipartitions instead of
+                        clades, i.e. ignoring rooting (two input trees can have the
+                        same set of bipartitions, but be rooted in different
+                        locations).
 
 Rooting of summary tree:
   --rootmid             perform midpoint rooting of summary tree
   --rootminvar          perform minimum variance rooting of summary tree
   -r TAXON [TAXON ...]  root summary tree on specified outgroup taxon/taxa
-  --rootfile FILE       root summary tree on outgroup taxa listed in file (one name per line)
-  --rootmaxfreq         root summary tree on bipartition where root is located most frequently in
-                        input trees. NOTE: only meaningful if input trees are estimated using
-                        clock model
+  --rootfile FILE       root summary tree on outgroup taxa listed in file (one name per
+                        line)
+  --rootmaxfreq         root summary tree on bipartition where root is located most
+                        frequently in input trees. NOTE: only meaningful if input trees
+                        are estimated using clock model
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.0]
-  -t NUM                compute tree probabilities, report NUM percent credible interval [0 - 1]
+  -t NUM                compute tree probabilities, report NUM percent credible
+                        interval [0 - 1]
   -s                    compute average standard deviation of split frequencies (ASDSF)
-  -f NUM                Minimum frequency for including bipartitions in report and in computation
-                        of ASDSF [default: 0.1]
+  -f NUM                Minimum frequency for including bipartitions in report and in
+                        computation of ASDSF [default: 0.1]
 
 Output to terminal and files:
   -n                    no warning when overwriting files
-  -v                    verbose: show full traceback in the event of failed python execution
-  -q                    quiet: don't print progress indication to terminal window. NOTE: also
-                        turns on the -n option
+  -v                    verbose: show full traceback in the event of failed python
+                        execution
+  -q                    quiet: don't print progress indication to terminal window.
+                        NOTE: also turns on the -n option
   --basename NAME       base name of output files (default: derived from input file)
 
 Estimation of node depths for clock trees:
-  --meandepth           set node depth for each clade to mean node depth observed for that clade
-                        among input trees (and branch lengths are then based on these depths).
-                        NOTE 1: only meaningful if input trees are estimated using clock model.
-                        NOTE 2: will only work if all clades in tree have been observed at least
-                        once among input trees - the option will therefore fail for some rootings.
+  --meandepth           set node depth for each clade to mean node depth observed for
+                        that clade among input trees (and branch lengths are then based
+                        on these depths). NOTE 1: only meaningful if input trees are
+                        estimated using clock model. NOTE 2: will only work if all
+                        clades in tree have been observed at least once among input
+                        trees - the option will therefore fail for some rootings.
 
 Other options:
-  --autow               automatically assign file weights based on tree counts, so all files have
-                        equal impact (default is for all trees, not files, to be equally
-                        important)
+  --autow               automatically assign file weights based on tree counts, so all
+                        files have equal impact (default is for all trees, not files,
+                        to be equally important)
   --informat FORMAT     format of input files: nexus, newick [default: nexus]
 
 Input tree files:
-  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option for
-                        each input file)
-  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for each
-                        input file)
+  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE
+                        option for each input file)
+  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE
+                        option for each input file)
 ```
 
 ## Usage examples
