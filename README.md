@@ -350,7 +350,13 @@ The command below causes sumt to do the following:
 ```
 sumt --mcc -b 0.25 --meandepth -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
 ```
-  Counting trees in file beastrun1.trees                             2,001
+
+#### Screen output
+
+This is printed to screen during run:
+
+```
+   Counting trees in file beastrun1.trees                             2,001
    Counting trees in file beastrun2.trees                             2,001
 
    Analyzing file: beastrun1.trees (Weight: 1.000)
