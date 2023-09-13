@@ -35,7 +35,7 @@ def main(commandlist=None):
         treesummary = merge_treesummaries(treesummarylist)
         treesummary.add_branchid()
 
-        contree, logbipcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
+        contree, logcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
 
         compute_and_print_biparts(treesummary, args)
 
@@ -111,7 +111,13 @@ def main(commandlist=None):
         if args.mbc or args.mcc:
             print(f"\n   Highest log {branchtype} credibility:  {logbipcred:.6g}")
         else:
-            print(f"\n   Log {branchtype} credibility:  {logbipcred:.6g}")
+            print(f"\n   Branch lengths have been set based on mean branch lengths for corresponding bipartitions")
+
+        # Information about log credibility
+        if args.mbc or (args.mcc and not args.actively_rooted):
+            print(f"\n   Highest log {branchtype} credibility:  {logcred:.6g}")
+        else:
+            print(f"\n   Log {branchtype} credibility:  {logcred:.6g}")
 
         if args.std:
             print(("   Average standard deviation of split frequencies: {:.6f}".format(ave_std)))
@@ -878,7 +884,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     else:
         print(f"   Consensus tree written to {confilename}")
 
-    return contree, logbipcred
+    return contree, logcred
 
 ##########################################################################################
 ##########################################################################################
