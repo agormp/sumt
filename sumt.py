@@ -84,6 +84,7 @@ def main(commandlist=None):
             branchtype = "bipartition"
             space = " " * 1
 
+        # Information about bipartitions, clades and topologies
         print(f"\n   Number of leaves on input trees: {n_leaves:>7,d}")
         if args.treeprobs:
             print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
@@ -98,10 +99,8 @@ def main(commandlist=None):
         else:
             print("                                            (tree is fully resolved - no polytomies)")
 
-        if args.rooted:
-            print(f"\n   {treetype} tree has been explicitly rooted")
-            print(f"   Root is at bifurcation")
-        else:
+
+        # Information about rooting
             print(f"\n   {treetype} tree has not been explicitly rooted")
             print(f"   Tree has been rooted at random internal node; root is at {rootdegree}")
 
