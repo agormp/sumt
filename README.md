@@ -94,14 +94,15 @@ Type of summary tree (pick one option):
   --con                 majority rule consensus tree
   --all                 majority rule consensus tree with all compatible bipartitions added
   --mcc                 Maximum Clade Credibility (MCC) tree. The MCC tree is determined by
-                        inspecting tree samples and selecting the tree that has the highest product
-                        of clade frequencies (= highest sum of log of clade frequencies). The MCC
-                        tree is therefore a tree that has been observed in the pool of tree
-                        samples, differing from the consensus tree which typically does not match
-                        any individual sample. NOTE 1: only meaningful if input trees are estimated
-                        using clock model. NOTE 2: this option automatically causes tree to be
-                        rooted at the most frequently observed root-bipartition (corresponding to
-                        option --rootmaxfreq).
+                        inspecting tree samples and selecting the tree that has the highest
+                        product of clade frequencies (= highest sum of log of clade frequencies).
+                        The MCC tree is therefore a tree that has been observed in the pool of
+                        tree samples, differing from the consensus tree which typically does not
+                        match any individual sample. NOTE 1: only meaningful if input trees are
+                        estimated using clock model. NOTE 2: by default, the MCC tree uses the
+                        rooting of the specific tree sample. This will often (but not always)
+                        correspond to the bipartition where the root is most commonly found in the
+                        input trees.
   --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC tree is similar to the
                         MCC tree but counting bipartitions instead of clades, i.e. ignoring
                         rooting.
