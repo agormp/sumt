@@ -118,7 +118,7 @@ Rooting of summary tree:
                         clock model
 
 Bayesian phylogeny options:
-  -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.25]
+  -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.0]
   -t NUM                compute tree probabilities, report NUM percent credible interval [0 - 1]
   -s                    compute average standard deviation of split frequencies (ASDSF)
   -f NUM                Minimum frequency for including bipartitions in report and in computation
