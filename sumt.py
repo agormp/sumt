@@ -119,7 +119,7 @@ def main(commandlist=None):
                 print(f"\n   MCC tree rooted at original root of tree sample having highest clade credibility")
 
         if args.rootmaxfreq or args.mcc:
-            print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.1f}%")
+            print(f"   Root credibility (frequency of root bipartition in input trees): {contree.rootcred * 100:.1f}%")
 
         # Information about branch lengths
         if args.meandepth:
