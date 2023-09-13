@@ -233,10 +233,10 @@ def parse_commandline(commandlist):
     if args.rootfile:
         args.outgroup = read_outgroup(args.rootfile)
 
-    if args.outgroup or args.rootmid or args.rootminvar or args.rootmaxfreq:
-        args.rooted = True
+    if (args.outgroup or args.rootmid or args.rootminvar or args.rootmaxfreq):
+        args.actively_rooted = True
     else:
-        args.rooted = False
+        args.actively_rooted = False
 
     return args
 
