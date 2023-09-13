@@ -65,10 +65,12 @@ def main(commandlist=None):
         else:
             n_uniq_groupings = len(treesummary.bipartsummary) - n_leaves
 
+        theo_max_clades = n_leaves - 1
+        theo_max_bips = n_leaves - 3
         if args.mcc:
-            theo_max_groups = n_leaves - 1
+            theo_max_groups = theo_max_clades
         else:
-            theo_max_groups = n_leaves - 3
+            theo_max_groups = theo_max_bips
         n_internal_biparts = contree.n_bipartitions()
 
         if args.mcc:
@@ -92,9 +94,9 @@ def main(commandlist=None):
         else:
             print(f"   Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
         print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
-        print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
+        print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_bips:,d})")
 
-        if n_internal_biparts < theo_max_groups:
+        if n_internal_biparts < theo_max_bips:
             print("                                            (tree contains polytomies)")
         else:
             print("                                            (tree is fully resolved - no polytomies)")
