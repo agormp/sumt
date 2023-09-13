@@ -98,7 +98,7 @@ def main(commandlist=None):
         else:
             print("                                            (tree is fully resolved - no polytomies)")
 
-        elif args.rooted:
+        if args.rooted:
             print(f"\n   {treetype} tree has been explicitly rooted")
             print(f"   Root is at bifurcation")
         else:
