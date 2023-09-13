@@ -116,16 +116,16 @@ def main(commandlist=None):
             elif args.rootmaxfreq:
                 print(f"\n   {treetype} tree has been rooted at location most frequently observed in input trees")
             elif args.mcc:
-                print(f"\n   MCC tree is rooted at original location of tree sample having highest clade credibility")
+                print(f"\n   MCC tree rooted at original root of tree sample having highest clade credibility")
 
         if args.rootmaxfreq or args.mcc:
             print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.1f}%")
 
         # Information about branch lengths
         if args.meandepth:
-            print(f"\n   Branch lengths have been set based on mean node depths in input trees")
+            print(f"\n   Branch lengths set based on mean node depths in input trees")
         else:
-            print(f"\n   Branch lengths have been set based on mean branch lengths for corresponding bipartitions")
+            print(f"\n   Branch lengths set based on mean branch lengths for corresponding bipartitions")
 
         # Information about log credibility
         if args.mbc or (args.mcc and not args.actively_rooted):
