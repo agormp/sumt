@@ -822,16 +822,19 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     sys.stdout.write("done.\n")
     sys.stdout.flush()
 
-    # MCC trees are automatically rooted. For other types: root using requested method
-    if not args.mcc:
-        if args.outgroup:
-            contree.rootout(args.outgroup)
-        elif args.rootmid:
-            contree.rootmid()
-        elif args.rootminvar:
-            contree.rootminvar()
-        elif args.rootmaxfreq:
-            treesummary.root_maxfreq(contree)
+    if args.outgroup:
+        contree.rootout(args.outgroup)
+    elif args.rootmid:
+        contree.rootmid()
+    elif args.rootminvar:
+        contree.rootminvar()
+    elif args.rootmaxfreq:
+        treesummary.root_maxfreq(contree)
+
+    # If MCC tree was re-rooted, then we need to recompute log clade credibility
+    if args.mcc and args.actively_rooted:
+        clade_topology = contree.topology_clade
+        logcred = treesummary.log_clade_credibility(clade_topology)
 
     # meandepth can be requested for all contree types (but will only make sense if they are based on clock trees)
     if args.meandepth:
