@@ -318,11 +318,12 @@ def build_parser():
     depth_grp = parser.add_argument_group("Estimation of node depths for clock trees")
     depth_excl = depth_grp.add_mutually_exclusive_group()
     depth_excl.add_argument("--meandepth", action="store_true",
-                      help="set node depths to mean node depth observed for that clade "
+                      help="set node depth for each clade to mean node depth observed for that clade "
+                           + "among input trees "
                            + "(and branch lengths are then based on these depths). "
                            + "NOTE 1: only meaningful if input trees are estimated using clock model. "
-                           + "NOTE 2: automatically forces tree to be rooted with --rootmaxfreq. "
-                           + "NOTE 3: default for MCC trees, but needs to be set for other summary types (con, all, mbc)" )
+                           + "NOTE 2: will only work if all clades in tree have been observed at least "
+                           + "once among input trees - the option will therefore fail for some rootings.")
 
     ####################################################################################
 
