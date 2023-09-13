@@ -188,12 +188,8 @@ def parse_commandline(commandlist):
     if args.quiet:
         args.nowarn = True
 
-    if args.meandepth and not args.mcc:
-        args.rootmaxfreq = True
     if args.mcc and (args.rootfile or args.outgroup or args.rootmid or args.rootminvar):
         parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootout, --rootfile")
-    if args.meandepth and (args.rootfile or args.outgroup or args.rootmid or args.rootminvar):
-        parser.error("option --meandepth is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootout, --rootfile")
 
     if args.mcc:
         args.meandepth = True  # Python note: will not be true by default when I implement CA heights
