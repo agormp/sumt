@@ -119,8 +119,9 @@ def main(commandlist=None):
         if args.rootmaxfreq or args.mcc:
             print(f"   Root credibility (frequency of root location in input trees): {contree.rootcred * 100:.1f}%")
 
-        if args.mbc or args.mcc:
-            print(f"\n   Highest log {branchtype} credibility:  {logbipcred:.6g}")
+        # Information about branch lengths
+        if args.meandepth:
+            print(f"\n   Branch lengths have been set based on mean node depths in input trees")
         else:
             print(f"\n   Branch lengths have been set based on mean branch lengths for corresponding bipartitions")
 
