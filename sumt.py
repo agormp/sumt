@@ -263,7 +263,7 @@ def build_parser():
 
     ####################################################################################
 
-    root_grp = parser.add_argument_group("Rooting of summary tree (pick one option)")
+    root_grp = parser.add_argument_group("Rooting of summary tree")
     root_excl = root_grp.add_mutually_exclusive_group()
     root_excl.add_argument("--rootmid", action="store_true",
                       help="perform midpoint rooting of summary tree")
