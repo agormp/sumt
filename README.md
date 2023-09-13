@@ -65,14 +65,15 @@ python3 -m pip install --upgrade sumt
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to set basename of output files (default: basename will be stem of input file name)
-* Option to get more verbose information about run:
+* Program prints information about run to stdout:
 	* Number of leaves on tree
 	* Number of different toplogies seen in input trees (if also using option -t)
 	* Number of bipartitions or clades seen in input trees, along with theoretical maximum
 	* Number of bipartitions in summary tree, along with theoretical maximum
 	* Indication of whether summary tree is resolved
-	* Indication of whether summary tree has been explicitly rooted
-	* Log bipartition credibility (sum of logs of bipartition frequencies in summary tree)
+	* Indication of whether summary tree has been explicitly rooted and how
+	* Log credibility (sum of logs of bipartition or clade frequencies in summary tree)
+	* Indication of how branch lengths have been set
 	* Root credibility (when input trees are clock trees)
 	* Report of maximum memory usage during processing
 
