@@ -285,7 +285,7 @@ def build_parser():
 
     bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
 
-    bayes_grp.add_argument("-b", type=float, dest="burninfrac", metavar="NUM", default=0.25,
+    bayes_grp.add_argument("-b", type=float, dest="burninfrac", metavar="NUM", default=0.0,
                       help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]")
 
     bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="NUM",
