@@ -389,7 +389,7 @@ This is printed to screen during run:
                                             (tree is fully resolved - no polytomies)
 
    MCC tree rooted at original root of tree sample having highest clade credibility
-   Root credibility (frequency of root location in input trees): 86.3%
+   Root credibility (frequency of root bipartition in input trees): 86.3%
 
    Branch lengths set based on mean node depths in input trees
 
