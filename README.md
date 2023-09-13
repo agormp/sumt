@@ -105,7 +105,8 @@ Type of summary tree (pick one option):
                         input trees.
   --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC tree is similar to the
                         MCC tree but counting bipartitions instead of clades, i.e. ignoring
-                        rooting.
+                        rooting (two input trees can have the same set of bipartitions, but be
+                        rooted in different locations).
 
 Rooting of summary tree (pick one option):
   --rootmid             perform midpoint rooting of summary tree
