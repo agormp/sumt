@@ -126,9 +126,9 @@ Bayesian phylogeny options:
 
 Output to terminal and files:
   -n                    no warning when overwriting files
-  -v                    verbose: more information, longer error messages
-  -q                    quiet: don't print progress indication to terminal window. NOTE: also turns
-                        on the -n option
+  -v                    verbose: show full traceback in the event of failed python execution
+  -q                    quiet: don't print progress indication to terminal window. NOTE: also
+                        turns on the -n option
   --basename NAME       base name of output files (default: derived from input file)
 
 Estimation of node depths for clock trees:
