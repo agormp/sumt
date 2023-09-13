@@ -808,17 +808,17 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     if args.mcc:
         sys.stdout.write("\n   Finding Maximum Clade Credibility tree...")
         sys.stdout.flush()
-        contree, logbipcred = treesummary.max_clade_cred_tree()
+        contree, logcred = treesummary.max_clade_cred_tree()
         contree.rootcred = treesummary.compute_rootcred(contree)
     elif args.mbc:
         sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
         sys.stdout.flush()
-        contree, logbipcred = treesummary.max_bipart_cred_tree()
+        contree, logcred = treesummary.max_bipart_cred_tree()
     else:
         sys.stdout.write("\n   Computing consensus tree...")
         sys.stdout.flush()
         contree = treesummary.contree(allcompat=args.all)
-        logbipcred = treesummary.log_bipart_credibility(contree.topology())
+        logcred = treesummary.log_bipart_credibility(contree.topology())
     sys.stdout.write("done.\n")
     sys.stdout.flush()
 
