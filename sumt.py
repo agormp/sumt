@@ -251,8 +251,8 @@ def build_parser():
                               + "observed in the pool of tree samples, differing from the consensus tree "
                               + "which typically does not match any individual sample. "
                               + "NOTE 1: only meaningful if input trees are estimated using clock model. "
-                              + "NOTE 2: The MCC tree will be rooted at the location of the specific tree "
-                              + "sample's root. This will often (but not always) correspond to the "
+                              + "NOTE 2: by default, the MCC tree uses the rooting of the specific tree sample. "
+                              + "This will often (but not always) correspond to the "
                               + "bipartition where the root is most commonly found in the input trees.")
 
     sumtype_excl.add_argument("--mbc", action="store_true",
