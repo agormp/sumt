@@ -242,7 +242,7 @@ def build_parser():
     sumtype_excl = sumtype_grp.add_mutually_exclusive_group()
 
     sumtype_excl.add_argument("--con", action="store_true",
-                              help="majority rule consensus tree [default]")
+                              help="majority rule consensus tree")
 
     sumtype_excl.add_argument("--all", action="store_true",
                               help="majority rule consensus tree with all compatible bipartitions added")
@@ -254,12 +254,17 @@ def build_parser():
                               + "log of clade frequencies). The MCC tree is therefore a tree that has been "
                               + "observed in the pool of tree samples, differing from the consensus tree "
                               + "which typically does not match any individual sample. "
-                              + "NOTE: only meaningful if input trees are estimated using clock model. ")
+                              + "NOTE 1: only meaningful if input trees are estimated using clock model. "
+                              + "NOTE 2: The MCC tree will be rooted at the location of the specific tree "
+                              + "sample's root. This will often (but not always) correspond to the "
+                              + "bipartition where the root is most commonly found in the input trees.")
 
     sumtype_excl.add_argument("--mbc", action="store_true",
                               help="Maximum Bipartition Credibility (MBC) tree. "
                               + "The MBC tree is similar to the MCC tree "
-                              + "but counting bipartitions instead of clades, i.e. ignoring rooting. ")
+                              + "but counting bipartitions instead of clades, i.e. ignoring rooting "
+                              + "(two input trees can have the same set of bipartitions, but be rooted "
+                              + "in different locations).")
 
     ####################################################################################
 
