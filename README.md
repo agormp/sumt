@@ -132,11 +132,11 @@ Output to terminal and files:
   --basename NAME       base name of output files (default: derived from input file)
 
 Estimation of node depths for clock trees:
-  --meandepth           set node depths to mean node depth observed for that clade (and branch
-                        lengths are then based on these depths). NOTE 1: only meaningful if input
-                        trees are estimated using clock model. NOTE 2: automatically forces tree to
-                        be rooted with --rootmaxfreq. NOTE 3: default for MCC trees, but needs to
-                        be set for other summary types (con, all, mbc)
+  --meandepth           set node depth for each clade to mean node depth observed for that clade
+                        among input trees (and branch lengths are then based on these depths).
+                        NOTE 1: only meaningful if input trees are estimated using clock model.
+                        NOTE 2: will only work if all clades in tree have been observed at least
+                        once among input trees - the option will therefore fail for some rootings.
 
 Other options:
   --autow               automatically assign file weights based on tree counts, so all files have
