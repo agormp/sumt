@@ -91,7 +91,7 @@ options:
   --version             show the program's version number and exit
 
 Type of summary tree (pick one option):
-  --con                 majority rule consensus tree [default]
+  --con                 majority rule consensus tree
   --all                 majority rule consensus tree with all compatible bipartitions added
   --mcc                 Maximum Clade Credibility (MCC) tree. The MCC tree is determined by
                         inspecting tree samples and selecting the tree that has the highest product
