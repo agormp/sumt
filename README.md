@@ -183,7 +183,7 @@ sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.run1.t -i primates.run2.
 
 This is printed to screen during run:
 
-````
+```
    Counting trees in file primates.run1.t                             2,001
    Counting trees in file primates.run2.t                             2,001
 
