@@ -152,7 +152,7 @@ def main(commandlist=None):
             import traceback
             traceback.print_exc(file=sys.stdout)
         else:
-            print("Error: ", error)
+            print(error)
 
         sys.exit()
 
