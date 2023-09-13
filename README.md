@@ -167,28 +167,38 @@ Input tree files:
 
 The command below causes `sumt` to do the following:
 
-* `--con`: Compute majority rule consensus tree (this is default and could have been omitted)
+* `--con`: Compute majority rule consensus tree
 * `-b 0.25`: Discard 25% of tree samples as burn-in
 * `-t 0.99`: Keep track of topology probabilities, report 99% credible set
 * `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence (asdsf)
 * `-f 0.1`: Include bipartitions seen in more than 10% of input trees for computations of (1) asdsf and of (2) branch lengt mean, variance, and standard error of the mean
 * `--rootmid`: Perform midpoint rooting
-* `-i primates.nexus.run1.t -i primates.nexus.run2.t `: Summarise the tree samples in the files `primates.nexus.run1.t` and `primates.nexus.run2.t`
+* `-i primates.run1.t -i primates.run2.t `: Summarise the tree samples in the files `primates.run1.t` and `primates.run2.t`
 
 ```
-sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.nexus.run1.t -i primates.nexus.run2.t 
+sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.run1.t -i primates.run2.t
 ```
 
 #### Screen output
 
 This is printed to screen during run:
 
-```
-   Counting trees in file primates.nexus.run1.t                             2,501
-   Counting trees in file primates.nexus.run2.t                             2,501
+````
+   Counting trees in file primates.run1.t                             2,001
+   Counting trees in file primates.run2.t                             2,001
 
-   Analyzing file: primates.nexus.run1.t (Weight: 0.500)
-   Discarded 625 of 2,501 trees (burnin fraction=0.25)
+   Analyzing file: primates.run1.t (Weight: 1.000)
+   Discarded 500 of 2,001 trees (burnin fraction=0.25)
+
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
+
+
+   Analyzing file: primates.run2.t (Weight: 1.000)
+   Discarded 500 of 2,001 trees (burnin fraction=0.25)
 
    Processing trees:
    
@@ -197,21 +207,26 @@ This is printed to screen during run:
    *********************************************************************************
 
 
-   Analyzing file: primates.nexus.run2.t (Weight: 0.500)
-   Discarded 625 of 2,501 trees (burnin fraction=0.25)
-
-   Processing trees:
-   
-   0      10      20      30      40      50      60      70      80      90     100
-   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
-   *********************************************************************************
-
+   Computing consensus tree...done.
    Consensus tree written to primates.con
    Bipartition list written to primates.parts
    Tree probabilities written to primates.trprobs
 
-   Done. 3,752 trees analyzed.
+   Number of leaves on input trees:       5
+   Different topologies seen:             3
+   Different bipartitions seen:           4 (theoretical maximum: 6)
+   Bipartitions in Consensus tree:        2 (theoretical maximum: 2)
+                                            (tree is fully resolved - no polytomies)
+
+   Consensus tree has been midpoint-rooted
+
+   Branch lengths set based on mean branch lengths for corresponding bipartitions
+
+   Log bipartition credibility:  -0.028723
+
+   Done. 3,002 trees analyzed.
    Time spent: 0:00:00 (h:m:s)
+   Max memory used: 32.48 MB.
 ```
 
 #### Bipartition overview
@@ -231,13 +246,13 @@ SEM  = Standard error of the mean for branch length
 ID   = Leaf name or internal branch label, for those bipartitions that are included in consensus tree
 
 PART    PROB      BLEN       VAR          SEM          ID
-*....   1.000000  0.07601    (0.0003773)  (0.0003171)  Chimpanzee
-.*...   1.000000  0.3582     (0.01896  )  (0.002248 )  Gibbon
-..*..   1.000000  0.07316    (0.0005376)  (0.0003785)  Gorilla
-...*.   1.000000  0.05669    (0.0002765)  (0.0002715)  Human
-....*   1.000000  0.2833     (0.009456 )  (0.001588 )  Orangutan
-.*..*   1.000000  0.1454     (0.003596 )  (0.000979 )  6
-*..*.   0.969350  0.03699    (0.0003814)  (0.0003238)  7
+*....   1.000000  0.07561    (0.0003703)  (0.0003512)  Chimpanzee
+.*...   1.000000  0.3551     (0.01894  )  (0.002512 )  Gibbon
+..*..   1.000000  0.0728     (0.0005512)  (0.0004285)  Gorilla
+...*.   1.000000  0.05689    (0.0002746)  (0.0003025)  Human
+....*   1.000000  0.2793     (0.008997 )  (0.001731 )  Orangutan
+.*..*   1.000000  0.1464     (0.003637 )  (0.001101 )  6
+*..*.   0.971686  0.03674    (0.0004015)  (0.000371 )  7
 ```
 
 #### Tree probabilities
@@ -260,15 +275,15 @@ begin trees;
         4     Human,
         5     Orangutan
     ;
-    tree tree_1 [p = 0.969350] [P = 0.969350] = (((5,2),3),4,1);
-    tree tree_2 [p = 0.016258] [P = 0.985608] = (((5,2),1),4,3);
-    tree tree_3 [p = 0.014392] [P = 1.000000] = ((5,2),(1,3),4);
+    tree tree_1 [p = 0.971686] [P = 0.971686] = ((3,(5,2)),1,4);
+    tree tree_2 [p = 0.014990] [P = 0.986676] = ((5,2),(3,1),4);
+    tree tree_3 [p = 0.013324] [P = 1.000000] = (((5,2),1),3,4);
 end;
 ```
 
 #### Consensus tree
 
-This is the content of the file `primates.nexus.con`. The difference between the two trees is the information given as branch labels:
+This is the content of the file `primates.con`. The difference between the two trees is the information given as branch labels:
 
 * First tree: labels are bipartition frequencies (= posterior probability of bipartition, if tree samples are from Bayesian MCMC analysis)
 * Second tree: labels are the branchIDs also indicated in the bipartition summary in the file `primates.parts`. This should make it simpler to understand what branch the bipartition corresponds to (open the tree file in a treeviewer such as FigTree and view the branch labels).
@@ -278,11 +293,11 @@ This is the content of the file `primates.nexus.con`. The difference between the
 
 begin trees;
    [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]
-   tree prob = ((((Human:0.0566895,Chimpanzee:0.0760097)0.969:0.0369884,Gorilla:0.0731637)1.000:0.145374,Orangutan:0.283342)1.000:0.0748381,Gibbon:0.35818);
+   tree prob = ((Orangutan:0.279279,(Gorilla:0.0728019,(Chimpanzee:0.0756054,Human:0.0568895)0.972:0.0367431)1.000:0.146428):0.0758066,Gibbon:0.355086);
 
    [In this tree branch labels indicate the bipartition ID listed in the file primates.parts.
     These branch labels can be used for interpreting the table of branch lenght info in that file]
-   tree partID = ((((Human:0.0566895,Chimpanzee:0.0760097)7:0.0369884,Gorilla:0.0731637)6:0.145374,Orangutan:0.283342)Gibbon:0.0748381,Gibbon:0.35818);
+   tree partID = ((Orangutan:0.279279,(Gorilla:0.0728019,(Chimpanzee:0.0756054,Human:0.0568895)7:0.0367431)6:0.146428):0.0758066,Gibbon:0.355086);
 end;
 ```
 
@@ -295,55 +310,13 @@ The command below causes sumt to do the following:
 * `-b 0.1`: Discard 10% of tree samples as burn-in
 * `-t 0.75`: Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
 * `-n`: Overwrite any existing output files with no warning
-* `-v`: Print more verbose output to screen, including running count of distinct bipartitions and topologies seen in input trees
 * `--basename /Users/bob/hiv`: produce output files with the indicated stem (/Users/bob/hiv.parts, /Users/bob/hiv.trprobs, /Users/bob/hiv.mbc)
-* `-i gp120.nexus.trees`: Summarise the tree samples in the file `gp120.nexus.trees`
+* `-i gp120.trees`: Summarise the tree samples in the file `gp120.trees`
 
 ```
-sumt --mbc -b 0.1 -t 0.75 -nv --basename /Users/bob/hiv -i gp120.nexus.trees
+sumt --mbc -b 0.1 -t 0.75 -n --basename /Users/bob/hiv -i gp120.trees
 ```
 
-#### Screen output
-
-This is printed to screen during run. The progress bar gradually fills up over the 20 seconds it takes to process the 36,001 post-burnin trees.
-
-At the end of the run the actual and theoretical maximum for number of bipartitions in the MBC tree is reported. The total number of observed topologies and bipartitions (and the theoretical maximal possible number of bipartitions) is also reported. In this case we have seen 34,127 distint tree topologies among the 36,001 trees analyzed, meaning that about 95% of the sampled trees are unique. In these topologies we have seen 1,064 distinct bipartitions. If the 34,127 topologies had been completely different (in the sense of not sharing any bipartitions), then the number of distinct bipartitions would have been 1,262,699 (so 1,064 is a small fraction of that, indicating that some bipartitions are observed in a large fraction of the tree samples).
-
-The ouput also indicates that the summary tree is fully resolved (has no polytomies). This will always be the case for a maximum bipartition credibility tree (because individual tree samples are typically fully resolved). It is further stated that the MBC tree has not been explicitly rooted (none of `sumt`'s rooting options were used).
-
-Finally the Highest Log Bipartition Credibility is output (this is the sum of the logs of the bipartition frequencies, for those bipartitions that are present in the MBC tree).
-
-```
-   Counting trees in file gp120.DNA.align.nexus.run1.t                     40,001
-
-   Analyzing file: gp120.DNA.align.nexus.run1.t (Weight: 1.000)
-   Discarded 4,000 of 40,001 trees (burnin fraction=0.10)
-
-   Processing trees:
-   
-   0      10      20      30      40      50      60      70      80      90     100
-   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
-   *********************************************************************************
-
-   Maximum bipartition credibility tree written to bobhiv.mbc
-   Bipartition list written to bobhiv.parts
-   Tree probabilities written to bobhiv.trprobs
-
-   Number of leaves on tree:          40
-   Different topologies seen:     34,127
-   Different bipartitions seen:    1,064 (theoretical maximum: 1,262,699)
-   Bipartitions in MBC tree:          37 (theoretical maximum: 37)
-                                         (tree is fully resolved - no polytomies)
-
-   MBC tree has not been explicitly rooted
-   (Tree has been rooted at random internal node; root is at trifurcation)
-
-   Highest Log Bipartition Credibility:  -28.96
-
-   Done. 36,001 trees analyzed.
-   Time spent: 0:00:20 (h:m:s)
-   Max memory used: 1.50 GB.
-```
 
 ### Example 3: 
 #### Consensus tree with all compatible bipartitions, outgroup rooting
@@ -354,22 +327,34 @@ The command below causes sumt to do the following:
 * `-b 0.1`: Discard 10% of tree samples as burn-in
 * `-t 0.95`: Report 95% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 95%)
 * `-n`: Overwrite any existing output files with no warning
-* `-v`: Print more verbose output to screen, including running count of distinct bipartitions and topologies seen in input trees
 * `-r macaque olive_baboon yellow_baboon`: root consensus tree using outgroup consisting of the taxa "macaque", "olive_baboon", and "yellow_baboon".
-* `-i mhc_align.nexus.run1.t`: Summarise the tree samples in the file `mhc_align.nexus.run1.t`
+* `-i mhc_align.run1.t`: Summarise the tree samples in the file `mhc_align.run1.t`
 
 ```
-sumt --all -b 0.1 -t 0.95 -nv -r macaque olive_baboon yellow_baboon -i mhc_align.nexus.run1.t
+sumt --all -b 0.1 -t 0.95 -n -r macaque olive_baboon yellow_baboon -i mhc_align.run1.t
 ```
 
-#### Screen output
+### Example 4: 
+#### Maximum clade credibility tree with mean node depths
+
+The command below causes sumt to do the following:
+
+* `--mcc`: Compute maximum clade credibility tree. Note: input trees need to be based on a clock model for this to be meaningful. 
+* `-b 0.25`: Discard 25% of tree samples as burn-in
+* `--meandepth`: set node depth for each clade to mean node depth observed for that clade among input trees (and branch lengths are then based on these depths). Note: only meaningful when input trees are clock trees.
+* `-n`: Overwrite any existing output files with no warning
+* `-s`: Compute average standard deviation of clade frequencies as a measure of MCMC convergence
+* `--basename beast_summary`: produce output files with the indicated stem 
+* `-i beastrun1.trees -i beastrun2.trees`: Summarise the tree samples in the files `beastrun1.trees` and `beastrun2.trees`
 
 ```
+sumt --mcc -b 0.25 --meandepth -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
+```
+  Counting trees in file beastrun1.trees                             2,001
+   Counting trees in file beastrun2.trees                             2,001
 
-   Counting trees in file mhc_align.nexus.run1.t                           30,001
-
-   Analyzing file: mhc_align.nexus.run1.t (Weight: 1.000)
-   Discarded 3,000 of 30,001 trees (burnin fraction=0.10)
+   Analyzing file: beastrun1.trees (Weight: 1.000)
+   Discarded 500 of 2,001 trees (burnin fraction=0.25)
 
    Processing trees:
    
@@ -377,22 +362,35 @@ sumt --all -b 0.1 -t 0.95 -nv -r macaque olive_baboon yellow_baboon -i mhc_align
    v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
    *********************************************************************************
 
-   Consensus tree written to mhc_align.con
-   Bipartition list written to mhc_align.parts
-   Tree probabilities written to mhc_align.trprobs
 
-   Number of leaves on tree:           9
-   Different topologies seen:         16
-   Different bipartitions seen:       15 (theoretical maximum: 96)
-   Bipartitions in Consensus tree:     6 (theoretical maximum: 6)
-                                         (tree is fully resolved - no polytomies)
+   Analyzing file: beastrun2.trees (Weight: 1.000)
+   Discarded 500 of 2,001 trees (burnin fraction=0.25)
 
-   Consensus tree has been explicitly rooted
-   (Root is at bifurcation)
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
 
-   Log Bipartition Credibility:  -0.1825
 
-   Done. 27,001 trees analyzed.
-   Time spent: 0:00:02 (h:m:s)
-   Max memory used: 30.67 MB.
+   Finding Maximum Clade Credibility tree...done.
+   Maximum clade credibility tree written to beast_summary.mcc
+   Bipartition list written to beast_summary.parts
+
+   Number of leaves on input trees:     508
+   Different clades seen:           193,339 (theoretical maximum: 1,522,014)
+   Bipartitions in MCC tree:            505 (theoretical maximum: 505)
+                                            (tree is fully resolved - no polytomies)
+
+   MCC tree rooted at original root of tree sample having highest clade credibility
+   Root credibility (frequency of root location in input trees): 86.3%
+
+   Branch lengths set based on mean node depths in input trees
+
+   Highest log clade credibility:  -1253.6
+   Average standard deviation of split frequencies: 0.022985
+
+   Done. 3,002 trees analyzed.
+   Time spent: 0:00:24 (h:m:s)
+   Max memory used: 1.96 GB.
 ```
