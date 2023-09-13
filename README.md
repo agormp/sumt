@@ -140,12 +140,13 @@ Estimation of node depths for clock trees:
 
 Other options:
   --autow               automatically assign file weights based on tree counts, so all files have
-                        equal impact (default is for all trees, not files, to be equally important)
+                        equal impact (default is for all trees, not files, to be equally
+                        important)
   --informat FORMAT     format of input files: nexus, newick [default: nexus]
 
 Input tree files:
-  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option for each
-                        input file)
+  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option for
+                        each input file)
   -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option for each
                         input file)
 ```
