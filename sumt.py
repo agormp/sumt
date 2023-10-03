@@ -606,11 +606,15 @@ def process_trees(wt_count_burnin_filename_list, args):
         trackbips = args.trackbips
         trackclades = args.trackclades
         trackroot = args.trackroot
+        trackblen = args.trackblen
+        trackdepth = args.trackdepth
         if args.mcc or args.mbc or args.treeprobs:
             treesummary = pt.BigTreeSummary(store_trees=args.treeprobs,
-                                            trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
+                                            trackbips=trackbips, trackclades=trackclades, trackroot=trackroot,
+                                            trackblen=trackblen, trackdepth=trackdepth)
         else:
-            treesummary = pt.TreeSummary(trackbips=trackbips, trackclades=trackclades, trackroot=trackroot)
+            treesummary = pt.TreeSummary(trackbips=trackbips, trackclades=trackclades, trackroot=trackroot,
+                                         trackblen=trackblen, trackdepth=trackdepth)
 
         # Read remaining trees from file, add to treesummary
         sys.stdout.write("\n\n   Processing trees:")
