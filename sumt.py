@@ -221,7 +221,7 @@ def parse_commandline(commandlist):
         args.trackbips = False
 
     # Clades need to be tracked in these situations:
-    if args.mcc or args.meandepth:
+    if args.mcc or args.meandepth or args.cadepth:
         args.trackclades = True
     else:
         args.trackclades = False
@@ -231,6 +231,19 @@ def parse_commandline(commandlist):
         args.trackroot = True
     else:
         args.trackroot = False
+
+    # Branch lengths need to be tracked if trackbips==True and not cadepth
+    if args.trackbips and not args.cadepth:
+        args.trackblen = True
+    else:
+        args.trackblen = False
+
+    # Node depths need to be tracked if trackclades==True and not cadepth
+    if args.trackclades and not args.cadepth:
+        args.trackdepth = True
+    else:
+        args.trackdepth = False
+
 
     if args.rootfile:
         args.outgroup = read_outgroup(args.rootfile)
