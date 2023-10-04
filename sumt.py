@@ -891,12 +891,11 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         clade_topology = contree.topology_clade
         logcred = treesummary.log_clade_credibility(clade_topology)
 
-    # meandepth can be requested for all contree types (but will only make sense if they are based on clock trees)
     if args.meandepth:
         contree = treesummary.set_mean_node_depths(contree)
-
-    # If biplen was requested and tree was not a consensus tree, then we need to add brlens now
-    if args.biplen and (args.mcc or args.mbc):
+    elif args.cadepth:
+        contree = treesummary.set_ca_node_depths(contree, wt_count_burnin_filename_list)
+    elif args.biplen and (args.mcc or args.mbc):
         contree = treesummary.set_mean_biplen(contree)
 
     # If root is bifurcation and one child is leaf: Remove branchID (=leafname) and label from other child-branch
