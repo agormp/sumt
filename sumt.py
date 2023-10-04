@@ -914,7 +914,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree.set_branch_attribute(contree.root, node2, "branchID", "")
         contree.set_branch_attribute(contree.root, node2, "label", "")
 
-    if args.trackblen or args.trackdepth:
+    if args.trackblen or args.trackdepth or args.cadepth:
         printdist = True
     else:
         printdist = False
