@@ -894,7 +894,10 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     if args.meandepth:
         contree = treesummary.set_mean_node_depths(contree)
     elif args.cadepth:
+        sys.stdout.write("   Computing common ancestor depths...")
+        sys.stdout.flush()
         contree = treesummary.set_ca_node_depths(contree, wt_count_burnin_filename_list)
+        sys.stdout.write("done.\n")
     elif args.biplen and (args.mcc or args.mbc):
         contree = treesummary.set_mean_biplen(contree)
 
