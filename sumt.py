@@ -126,8 +126,12 @@ def main(commandlist=None):
         # Information about branch lengths
         if args.meandepth:
             print(f"\n   Branch lengths set based on mean node depths in input trees")
-        else:
+        if args.cadepth:
+            print(f"\n   Branch lengths set based on common ancestor depths in input trees")
+        elif args.biplen:
             print(f"\n   Branch lengths set based on mean branch lengths for corresponding bipartitions")
+        elif args.noblen:
+            print(f"\n   Branch lengths have not been tracked")
 
         # Information about log credibility
         if args.mbc or (args.mcc and not args.actively_rooted):
