@@ -220,11 +220,8 @@ def parse_commandline(commandlist):
     if args.mcc and (args.rootfile or args.outgroup or args.rootmid or args.rootminvar):
         parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootout, --rootfile")
 
-    if args.mcc:
-        args.meandepth = True  # Python note: will not be true by default when I implement CA heights
-
     # Bipartitions need to be tracked in these situations
-    if args.con or args.all or args.mbc:
+    if args.con or args.all or args.mbc or args.biplen:
         args.trackbips = True
     else:
         args.trackbips = False
