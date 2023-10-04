@@ -236,19 +236,19 @@ def parse_commandline(commandlist):
         args.trackclades = False
 
     # Root needs to be tracked in these situations:
-    if args.mcc or args.meandepth or args.rootmaxfreq:
+    if args.mcc or args.meandepth or args.cadepth or args.rootmaxfreq:   # (Really?)
         args.trackroot = True
     else:
         args.trackroot = False
 
-    # Branch lengths need to be tracked if trackbips==True and not cadepth
-    if args.trackbips and not args.cadepth:
+    # Branch lengths need to be tracked if biplen==True
+    if args.biplen:
         args.trackblen = True
     else:
         args.trackblen = False
 
-    # Node depths need to be tracked if trackclades==True and not cadepth
-    if args.trackclades and not args.cadepth:
+    # Node depths need to be tracked if meandepth is set
+    if args.meandepth:
         args.trackdepth = True
     else:
         args.trackdepth = False
