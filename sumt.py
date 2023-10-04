@@ -37,7 +37,9 @@ def main(commandlist=None):
 
         contree, logcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
 
-        compute_and_print_biparts(treesummary, args)
+        if args.trackblen:
+            compute_and_print_biparts(treesummary, args)
+        # should i compute summaries for depths? where else are they computed?
 
         if args.treeprobs:
             compute_and_print_trprobs(treesummary, args)
