@@ -911,9 +911,15 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree.set_branch_attribute(contree.root, node2, "branchID", "")
         contree.set_branch_attribute(contree.root, node2, "label", "")
 
-    newick_prob_tree = contree.newick(labelfield="label")
+    if args.trackblen or args.trackdepth:
+        printdist = True
+    else:
+        printdist = False
+
+    newick_prob_tree = contree.newick(labelfield="label", printdist=printdist)
+
     if not args.mcc:
-        newick_branchID_tree = contree.newick(labelfield="branchID")
+        newick_branchID_tree = contree.newick(labelfield="branchID", printdist=printdist)
 
     if args.mbc:
         confilename = args.outbase.parent / (args.outbase.name + ".mbc")
