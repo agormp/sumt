@@ -895,6 +895,10 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     if args.meandepth:
         contree = treesummary.set_mean_node_depths(contree)
 
+    # If biplen was requested and tree was not a consensus tree, then we need to add brlens now
+    if args.biplen and (args.mcc or args.mbc):
+        contree = treesummary.set_mean_biplen(contree)
+
     # If root is bifurcation and one child is leaf: Remove branchID (=leafname) and label from other child-branch
     # (In this case both branches from root are the same bipartition, so not useful to label internal branch part)
     # Python note: not sure this generalizes to all tree types. think...
