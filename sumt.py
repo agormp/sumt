@@ -306,6 +306,48 @@ def build_parser():
 
     ####################################################################################
 
+    blen_grp = parser.add_argument_group(title= "Estimation of branch lengths (pick one option)")
+    blen_excl = blen_grp.add_mutually_exclusive_group()
+    blen_excl.add_argument("--noblen", action="store_true",
+                      help="Do not set branch lengths (only the topology and branch- or clade-"
+                          + "support of the summary tree are estimated). ")
+
+    blen_excl.add_argument("--biplen", action="store_true",
+                      help="Set branch lengths in summary tree based on average for corresponding "
+                          + "leaf bipartitions:"
+                          + "each branch in tree corresponds to a bipartition of the leaves "
+                          + "into two groups. Branch lenghts are set to the mean of the length of the"
+                          + "corresponding bipartition across all input trees.")
+
+    blen_excl.add_argument("--meandepth", action="store_true",
+                      help="set node depth for each clade to mean node depth observed for that "
+                           + "clade among input trees "
+                           + "(and branch lengths are then based on these depths). "
+                           + "Warning: option is intended "
+                            + "for input trees estimated using a clock model. "
+                            + "It requires that all clades in the summary tree have "
+                            + "been observed in the input trees, and may fail "
+                            + "for some rootings."
+                           + "NOTE: mean is computed across trees where the specific, monophyletic clade "
+                           + "is present, and may therefore be based on very few (down to one) values. "
+                           + "NOTE 2: may result in negative branch lengths. ")
+
+    blen_excl.add_argument("--cadepth", action="store_true",
+                      help="'Common Ancestor depth'. Same as option '--height ca' in treeannotator. "
+                           + "Uses all trees in input set when determining node-depths. "
+                           + "For a given clade: (1) Find the most recent "
+                           + "common ancestor of the leaves in that clade in each of the input trees. "
+                           + "(2) Compute node-depth of clade as the mean of the depths of these MRCAs. "
+                           + "This is different from --meandepth where only "
+                           + "trees with that exact clade are included when computing the mean. "
+                           + "Warning: option is intended "
+                            + "for input trees estimated using a clock model. "
+                            + "It requires that all clades in the summary tree have "
+                            + "been observed in the input trees, and may fail "
+                            + "for some rootings.")
+
+    ####################################################################################
+
     root_grp = parser.add_argument_group("Rooting of summary tree")
     root_excl = root_grp.add_mutually_exclusive_group()
     root_excl.add_argument("--rootmid", action="store_true",
@@ -354,33 +396,6 @@ def build_parser():
 
     outformat_grp.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
                       help="base name of output files (default: derived from input file)")
-
-    ####################################################################################
-
-    depth_grp = parser.add_argument_group(title= "Estimation of node depths for clock trees",
-                            description="Note: these options are only meaningful if input "
-                                      + "trees are estimated using clock model. "
-                                      + "They will only work if all clades in summary tree have been "
-                                      + "observed at least once among input trees, and the options "
-                                      + "will therefore fail for some rootings.")
-    depth_excl = depth_grp.add_mutually_exclusive_group()
-    depth_excl.add_argument("--meandepth", action="store_true",
-                      help="set node depth for each clade to mean node depth observed for that "
-                           + "clade among input trees "
-                           + "(and branch lengths are then based on these depths). "
-                           + "NOTE 1: mean is computed across trees where the specific, monophyletic clade "
-                           + "is present, and may therefore be based on very few (down to one) values. "
-                           + "NOTE 2: may result in negative branch lengths. ")
-
-    depth_excl.add_argument("--cadepth", action="store_true",
-                      help="'Common Ancestor depth'. Same as option '--height ca' in treeannotator. "
-                           + "Uses all trees in input set when determining node-depths. "
-                           + "For a given clade: (1) Find the most recent "
-                           + "common ancestor of the leaves in that clade in each of the input trees. "
-                           + "(2) Compute node-depth of clade as the mean of the depths of these MRCAs. "
-                           + "This is different from --meandepth where only "
-                           + "trees with that exact clade are included when computing the mean. ")
-
 
     ####################################################################################
 
