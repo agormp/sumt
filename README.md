@@ -44,7 +44,7 @@ python3 -m pip install --upgrade sumt
 	* Typically trees are from a Bayesian MCMC analysis, but could also be from a bootstrap procedure
 	* Can read sample files from BEAST and MrBayes
 * Output:
-	* File containing summary tree with clade support values (= frequency of bipartition in input trees). 
+	* File containing summary tree with clade support values (= frequency of bipartition or clade in input trees). 
 	    * The summary tree can be one of these:
 		    * Majority rule consensus tree
 		    * Majority rule consensus tree, with all compatible bipartitions added
@@ -62,6 +62,7 @@ python3 -m pip install --upgrade sumt
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
 * Options to root consensus tree using either outgroup, midpoint, [minimum variance](https://pubmed.ncbi.nlm.nih.gov/28800608/) rooting, or based on where root is most frequently placed in input tree sample
 * Option to set node depths to mean of those observed in input trees (only useful when input trees are based on clock model)
+* Option to set node depths using "common ancestor heights" in input trees (same as "treeannotator -height ca"; only useful when input trees are based on clock model)
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to set basename of output files (default: basename will be stem of input file name)
@@ -81,10 +82,10 @@ python3 -m pip install --upgrade sumt
 
 ```
 usage: sumt [-h] [--version] [--con | --all | --mcc | --mbc]
+            [--noblen | --biplen | --meandepth | --cadepth]
             [--rootmid | --rootminvar | -r TAXON [TAXON ...] | --rootfile FILE |
-            --rootmaxfreq] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q]
-            [--basename NAME] [--meandepth] [--autow] [--informat FORMAT]
-            [-i FILE | -w WEIGHT FILE]
+            --rootmaxfreq] [-b NUM] [-t NUM] [-s] [-f NUM] [-n] [-v] [-q] [--basename NAME]
+            [--autow] [--informat FORMAT] [-i FILE | -w WEIGHT FILE]
 
 Computes summary tree and statistics from set of phylogenetic trees
 
@@ -94,24 +95,50 @@ options:
 
 Type of summary tree (pick one option):
   --con                 majority rule consensus tree
-  --all                 majority rule consensus tree with all compatible bipartitions
-                        added
-  --mcc                 Maximum Clade Credibility (MCC) tree. The MCC tree is
-                        determined by inspecting tree samples and selecting the tree
-                        that has the highest product of clade frequencies (= highest
-                        sum of log of clade frequencies). The MCC tree is therefore a
-                        tree that has been observed in the pool of tree samples,
-                        differing from the consensus tree which typically does not
-                        match any individual sample. NOTE 1: only meaningful if input
-                        trees are estimated using clock model. NOTE 2: by default, the
-                        MCC tree uses the rooting of the specific tree sample. This
-                        will often (but not always) correspond to the bipartition where
-                        the root is most commonly found in the input trees.
-  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC tree is
-                        similar to the MCC tree but counting bipartitions instead of
-                        clades, i.e. ignoring rooting (two input trees can have the
-                        same set of bipartitions, but be rooted in different
-                        locations).
+  --all                 majority rule consensus tree with all compatible bipartitions added
+  --mcc                 Maximum Clade Credibility (MCC) tree. The MCC tree is determined by
+                        inspecting tree samples and selecting the tree that has the highest
+                        product of clade frequencies (= highest sum of log of clade
+                        frequencies). The MCC tree is therefore a tree that has been
+                        observed in the pool of tree samples, differing from the consensus
+                        tree which typically does not match any individual sample. NOTE 1:
+                        only meaningful if input trees are estimated using clock model.
+                        NOTE 2: by default, the MCC tree uses the rooting of the specific
+                        tree sample. This will often (but not always) correspond to the
+                        bipartition where the root is most commonly found in the input
+                        trees.
+  --mbc                 Maximum Bipartition Credibility (MBC) tree. The MBC tree is similar
+                        to the MCC tree but counting bipartitions instead of clades, i.e.
+                        ignoring rooting (two input trees can have the same set of
+                        bipartitions, but be rooted in different locations).
+
+Estimation of branch lengths (pick one option):
+  --noblen              Do not set branch lengths (only the topology and branch- or clade-
+                        support of the summary tree are estimated).
+  --biplen              Set branch lengths in summary tree based on average for
+                        corresponding leaf bipartitions:each branch in tree corresponds to
+                        a bipartition of the leaves into two groups. Branch lenghts are set
+                        to the mean of the length of thecorresponding bipartition across
+                        all input trees.
+  --meandepth           set node depth for each clade to mean node depth observed for that
+                        clade among input trees (and branch lengths are then based on these
+                        depths). Warning: option is intended for input trees estimated
+                        using a clock model. It requires that all clades in the summary
+                        tree have been observed in the input trees, and may fail for some
+                        rootings.NOTE: mean is computed across trees where the specific,
+                        monophyletic clade is present, and may therefore be based on very
+                        few (down to one) values. NOTE 2: may result in negative branch
+                        lengths.
+  --cadepth             'Common Ancestor depth'. Same as option '--height ca' in
+                        treeannotator. Uses all trees in input set when determining node-
+                        depths. For a given clade: (1) Find the most recent common ancestor
+                        of the leaves in that clade in each of the input trees. (2) Compute
+                        node-depth of clade as the mean of the depths of these MRCAs. This
+                        is different from --meandepth where only trees with that exact
+                        clade are included when computing the mean. Warning: option is
+                        intended for input trees estimated using a clock model. It requires
+                        that all clades in the summary tree have been observed in the input
+                        trees, and may fail for some rootings.
 
 Rooting of summary tree:
   --rootmid             perform midpoint rooting of summary tree
@@ -120,13 +147,13 @@ Rooting of summary tree:
   --rootfile FILE       root summary tree on outgroup taxa listed in file (one name per
                         line)
   --rootmaxfreq         root summary tree on bipartition where root is located most
-                        frequently in input trees. NOTE: only meaningful if input trees
-                        are estimated using clock model
+                        frequently in input trees. NOTE: only meaningful if input trees are
+                        estimated using clock model
 
 Bayesian phylogeny options:
   -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.0]
-  -t NUM                compute tree probabilities, report NUM percent credible
-                        interval [0 - 1]
+  -t NUM                compute tree probabilities, report NUM percent credible interval [0
+                        - 1]
   -s                    compute average standard deviation of split frequencies (ASDSF)
   -f NUM                Minimum frequency for including bipartitions in report and in
                         computation of ASDSF [default: 0.1]
@@ -135,29 +162,21 @@ Output to terminal and files:
   -n                    no warning when overwriting files
   -v                    verbose: show full traceback in the event of failed python
                         execution
-  -q                    quiet: don't print progress indication to terminal window.
-                        NOTE: also turns on the -n option
+  -q                    quiet: don't print progress indication to terminal window. NOTE:
+                        also turns on the -n option
   --basename NAME       base name of output files (default: derived from input file)
-
-Estimation of node depths for clock trees:
-  --meandepth           set node depth for each clade to mean node depth observed for
-                        that clade among input trees (and branch lengths are then based
-                        on these depths). NOTE 1: only meaningful if input trees are
-                        estimated using clock model. NOTE 2: will only work if all
-                        clades in tree have been observed at least once among input
-                        trees - the option will therefore fail for some rootings.
 
 Other options:
   --autow               automatically assign file weights based on tree counts, so all
-                        files have equal impact (default is for all trees, not files,
-                        to be equally important)
+                        files have equal impact (default is for all trees, not files, to be
+                        equally important)
   --informat FORMAT     format of input files: nexus, newick [default: nexus]
 
 Input tree files:
-  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE
-                        option for each input file)
-  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE
-                        option for each input file)
+  -i FILE               input FILE(s) containing phylogenetic trees (repeat -i FILE option
+                        for each input file)
+  -w WEIGHT FILE        input FILEs with specified weights (repeat -w WEIGHT FILE option
+                        for each input file)
 ```
 
 ## Usage examples
@@ -173,10 +192,11 @@ The command below causes `sumt` to do the following:
 * `-s`: Compute average standard deviation of split frequencies as a measure of MCMC convergence (asdsf)
 * `-f 0.1`: Include bipartitions seen in more than 10% of input trees for computations of (1) asdsf and of (2) branch lengt mean, variance, and standard error of the mean
 * `--rootmid`: Perform midpoint rooting
+* `--biplen`: Set branch lengths to mean of those observed for the corresponding bipartitions in input trees
 * `-i primates.run1.t -i primates.run2.t `: Summarise the tree samples in the files `primates.run1.t` and `primates.run2.t`
 
 ```
-sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.run1.t -i primates.run2.t
+sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid --biplen -i primates.run1.t -i primates.run2.t
 ```
 
 #### Screen output
@@ -184,10 +204,10 @@ sumt --con -b 0.25 -t 0.99 -f 0.1 --rootmid -i primates.run1.t -i primates.run2.
 This is printed to screen during run:
 
 ```
-   Counting trees in file primates.run1.t                             2,001
-   Counting trees in file primates.run2.t                             2,001
+   Counting trees in file tests/primates.run1.t                             2,001
+   Counting trees in file tests/primates.run2.t                             2,001
 
-   Analyzing file: primates.run1.t (Weight: 1.000)
+   Analyzing file: tests/primates.run1.t (Weight: 1.000)
    Discarded 500 of 2,001 trees (burnin fraction=0.25)
 
    Processing trees:
@@ -197,7 +217,7 @@ This is printed to screen during run:
    *********************************************************************************
 
 
-   Analyzing file: primates.run2.t (Weight: 1.000)
+   Analyzing file: tests/primates.run2.t (Weight: 1.000)
    Discarded 500 of 2,001 trees (burnin fraction=0.25)
 
    Processing trees:
@@ -226,7 +246,7 @@ This is printed to screen during run:
 
    Done. 3,002 trees analyzed.
    Time spent: 0:00:00 (h:m:s)
-   Max memory used: 32.48 MB.
+   Max memory used: 31.91 MB.
 ```
 
 #### Bipartition overview
@@ -257,7 +277,7 @@ PART    PROB      BLEN       VAR          SEM          ID
 
 #### Tree probabilities
 
-This is the content of the file `primates.trprobs`. In this case there were only 5 leaves corresponding to a total of 15 possible trees, of which 3 were seen in the MCMC samples. Note: For data sets with more than about 15-20 taxa, each sampled tree will typically be unique and all topologies therefore have the same probability, meaning the credible set is not very useful. (Bipartitions on those trees will, however, not be unique, and clade probabilities carry useful information).
+This is the content of the file `primates.trprobs`. In this case there were only 5 leaves corresponding to a total of 15 possible trees, of which 3 were seen in the MCMC samples. Note: For data sets with more than about 15-20 taxa, each sampled tree will typically be unique and all topologies therefore have the same probability, meaning the credible set is not very useful. (Bipartitions or clades on those trees will, however, not be unique, and clade probabilities carry useful information).
 
 ```
 #NEXUS
@@ -302,7 +322,7 @@ end;
 ```
 
 ### Example 2: 
-#### Maximum bipartition credibility tree, topology summary, verbose output, setting basename of output files
+#### Maximum bipartition credibility tree, topology summary,  setting basename of output files
 
 The command below causes sumt to do the following:
 
@@ -311,10 +331,11 @@ The command below causes sumt to do the following:
 * `-t 0.75`: Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
 * `-n`: Overwrite any existing output files with no warning
 * `--basename /Users/bob/hiv`: produce output files with the indicated stem (/Users/bob/hiv.parts, /Users/bob/hiv.trprobs, /Users/bob/hiv.mbc)
+* `--biplen`: Set branch lengths to mean of those observed for the corresponding bipartitions in input trees
 * `-i gp120.trees`: Summarise the tree samples in the file `gp120.trees`
 
 ```
-sumt --mbc -b 0.1 -t 0.75 -n --basename /Users/bob/hiv -i gp120.trees
+sumt --mbc -b 0.1 -t 0.75 -n --basename /Users/bob/hiv --biplen -i gp120.trees
 ```
 
 
@@ -328,27 +349,28 @@ The command below causes sumt to do the following:
 * `-t 0.95`: Report 95% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 95%)
 * `-n`: Overwrite any existing output files with no warning
 * `-r macaque olive_baboon yellow_baboon`: root consensus tree using outgroup consisting of the taxa "macaque", "olive_baboon", and "yellow_baboon".
+* `--biplen`: Set branch lengths to mean of those observed for the corresponding bipartitions in input trees
 * `-i mhc_align.run1.t`: Summarise the tree samples in the file `mhc_align.run1.t`
 
 ```
-sumt --all -b 0.1 -t 0.95 -n -r macaque olive_baboon yellow_baboon -i mhc_align.run1.t
+sumt --all -b 0.1 -t 0.95 -n -r macaque olive_baboon yellow_baboon ---biplen i mhc_align.run1.t
 ```
 
 ### Example 4: 
-#### Maximum clade credibility tree with mean node depths
+#### Maximum clade credibility tree with "common ancestor" node depths
 
 The command below causes sumt to do the following:
 
 * `--mcc`: Compute maximum clade credibility tree. Note: input trees need to be based on a clock model for this to be meaningful. 
 * `-b 0.25`: Discard 25% of tree samples as burn-in
-* `--meandepth`: set node depth for each clade to mean node depth observed for that clade among input trees (and branch lengths are then based on these depths). Note: only meaningful when input trees are clock trees.
+* `--cadepth`: set node depth for each clade to mean node depth observed for MRCA of that clade among input trees (this is the same as `treeannotator -heights ca` in the BEAST2 package). Note: only meaningful when input trees are clock trees.
 * `-n`: Overwrite any existing output files with no warning
 * `-s`: Compute average standard deviation of clade frequencies as a measure of MCMC convergence
 * `--basename beast_summary`: produce output files with the indicated stem 
 * `-i beastrun1.trees -i beastrun2.trees`: Summarise the tree samples in the files `beastrun1.trees` and `beastrun2.trees`
 
 ```
-sumt --mcc -b 0.25 --meandepth -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
+sumt --mcc -b 0.25 --cadepth -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
 ```
 
 #### Screen output
@@ -356,10 +378,10 @@ sumt --mcc -b 0.25 --meandepth -ns --basename beast_summary -i beastrun1.trees -
 This is printed to screen during run:
 
 ```
-   Counting trees in file beastrun1.trees                             2,001
-   Counting trees in file beastrun2.trees                             2,001
+   Counting trees in file tests/beastrun1.trees                             2,001
+   Counting trees in file tests/beastrun2.trees                             2,001
 
-   Analyzing file: beastrun1.trees (Weight: 1.000)
+   Analyzing file: tests/beastrun1.trees (Weight: 1.000)
    Discarded 500 of 2,001 trees (burnin fraction=0.25)
 
    Processing trees:
@@ -369,7 +391,7 @@ This is printed to screen during run:
    *********************************************************************************
 
 
-   Analyzing file: beastrun2.trees (Weight: 1.000)
+   Analyzing file: tests/beastrun2.trees (Weight: 1.000)
    Discarded 500 of 2,001 trees (burnin fraction=0.25)
 
    Processing trees:
@@ -380,8 +402,8 @@ This is printed to screen during run:
 
 
    Finding Maximum Clade Credibility tree...done.
+   Computing common ancestor depths...done.
    Maximum clade credibility tree written to beast_summary.mcc
-   Bipartition list written to beast_summary.parts
 
    Number of leaves on input trees:     508
    Different clades seen:           193,339 (theoretical maximum: 1,522,014)
@@ -391,12 +413,98 @@ This is printed to screen during run:
    MCC tree rooted at original root of tree sample having highest clade credibility
    Root credibility (frequency of root bipartition in input trees): 86.3%
 
-   Branch lengths set based on mean node depths in input trees
+   Branch lengths set based on common ancestor depths in input trees
 
    Highest log clade credibility:  -1253.6
    Average standard deviation of split frequencies: 0.022985
 
    Done. 3,002 trees analyzed.
-   Time spent: 0:00:24 (h:m:s)
-   Max memory used: 1.96 GB.
+   Time spent: 0:00:31 (h:m:s)
+   Max memory used: 2.15 GB.
+```
+
+### Example 5: 
+#### Maximum clade credibility tree with mean node depths
+
+The command below causes sumt to do the following:
+
+* `--mcc`: Compute maximum clade credibility tree. Note: input trees need to be based on a clock model for this to be meaningful. 
+* `-b 0.25`: Discard 25% of tree samples as burn-in
+* `--meandepth`: set node depth for each clade to mean node depth observed for that specific, monophyletic clade among input trees (this is the same as `treeannotator -heights mean` in the BEAST2 package). Note: only meaningful when input trees are clock trees.
+* `-n`: Overwrite any existing output files with no warning
+* `-s`: Compute average standard deviation of clade frequencies as a measure of MCMC convergence
+* `--basename beast_summary`: produce output files with the indicated stem 
+* `-i beastrun1.trees -i beastrun2.trees`: Summarise the tree samples in the files `beastrun1.trees` and `beastrun2.trees`
+
+```
+sumt --mcc -b 0.25 --meandepth -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
+```
+
+
+### Example 6: 
+#### Maximum bipartition credibility tree with common ancestor node depths, rooted at most frequent position
+
+The command below causes sumt to do the following:
+
+* `--mcc`: Compute maximum clade credibility tree. Note: input trees need to be based on a clock model for this to be meaningful. 
+* `-b 0.25`: Discard 25% of tree samples as burn-in
+* `--cadepth`: set node depth for each clade to mean node depth observed for MRCA of that clade among input trees (this is the same as `treeannotator -heights ca` in the BEAST2 package). Note: only meaningful when input trees are clock trees.
+* `--rootmaxfreq`: Root summary-tree at location most frequently observed in input trees 
+* `-n`: Overwrite any existing output files with no warning
+* `-s`: Compute average standard deviation of clade frequencies as a measure of MCMC convergence
+* `--basename beast_summary`: produce output files with the indicated stem 
+* `-i beastrun1.trees -i beastrun2.trees`: Summarise the tree samples in the files `beastrun1.trees` and `beastrun2.trees`
+
+```
+sumt --mbc -b 0.25 --cadepth --rootmaxfreq -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
+```
+
+#### Screen output
+
+This is printed to screen during run:
+
+```
+   Counting trees in file tests/beastrun1.trees                             2,001
+   Counting trees in file tests/beastrun2.trees                             2,001
+
+   Analyzing file: tests/beastrun1.trees (Weight: 1.000)
+   Discarded 500 of 2,001 trees (burnin fraction=0.25)
+
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
+
+
+   Analyzing file: tests/beastrun2.trees (Weight: 1.000)
+   Discarded 500 of 2,001 trees (burnin fraction=0.25)
+
+   Processing trees:
+   
+   0      10      20      30      40      50      60      70      80      90     100
+   v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v
+   *********************************************************************************
+
+
+   Finding Maximum Bipartition Credibility tree...done.
+   Computing common ancestor depths...done.
+   Maximum bipartition credibility tree written to beast_summary.mbc
+
+   Number of leaves on input trees:     508
+   Different bipartitions seen:     193,333 (theoretical maximum: 1,516,010)
+   Bipartitions in MBC tree:            505 (theoretical maximum: 505)
+                                            (tree is fully resolved - no polytomies)
+
+   MBC tree has been rooted at location most frequently observed in input trees
+   Root credibility (frequency of root bipartition in input trees): 86.3%
+
+   Branch lengths set based on common ancestor depths in input trees
+
+   Highest log bipartition credibility:  -1253.45
+   Average standard deviation of split frequencies: 0.023034
+
+   Done. 3,002 trees analyzed.
+   Time spent: 0:00:44 (h:m:s)
+   Max memory used: 2.43 GB.
 ```
