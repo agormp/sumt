@@ -62,7 +62,7 @@ python3 -m pip install --upgrade sumt
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
 * Options to root consensus tree using either outgroup, midpoint, [minimum variance](https://pubmed.ncbi.nlm.nih.gov/28800608/) rooting, or based on where root is most frequently placed in input tree sample
 * Option to set node depths to mean of those observed in input trees (only useful when input trees are based on clock model)
-* Option to set node depths using "common ancestor heights" in input trees (same as "treeannotator -height ca"; only useful when input trees are based on clock model)
+* Option to set node depths using "common ancestor heights" in input trees (same as "treeannotator -heights ca" in the BEAST2 package; only useful when input trees are based on clock model)
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to set basename of output files (default: basename will be stem of input file name)
@@ -326,7 +326,7 @@ end;
 
 The command below causes sumt to do the following:
 
-* `--mbc`: Compute maximum bipartition credibility tree (instead of majority rule consensus)
+* `--mbc`: Compute maximum bipartition credibility tree. he MCC tree is determined by inspecting tree samples and selecting the tree that has the highest product of bipartition frequencies (= highest sum of log of bipartition frequencies). This is similar to the MCC (maximum clade credibility) but counting bipartitions instead of monophyletic clades (i.e., ignoring rooting).
 * `-b 0.1`: Discard 10% of tree samples as burn-in
 * `-t 0.75`: Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
 * `-n`: Overwrite any existing output files with no warning
@@ -446,7 +446,7 @@ sumt --mcc -b 0.25 --meandepth -ns --basename beast_summary -i beastrun1.trees -
 
 The command below causes sumt to do the following:
 
-* `--mcc`: Compute maximum clade credibility tree. Note: input trees need to be based on a clock model for this to be meaningful. 
+* `--mbc`: Compute maximum bipartition credibility tree
 * `-b 0.25`: Discard 25% of tree samples as burn-in
 * `--cadepth`: set node depth for each clade to mean node depth observed for MRCA of that clade among input trees (this is the same as `treeannotator -heights ca` in the BEAST2 package). Note: only meaningful when input trees are clock trees.
 * `--rootmaxfreq`: Root summary-tree at location most frequently observed in input trees 
