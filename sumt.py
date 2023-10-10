@@ -948,18 +948,22 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     else:
         confile = open(confilename, "w")
 
-    confile.write("#NEXUS\n")
-    confile.write("\n")
-    confile.write("begin trees;\n")
-    confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
-    confile.write("   tree prob = ")
-    confile.write(newick_prob_tree)
-    if not args.mcc:
-        confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
-        confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
-        confile.write("   tree partID = ")
-        confile.write(newick_branchID_tree)
-    confile.write("\nend;\n")
+    if args.outformat == "newick":
+        confile.write(newick_prob_tree)
+        confile.write("\n")
+    else:
+        confile.write("#NEXUS\n")
+        confile.write("\n")
+        confile.write("begin trees;\n")
+        confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
+        confile.write("   tree prob = ")
+        confile.write(newick_prob_tree)
+        if not args.mcc:
+            confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
+            confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
+            confile.write("   tree partID = ")
+            confile.write(newick_branchID_tree)
+        confile.write("\nend;\n")
     confile.close()
 
     if args.mbc:
