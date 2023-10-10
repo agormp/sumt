@@ -402,10 +402,13 @@ def build_parser():
                      help="automatically assign file weights based on tree counts, so all files have equal impact "
                          + "(default is for all trees, not files, to be equally important)")
 
-    other_grp.add_argument("--informat", action="store", dest="informat", metavar="FORMAT",
+    other_grp.add_argument("--informat", action="store", metavar="FORMAT",
                       choices=["nexus", "newick"], default="nexus",
-                      help="format of input files: %(choices)s [default: %(default)s]")
+                      help="format of input tree files: %(choices)s [default: %(default)s]")
 
+    other_grp.add_argument("--outformat", action="store", metavar="FORMAT",
+                      choices=["nexus", "newick"], default="nexus",
+                      help="format of output tree file: %(choices)s [default: %(default)s]")
 
     ####################################################################################
 
