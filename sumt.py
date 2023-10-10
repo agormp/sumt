@@ -586,7 +586,7 @@ def count_trees(wt_file_list, args):
     if args.autoweight:
         countsum = sum(count_list)
         countavg = countsum / len(count_list)
-        new_wt_list = [count / countavg for count in count_list]  # Normalized so avg=1
+        new_wt_list = [countavg / count for count in count_list]  # Normalized so avg=1
 
     # Construct final combined wt + count + burnin + filename list
     wt_count_burnin_filename_list = []
