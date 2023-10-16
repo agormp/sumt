@@ -571,22 +571,24 @@ def count_trees(wt_file_list, args):
 
     count_list = []
     burnin_list = []
-    for (wt, filename) in wt_file_list:
+    n_postburnin = []
+    for i,(wt, filename) in enumerate(wt_file_list):
         treelist = []
         sys.stdout.write(f"   Counting trees in file {str(filename):<40}")
         sys.stdout.flush()
         n_tot = fast_treecount(filename, args)
         sys.stdout.write(f"{n_tot:>15,d}\n")
         sys.stdout.flush()
-        burnin = int(args.burninfrac * n_tot)
+        burnin = int(args.burninfrac[i] * n_tot)
         count_list.append(n_tot)
         burnin_list.append(burnin)
+        n_postburnin.append(n_tot - burnin)
 
     # If automatic weighting requested: Compute new weights
     if args.autoweight:
-        countsum = sum(count_list)
-        countavg = countsum / len(count_list)
-        new_wt_list = [countavg / count for count in count_list]  # Normalized so avg=1
+        countsum = sum(n_postburnin)
+        countavg = countsum / len(n_postburnin)
+        new_wt_list = [countavg / count for count in n_postburnin]  # Normalized so avg=1
 
     # Construct final combined wt + count + burnin + filename list
     wt_count_burnin_filename_list = []
