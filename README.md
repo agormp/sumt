@@ -151,7 +151,9 @@ Rooting of summary tree:
                         estimated using clock model
 
 Bayesian phylogeny options:
-  -b NUM                burnin: fraction of trees to discard [0 - 1; default: 0.0]
+  -b NUM [NUM ...]      burnin: fraction of trees to discard [0 - 1; default: 0.0].
+                        Either one value (used on all input files), or one value per
+                        input file.
   -t NUM                compute tree probabilities, report NUM percent credible interval [0
                         - 1]
   -s                    compute average standard deviation of split frequencies (ASDSF)
@@ -357,12 +359,12 @@ sumt --all -b 0.1 -t 0.95 -n -r macaque olive_baboon yellow_baboon ---biplen i m
 ```
 
 ### Example 4: 
-#### Maximum clade credibility tree with "common ancestor" node depths
+#### Maximum clade credibility tree with "common ancestor" node depths, separate burnins
 
 The command below causes sumt to do the following:
 
 * `--mcc`: Compute maximum clade credibility tree. Note: input trees need to be based on a clock model for this to be meaningful. 
-* `-b 0.25`: Discard 25% of tree samples as burn-in
+* `-b 0.25 0.4`: Discard 25% of tree samples in first file, and 40% of trees in second file as burn-in
 * `--cadepth`: set node depth for each clade to mean node depth observed for MRCA of that clade among input trees (this is the same as `treeannotator -heights ca` in the BEAST2 package). Note: only meaningful when input trees are clock trees.
 * `-n`: Overwrite any existing output files with no warning
 * `-s`: Compute average standard deviation of clade frequencies as a measure of MCMC convergence
@@ -370,7 +372,7 @@ The command below causes sumt to do the following:
 * `-i beastrun1.trees -i beastrun2.trees`: Summarise the tree samples in the files `beastrun1.trees` and `beastrun2.trees`
 
 ```
-sumt --mcc -b 0.25 --cadepth -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
+sumt --mcc -b 0.25 0.4 --cadepth -ns --basename beast_summary -i beastrun1.trees -i beastrun2.trees 
 ```
 
 #### Screen output
