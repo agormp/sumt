@@ -34,6 +34,10 @@ Upgrading to latest version:
 python3 -m pip install --upgrade sumt
 ```
 
+## Citation
+
+To cite sumt: use the link in the right sidebar under About --> Cite this repository.
+
 ## Dependencies
 
 `sumt` relies on the [phylotreelib library](https://github.com/agormp/phylotreelib) for phylogeny-related matters, and on [psutil](https://pypi.org/project/psutil/) for (optionally) monitoring memory usage. These are automatically included when using pip to install.
