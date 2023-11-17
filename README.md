@@ -2,6 +2,7 @@
 
 ![](https://img.shields.io/badge/version-3.8.1-blue)
 [![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=PyPI%20downloads&service=github)](https://pepy.tech/project/sumt)
+[![DOI](https://zenodo.org/badge/461522623.svg)](https://zenodo.org/doi/10.5281/zenodo.10148693)
 
 The command-line program `sumt` computes consensus trees and other tree-summary statistics for sets of phylogenetic trees. The input trees can be in one or more input files, and will typically be from a Bayesian MCMC analysis (BEAST or MrBayes for instance) or from a bootstrap procedure. 
 
