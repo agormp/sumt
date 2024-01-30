@@ -201,8 +201,8 @@ def parse_commandline(commandlist):
             wt, infilepath = args.fileweights[0]
         args.outbase = Path(infilepath.stem.split('.')[0])
 
-    if len(args.burninfrac) == 1:
-        args.burninfrac = args.burninfrac * len(args.infilelist)
+    if args.burninfrac is None:
+        args.burninfrac = [0.0] * len(args.infilelist)
     elif len(args.burninfrac) != len(args.infilelist):
         msg = "number of burnin values {len(args.burninfrac)} must match number of input files len(args.infilelist){}"
         raise parser.error(msg)
@@ -372,9 +372,9 @@ def build_parser():
 
     bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
 
-    bayes_grp.add_argument("-b", type=float, dest="burninfrac", metavar="NUM", default=0.0,  nargs='+',
-                      help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
-                      + "Either one value (used on all input files), or one value per input file.")
+    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=None, nargs='*',
+                           help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
+                           + "Either one value (used on all input files), or one value per input file.")
 
     bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="NUM",
                       help="compute tree probabilities, report NUM percent credible interval [0 - 1]")
