@@ -4,3 +4,5 @@ tests/
 notes/
 __pycache__
 sumt.egg-info
+.ipynb_checkpoints/
+Untitled.ipynb
