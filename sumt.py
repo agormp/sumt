@@ -203,9 +203,11 @@ def parse_commandline(commandlist):
 
     if args.burninfrac is None:
         args.burninfrac = [0.0] * len(args.infilelist)
+    elif len(args.burninfrac) == 1:
+        burnin_value = args.burninfrac[0]
+        args.burninfrac = [burnin_value] * len(args.infilelist)
     elif len(args.burninfrac) != len(args.infilelist):
-        msg = "number of burnin values {len(args.burninfrac)} must match number of input files len(args.infilelist){}"
-        raise parser.error(msg)
+        parser.error("either provide one burnin value, or one value per input file")
 
     if any(x < 0 or x > 1 for x in args.burninfrac):
         parser.error("option -b: NUM must be between 0.0 and 1.0")
@@ -372,7 +374,7 @@ def build_parser():
 
     bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
 
-    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=None, nargs='*',
+    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=None, nargs='+',
                            help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
                            + "Either one value (used on all input files), or one value per input file.")
 
