@@ -898,7 +898,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     elif args.rootminvar:
         contree.rootminvar()
     elif args.rootmaxfreq:
-        treesummary.root_maxfreq(contree)
+        contree = treesummary.root_maxfreq(contree)
 
     # If MCC tree was re-rooted, then we need to recompute log clade credibility
     if args.mcc and args.actively_rooted:
