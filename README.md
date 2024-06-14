@@ -333,7 +333,7 @@ end;
 
 The command below causes sumt to do the following:
 
-* `--mbc`: Compute maximum bipartition credibility tree. he MCC tree is determined by inspecting tree samples and selecting the tree that has the highest product of bipartition frequencies (= highest sum of log of bipartition frequencies). This is similar to the MCC (maximum clade credibility) but counting bipartitions instead of monophyletic clades (i.e., ignoring rooting).
+* `--mbc`: Compute maximum bipartition credibility tree. The MBC tree is determined by inspecting tree samples and selecting the tree that has the highest product of bipartition frequencies (= highest sum of log of bipartition frequencies). This is similar to the MCC (maximum clade credibility) but counting bipartitions instead of monophyletic clades (i.e., ignoring rooting).
 * `-b 0.1`: Discard 10% of tree samples as burn-in
 * `-t 0.75`: Report 75% credible set of topologies (i.e., all the most frequently seen topologies to a cumulated probability of 75%)
 * `-n`: Overwrite any existing output files with no warning
