@@ -912,7 +912,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         sys.stdout.flush()
         contree = treesummary.set_ca_node_depths(contree, wt_count_burnin_filename_list)
         sys.stdout.write("done.\n")
-    elif args.biplen and (args.mcc or args.mbc):
+    elif args.biplen and args.mcc:
         contree = treesummary.set_mean_biplen(contree)
 
     # If root is bifurcation and one child is leaf: Remove branchID (=leafname) and label from other child-branch
