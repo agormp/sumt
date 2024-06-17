@@ -572,7 +572,7 @@ def fast_treecount(filename, args):
     n_treestr = count_bytestring(filename, b"tree ")
     countlist = [n_semicolons, n_eqparen, n_treestr]
     notzero = [val for val in countlist if val>0]
-    return min(countlist)
+    return min(notzero)
 
 ####################################################################################
 
