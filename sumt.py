@@ -460,6 +460,45 @@ def build_parser():
 ####################################################################################
 ####################################################################################
 
+class ProgressBar:
+    def __init__(self, total_trees, burnin):
+        self.total_trees = total_trees
+        self.burnin = burnin
+        self.processed_trees = 0
+        self.progscale = "0      10      20      30      40      50      60      70      80      90     100"
+        self.progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
+        self.ndots = len(self.progticks)
+        self.n_tot = total_trees - burnin
+        self.trees_per_dot = self.n_tot / self.ndots
+        self.n_dotsprinted = 0
+
+        # Print progress bar header
+        sys.stdout.write("\n\n   Processing trees:")
+        sys.stdout.write(f"\n   {self.progscale}\n")
+        sys.stdout.write(f"   {self.progticks}\n   ")
+        sys.stdout.flush()
+
+    def update(self):
+        """ Update the progress bar based on the number of processed trees. """
+        self.processed_trees += 1
+        n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
+        if self.n_dotsprinted < n_dots_expected:
+            n_missing = n_dots_expected - self.n_dotsprinted
+            sys.stdout.write("*" * n_missing)
+            sys.stdout.flush()
+            self.n_dotsprinted += n_missing
+
+    def complete(self):
+        """ Ensure all dots are printed at the end if they haven't been already. """
+        if self.n_dotsprinted < self.ndots:
+            n_missing = self.ndots - self.n_dotsprinted
+            sys.stdout.write("*" * n_missing)
+            sys.stdout.flush()
+        print("\n")  # Move to the next line
+
+####################################################################################
+####################################################################################
+
 def parse_infilelist(args):
 
     # If only unweighted filenames are given:
@@ -672,38 +711,17 @@ def process_trees(wt_count_burnin_filename_list, args):
             treesummary = pt.TreeSummary(trackbips=trackbips, trackclades=trackclades, trackroot=trackroot,
                                          trackblen=trackblen, trackdepth=trackdepth)
 
-        # Read remaining trees from file, add to treesummary
-        sys.stdout.write("\n\n   Processing trees:")
-        sys.stdout.flush()
-        sys.stdout.write("\n   ")
+        # Initialize the progress bar
+        progress = ProgressBar(total_trees=count, burnin=burnin)
 
-        # Progress indicator (bar going to 100%)
-        progscale = "0      10      20      30      40      50      60      70      80      90     100"
-        progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
-        ndots = len(progticks)
-        n_tot = count - burnin
-        trees_per_dot = n_tot / ndots
-        sys.stdout.write(f"\n   {progscale}\n")
-        sys.stdout.write(f"   {progticks}\n   ")
-
-        n_trees = 0
-        n_dotsprinted = 0
+        # Read remaining trees from file, add to treesummary, print progress bar
         for tree in treefile:
             treesummary.add_tree(tree, weight)
-            n_trees += 1
-            n_dots_expected = math.floor(n_trees / trees_per_dot)
-            if n_dotsprinted < n_dots_expected:
-                n_missing = n_dots_expected - n_dotsprinted
-                sys.stdout.write("*" * n_missing)
-                sys.stdout.flush()
-                n_dotsprinted += n_missing
+            progress.update()
             del tree
 
-        # Ensure all dots are printed at the end if they haven't been already
-        if n_dotsprinted < ndots:
-            n_missing = ndots - n_dotsprinted
-            sys.stdout.write("*" * n_missing)
-            sys.stdout.flush()
+        # Ensure the progress bar completes at the end
+        progress.complete()
 
         treesummarylist.append(treesummary)
         print("\n")
