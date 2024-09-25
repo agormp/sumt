@@ -715,10 +715,19 @@ def process_trees(wt_count_burnin_filename_list, args):
         progress = ProgressBar(total_trees=count, burnin=burnin)
 
         # Read remaining trees from file, add to treesummary, print progress bar
-        for tree in treefile:
-            treesummary.add_tree(tree, weight)
-            progress.update()
-            del tree
+        # If rootogmaxfreq: root on og, remove og, add rooted ingroup-tree to treesummary
+        if args.rootogmaxfreq:
+            for tree in treefile:
+                tree.rootout(args.outgroup)
+                tree.remove_leaves(args.outgroup)
+                treesummary.add_tree(tree, weight)
+                progress.update()
+                del tree            
+        else:
+            for tree in treefile:
+                treesummary.add_tree(tree, weight)
+                progress.update()
+                del tree
 
         # Ensure the progress bar completes at the end
         progress.complete()
@@ -938,6 +947,8 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     elif args.rootminvar:
         contree.rootminvar()
     elif args.rootmaxfreq:
+        contree = treesummary.root_maxfreq(contree)
+    elif args.rootogmaxfreq:
         contree = treesummary.root_maxfreq(contree)
 
     # If MCC tree was re-rooted, then we need to recompute log clade credibility
