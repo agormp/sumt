@@ -109,7 +109,7 @@ def main(commandlist=None):
             print(f"\n   {treetype} tree has not been explicitly rooted")
             print(f"   Tree has been rooted at random internal node; root is at {rootdegree}")
         else:
-            if args.outgroup:
+            if args.rootoutgroup:
                 print(f"\n   {treetype} tree has been rooted based on outgroup")
             elif args.rootmid:
                 print(f"\n   {treetype} tree has been midpoint-rooted")
@@ -224,9 +224,12 @@ def parse_commandline(commandlist):
 
     if args.quiet:
         args.nowarn = True
+        
+    if args.rootoutgroup and not (args.outgroup or args.ogfile):
+        parser.error("Option --rootoutgroup requires specifying outgroup using either --og or --ogfile")
 
-    if args.mcc and (args.rootfile or args.outgroup or args.rootmid or args.rootminvar):
-        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootout, --rootfile")
+    if args.mcc and (args.rootoutgroup or args.rootmid or args.rootminvar):
+        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootoutgroup")
 
     # Bipartitions need to be tracked in these situations
     if args.con or args.all or args.mbc or args.biplen:
@@ -259,8 +262,8 @@ def parse_commandline(commandlist):
         args.trackdepth = False
 
 
-    if args.rootfile:
-        args.outgroup = read_outgroup(args.rootfile)
+    if args.ogfile:
+        args.outgroup = read_outgroup(args.ogfile)
 
     if (args.outgroup or args.rootmid or args.rootminvar or args.rootmaxfreq):
         args.actively_rooted = True
@@ -366,21 +369,30 @@ def build_parser():
     ####################################################################################
 
     root_grp = parser.add_argument_group("Rooting of summary tree")
+    
     root_excl = root_grp.add_mutually_exclusive_group()
+    
     root_excl.add_argument("--rootmid", action="store_true",
                       help="perform midpoint rooting of summary tree")
+                      
     root_excl.add_argument("--rootminvar", action="store_true",
                       help="perform minimum variance rooting of summary tree")
 
-    root_excl.add_argument("-r", dest="outgroup", metavar="TAXON", nargs="+", default=None,
-                      help="root summary tree on specified outgroup taxon/taxa")
-
-    root_excl.add_argument("--rootfile", action="store", metavar="FILE", default=None,
-                      help="root summary tree on outgroup taxa listed in file (one name per line)")
-
+    root_excl.add_argument("--rootoutgroup", action="store_true",
+                      help="root summary tree on outgroup (which has to be specified with --og or --ogfile)")
+                      
     root_excl.add_argument("--rootmaxfreq", action="store_true",
                       help="root summary tree on bipartition where root is located most frequently in input trees. " +
                            "NOTE: only meaningful if input trees are estimated using clock model")
+    
+                      
+    og_group = root_grp.add_mutually_exclusive_group()
+    
+    og_group.add_argument('--og', dest="outgroup", metavar="TAX", nargs="+", default=None,
+                      help='specify outgroup taxon/taxa on command-line')
+                      
+    og_group.add_argument('--ogfile', action="store", metavar="FILE", default=None,
+                      help="specify outgroup taxon/taxa in file (one name per line)")
 
     ####################################################################################
 
@@ -478,8 +490,8 @@ def parse_infilelist(args):
 ####################################################################################
 ####################################################################################
 
-def read_outgroup(rootfile):
-    infile = open(rootfile, "r")
+def read_outgroup(ogfile):
+    infile = open(ogfile, "r")
     outgroup = []
     for line in infile:
         leaf = line.strip()
@@ -895,7 +907,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     sys.stdout.write("done.\n")
     sys.stdout.flush()
 
-    if args.outgroup:
+    if args.rootoutgroup:
         contree.rootout(args.outgroup)
     elif args.rootmid:
         contree.rootmid()
