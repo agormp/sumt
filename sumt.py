@@ -388,7 +388,7 @@ def build_parser():
                       
     og_group = root_grp.add_mutually_exclusive_group()
     
-    og_group.add_argument('--og', dest="outgroup", metavar="TAX", nargs="+", default=None,
+    og_group.add_argument('--og', dest="outgroup", metavar="NAME", nargs="+", default=None,
                       help='specify outgroup taxon/taxa on command-line')
                       
     og_group.add_argument('--ogfile', action="store", metavar="FILE", default=None,
