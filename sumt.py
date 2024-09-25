@@ -380,11 +380,16 @@ def build_parser():
                       help="perform minimum variance rooting of summary tree")
 
     root_excl.add_argument("--rootoutgroup", action="store_true",
-                      help="root summary tree on outgroup (which has to be specified with --og or --ogfile)")
+                      help="root summary tree on outgroup (specified with --og or --ogfile)")
                       
+    root_excl.add_argument("--rootogmaxfreq", action="store_true",
+                      help="root summary tree on bipartition where outgroup attaches most frequently in input trees. " +
+                           "Requires specifying outgroup using --og or --ogfile. "
+                           "Automatically removes the outgroup from the final summary tree")
+    
     root_excl.add_argument("--rootmaxfreq", action="store_true",
                       help="root summary tree on bipartition where root is located most frequently in input trees. " +
-                           "NOTE: only meaningful if input trees are estimated using clock model")
+                           "Only meaningful if input trees are estimated using a clock model")
     
                       
     og_group = root_grp.add_mutually_exclusive_group()
