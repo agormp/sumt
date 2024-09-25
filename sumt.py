@@ -281,6 +281,18 @@ def build_parser():
 
     ####################################################################################
 
+    infile_grp = parser.add_argument_group("Input tree files")
+    infile_excl = infile_grp.add_mutually_exclusive_group()
+
+    infile_excl.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
+                        help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
+
+    infile_excl.add_argument("-w", action="append", dest="fileweights",
+                        nargs=2, metavar=("WEIGHT", "FILE"),
+                        help="input FILEs with specified weights (repeat -w WEIGHT FILE option for each input file)")
+
+    ####################################################################################
+
     sumtype_grp = parser.add_argument_group("Type of summary tree (pick one option)")
     sumtype_excl = sumtype_grp.add_mutually_exclusive_group()
 
