@@ -430,18 +430,10 @@ def build_parser():
     other_grp.add_argument("--outformat", action="store", metavar="FORMAT",
                       choices=["nexus", "newick"], default="nexus",
                       help="format of output tree file: %(choices)s [default: %(default)s]")
-
-    ####################################################################################
-
-    infile_grp = parser.add_argument_group("Input tree files")
-    infile_excl = infile_grp.add_mutually_exclusive_group()
-
-    infile_excl.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
-                        help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
-
-    infile_excl.add_argument("-w", action="append", dest="fileweights",
-                        nargs=2, metavar=("WEIGHT", "FILE"),
-                        help="input FILEs with specified weights (repeat -w WEIGHT FILE option for each input file)")
+                      
+    other_grp.add_argument("--nolabel", action="store_true", dest="nolabel",
+                     help=argparse.SUPPRESS # do not print branch labels (=clade probabilities) on summary tree
+                     )
 
     ####################################################################################
 
@@ -944,8 +936,13 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         printdist = True
     else:
         printdist = False
+        
+    if args.nolabel:
+        printlabels = False
+    else:
+        printlabels = True
 
-    newick_prob_tree = contree.newick(labelfield="label", printdist=printdist)
+    newick_prob_tree = contree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
 
     if not args.mcc:
         newick_branchID_tree = contree.newick(labelfield="branchID", printdist=printdist)
