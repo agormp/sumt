@@ -146,7 +146,7 @@ def main(commandlist=None):
         h = int(time_spent/3600)
         m = int((time_spent % 3600)/60)
         s = int(time_spent % 60)
-        print("\n   Done. {:,d} trees analyzed.\n   Time spent: {:d}:{:02d}:{:02d} (h:m:s)".format(n_trees_analyzed, h, m, s))
+        print(f"\n   Done. {n_trees_analyzed:,d} trees analyzed.\n   Time spent: {h:d}:{m:02d}:{s:02d} (h:m:s)")
 
         if memorymax > 1E9:
             print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
