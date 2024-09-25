@@ -227,9 +227,11 @@ def parse_commandline(commandlist):
         
     if args.rootoutgroup and not (args.outgroup or args.ogfile):
         parser.error("Option --rootoutgroup requires specifying outgroup using either --og or --ogfile")
+    if args.rootogmaxfreq and not (args.outgroup or args.ogfile):
+        parser.error("Option --rootogmaxfreq requires specifying outgroup using either --og or --ogfile")
 
-    if args.mcc and (args.rootoutgroup or args.rootmid or args.rootminvar):
-        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootoutgroup")
+    if args.mcc and (args.rootoutgroup or args.rootmid or args.rootminvar or args.rootogmaxfreq):
+        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootoutgroup, --rootogmaxfreq")
 
     # Bipartitions need to be tracked in these situations
     if args.con or args.all or args.mbc or args.biplen:
@@ -244,7 +246,7 @@ def parse_commandline(commandlist):
         args.trackclades = False
 
     # Root needs to be tracked in these situations:
-    if args.mcc or args.meandepth or args.cadepth or args.rootmaxfreq:   # (Really?)
+    if args.mcc or args.meandepth or args.cadepth or args.rootmaxfreq or args.rootogmaxfreq:   # (Really?)
         args.trackroot = True
     else:
         args.trackroot = False
@@ -261,11 +263,10 @@ def parse_commandline(commandlist):
     else:
         args.trackdepth = False
 
-
     if args.ogfile:
         args.outgroup = read_outgroup(args.ogfile)
 
-    if (args.outgroup or args.rootmid or args.rootminvar or args.rootmaxfreq):
+    if (args.outgroup or args.rootmid or args.rootminvar or args.rootmaxfreq or args.rootogmaxfreq):
         args.actively_rooted = True
     else:
         args.actively_rooted = False
