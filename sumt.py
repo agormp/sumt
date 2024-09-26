@@ -958,6 +958,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree = treesummary.root_maxfreq(contree)
     elif args.rootogmaxfreq:
         contree = treesummary.root_maxfreq(contree)
+        contree = treesummary.set_rootcredibility(contree)  # Add branch attribute with root credibilities
 
     # If MCC tree was re-rooted, then we need to recompute log clade credibility
     if args.mcc and args.actively_rooted:
@@ -998,6 +999,9 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         printlabels = True
 
     newick_prob_tree = contree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
+    
+    if args.trackroot:
+        newick_rootcred_tree = contree.newick(labelfield="rootcred", printdist=printdist)
 
     if not args.mcc:
         newick_branchID_tree = contree.newick(labelfield="branchID", printdist=printdist)
@@ -1033,6 +1037,10 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
         confile.write("   tree prob = ")
         confile.write(newick_prob_tree)
+        if args.trackroot:
+            confile.write("\n\n   [In this tree branch labels indicate the root credibility (probability that root is located on this branch)]\n")
+            confile.write("   tree rootcred = ")
+            confile.write(newick_rootcred_tree)
         if not args.mcc:
             confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
             confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
