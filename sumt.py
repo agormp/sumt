@@ -688,7 +688,7 @@ def process_trees(wt_count_burnin_filename_list, args):
                             # when trees are changed during reading from file.
     else:
         interner = pt.Interner()
-    interner = None
+
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
 
         sys.stdout.write("\n   Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
