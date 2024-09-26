@@ -117,10 +117,12 @@ def main(commandlist=None):
                 print(f"\n   {treetype} tree has been rooted using minimum variance-rooting")
             elif args.rootmaxfreq:
                 print(f"\n   {treetype} tree has been rooted at location most frequently observed in input trees")
+            elif args.rootogmaxfreq:
+                print(f"\n   {treetype} tree has been rooted on bipartition where outgroup attaches most frequently in input trees")
             elif args.mcc:
                 print(f"\n   MCC tree rooted at original root of tree sample having highest clade credibility")
 
-        if args.rootmaxfreq or args.mcc:
+        if args.rootmaxfreq or args.rootogmaxfreq or args.mcc:
             print(f"   Root credibility (frequency of root bipartition in input trees): {contree.rootcred * 100:.1f}%")
 
         # Information about branch lengths
@@ -682,7 +684,12 @@ def count_trees(wt_file_list, args):
 def process_trees(wt_count_burnin_filename_list, args):
 
     treesummarylist = []
-    interner = pt.Interner()
+    if args.rootogmaxfreq:
+        interner = None     # Note: temporary workaround: rethink interning to avoid issues
+                            # when trees are changed during reading from file.
+    else:
+        interner = pt.Interner()
+    interner = None
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
 
         sys.stdout.write("\n   Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
@@ -717,14 +724,16 @@ def process_trees(wt_count_burnin_filename_list, args):
         # Read remaining trees from file, add to treesummary, print progress bar
         # If rootogmaxfreq: root on og, remove og, add rooted ingroup-tree to treesummary
         if args.rootogmaxfreq:
-            for tree in treefile:
-                tree.rootout(args.outgroup)
-                tree.remove_leaves(args.outgroup)
+            for j in range(burnin, count):
+                tree = treefile.readtree()
+                tree.rootout(args.outgroup) 
+                tree.remove_leaves(args.outgroup) 
                 treesummary.add_tree(tree, weight)
-                progress.update()
-                del tree            
+                progress.update() 
+                del tree      
         else:
-            for tree in treefile:
+            for j in range(burnin, count):
+                tree = treefile.readtree(returntree=True)
                 treesummary.add_tree(tree, weight)
                 progress.update()
                 del tree
