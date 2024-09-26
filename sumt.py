@@ -496,7 +496,6 @@ class ProgressBar:
             n_missing = self.ndots - self.n_dotsprinted
             sys.stdout.write("*" * n_missing)
             sys.stdout.flush()
-        print("\n")  # Move to the next line
 
 ####################################################################################
 ####################################################################################
