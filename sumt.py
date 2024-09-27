@@ -938,6 +938,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         sys.stdout.flush()
         contree, logcred = treesummary.max_clade_cred_tree()
         contree.rootcred = treesummary.compute_rootcred(contree)
+        contree = treesummary.set_rootcredibility(contree)  # Add branch attribute with root credibilities
     elif args.mbc:
         sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
         sys.stdout.flush()
