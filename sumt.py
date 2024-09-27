@@ -1003,7 +1003,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     newick_prob_tree = contree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
     
     if args.trackroot:
-        newick_rootcred_tree = contree.newick(labelfield="rootcred", printdist=printdist)
+        figtree_rootcred_tree = contree.figtree(labelfield="rootcred", printdist=printdist, print_leaflabels=True)
 
     if not args.mcc:
         newick_branchID_tree = contree.newick(labelfield="branchID", printdist=printdist)
@@ -1039,10 +1039,6 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
         confile.write("   tree prob = ")
         confile.write(newick_prob_tree)
-        if args.trackroot:
-            confile.write("\n\n   [In this tree branch labels indicate the root credibility (probability that root is located on this branch)]\n")
-            confile.write("   tree rootcred = ")
-            confile.write(newick_rootcred_tree)
         if not args.mcc:
             confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
             confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
@@ -1057,6 +1053,12 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         print(f"   Maximum clade credibility tree written to {confilename}")
     else:
         print(f"   Consensus tree written to {confilename}")
+        
+    if args.trackroot:
+        rootcredname = str(confilename) + ".rootcred"
+        with open(rootcredname, "w") as outfile:
+            outfile.write(figtree_rootcred_tree)
+        print(f"   Root credibility tree written to {rootcredname}")
 
     return contree, logcred
 
