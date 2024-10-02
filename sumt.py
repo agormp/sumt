@@ -382,17 +382,7 @@ def build_parser():
                       help="perform minimum variance rooting of summary tree")
 
     root_excl.add_argument("--rootog", action="store_true",
-                      help="root summary tree on outgroup (specified with --og or --ogfile)")
-                      
-    root_excl.add_argument("--rootogmaxfreq", action="store_true",
-                      help="root summary tree on bipartition where outgroup attaches most frequently in input trees. " +
-                           "Requires specifying outgroup using --og or --ogfile. "
-                           "Automatically removes the outgroup from the final summary tree")
-    
-    root_excl.add_argument("--rootmaxfreq", action="store_true",
-                      help="root summary tree on bipartition where root is located most frequently in input trees. " +
-                           "Only meaningful if input trees are estimated using a clock model")
-    
+                      help="root summary tree on outgroup (requires specifying outgroup using --og or --ogfile)")
                       
     og_group = root_grp.add_mutually_exclusive_group()
     
@@ -401,7 +391,15 @@ def build_parser():
                       
     og_group.add_argument('--ogfile', action="store", metavar="FILE", default=None,
                       help="specify outgroup taxon/taxa in file (one name per line)")
-
+                      
+    root_grp.add_argument("--rootcred", action="store_true",
+                          help=("compute root credibility for all possible rooting locations and add a 'rootcred' "
+                                "attribute to branches in the summary tree. If an outgroup is specified: track which "
+                                "branch (bipartition) the outgroup attaches to in each input tree and report the "
+                                "frequency of rooting there. If no outgroup is specified: assume input trees are "
+                                "rooted and track root frequencies on branches. The cumulated root credibility may be "
+                                "less than 100%% if some root locations are not present in the summary tree."))
+                         
     ####################################################################################
 
     bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
