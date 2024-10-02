@@ -115,14 +115,10 @@ def main(commandlist=None):
                 print(f"\n   {treetype} tree has been midpoint-rooted")
             elif args.rootminvar:
                 print(f"\n   {treetype} tree has been rooted using minimum variance-rooting")
-            elif args.rootmaxfreq:
-                print(f"\n   {treetype} tree has been rooted at location most frequently observed in input trees")
-            elif args.rootogmaxfreq:
-                print(f"\n   {treetype} tree has been rooted on bipartition where outgroup attaches most frequently in input trees")
             elif args.mcc:
                 print(f"\n   MCC tree rooted at original root of tree sample having highest clade credibility")
 
-        if args.rootmaxfreq or args.rootogmaxfreq or args.mcc:
+        if args.rootcred:
             print(f"   Root credibility (frequency of root bipartition in input trees):       {contree.rootcred * 100:.1f}%")
             print(f"   Cumulated root credibility (sum of rootcred for all branches in tree): {contree.cumulated_rootcred * 100:.1f}%")
             
@@ -229,11 +225,9 @@ def parse_commandline(commandlist):
         
     if args.rootog and not (args.outgroup or args.ogfile):
         parser.error("Option --rootog requires specifying outgroup using either --og or --ogfile")
-    if args.rootogmaxfreq and not (args.outgroup or args.ogfile):
-        parser.error("Option --rootogmaxfreq requires specifying outgroup using either --og or --ogfile")
 
-    if args.mcc and (args.rootog or args.rootmid or args.rootminvar or args.rootogmaxfreq):
-        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootog, --rootogmaxfreq")
+    if args.mcc and (args.rootog or args.rootmid or args.rootminvar):
+        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootog")
 
     # Bipartitions need to be tracked in these situations
     if args.con or args.all or args.mbc or args.biplen:
@@ -248,7 +242,7 @@ def parse_commandline(commandlist):
         args.trackclades = False
 
     # Root needs to be tracked in these situations:
-    if args.mcc or args.meandepth or args.cadepth or args.rootmaxfreq or args.rootogmaxfreq:   # (Really?)
+    if args.rootcred:   
         args.trackroot = True
     else:
         args.trackroot = False
@@ -268,7 +262,7 @@ def parse_commandline(commandlist):
     if args.ogfile:
         args.outgroup = read_outgroup(args.ogfile)
 
-    if (args.outgroup or args.rootmid or args.rootminvar or args.rootmaxfreq or args.rootogmaxfreq):
+    if (args.outgroup or args.rootmid or args.rootminvar):
         args.actively_rooted = True
     else:
         args.actively_rooted = False
@@ -681,11 +675,7 @@ def count_trees(wt_file_list, args):
 def process_trees(wt_count_burnin_filename_list, args):
 
     treesummarylist = []
-    if args.rootogmaxfreq:
-        interner = None     # Note: temporary workaround: rethink interning to avoid issues
-                            # when trees are changed during reading from file.
-    else:
-        interner = pt.Interner()
+    interner = pt.Interner()
 
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
 
@@ -718,22 +708,12 @@ def process_trees(wt_count_burnin_filename_list, args):
         # Initialize the progress bar
         progress = ProgressBar(total_trees=count, burnin=burnin)
 
-        # Read remaining trees from file, add to treesummary, print progress bar
-        # If rootogmaxfreq: root on og, remove og, add rooted ingroup-tree to treesummary
-        if args.rootogmaxfreq:
-            for j in range(burnin, count):
-                tree = treefile.readtree()
-                tree.rootout(args.outgroup) 
-                tree.remove_leaves(args.outgroup) 
-                treesummary.add_tree(tree, weight)
-                progress.update() 
-                del tree      
-        else:
-            for j in range(burnin, count):
-                tree = treefile.readtree(returntree=True)
-                treesummary.add_tree(tree, weight)
-                progress.update()
-                del tree
+        # Read post-burnin trees from file, add to treesummary, print progress bar
+        for j in range(burnin, count):
+            tree = treefile.readtree(returntree=True)
+            treesummary.add_tree(tree, weight)
+            progress.update()
+            del tree
 
         # Ensure the progress bar completes at the end
         progress.complete()
@@ -953,16 +933,9 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree.rootmid()
     elif args.rootminvar:
         contree.rootminvar()
-    elif args.rootmaxfreq:
-        contree = treesummary.root_maxfreq(contree)
-    elif args.rootogmaxfreq:
-        contree = treesummary.root_maxfreq(contree)
-        contree = treesummary.set_rootcredibility(contree)  # Add branch attribute with root credibilities
 
-    # If MCC tree was re-rooted, then we need to recompute log clade credibility
-    if args.mcc and args.actively_rooted:
-        clade_topology = contree.topology_clade
-        logcred = treesummary.log_clade_credibility(clade_topology)
+    if args.rootcred:
+        contree = treesummary.set_rootcredibility(contree)  # Add branch attribute with root credibilities
 
     if args.meandepth:
         contree = treesummary.set_mean_node_depths(contree)
