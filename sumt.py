@@ -205,9 +205,7 @@ def parse_commandline(commandlist):
             wt, infilepath = args.fileweights[0]
         args.outbase = Path(infilepath.stem.split('.')[0])
 
-    if args.burninfrac is None:
-        args.burninfrac = [0.0] * len(args.infilelist)
-    elif len(args.burninfrac) == 1:
+    if len(args.burninfrac) == 1:
         burnin_value = args.burninfrac[0]
         args.burninfrac = [burnin_value] * len(args.infilelist)
     elif len(args.burninfrac) != len(args.infilelist):
@@ -408,7 +406,7 @@ def build_parser():
 
     bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
 
-    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=None, nargs='+',
+    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=0, nargs='+',
                            help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
                            + "Either one value (used on all input files), or one value per input file.")
 
