@@ -119,7 +119,8 @@ def main(commandlist=None):
                 print(f"\n   MCC tree rooted at original root of tree sample having highest clade credibility")
 
         if args.rootcred:
-            print(f"   Root credibility (frequency of root bipartition in input trees):       {contree.rootcred * 100:.1f}%")
+            if args.actively_rooted or args.mcc:
+                print(f"   Root credibility (frequency of root bipartition in input trees):       {contree.rootcred * 100:.1f}%")
             print(f"   Cumulated root credibility (sum of rootcred for all branches in tree): {contree.cumulated_rootcred * 100:.1f}%")
             
 
@@ -933,7 +934,8 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         contree.rootminvar()
 
     if args.rootcred:
-        contree.rootcred = treesummary.compute_rootcred(contree)
+        if args.actively_rooted or args.mcc:
+            contree.rootcred = treesummary.compute_rootcred(contree)
         contree = treesummary.set_rootcredibility(contree)  # Add branch attribute with root credibilities
 
     if args.meandepth:
