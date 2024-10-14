@@ -976,7 +976,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     newick_prob_tree = contree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
     
     if args.trackroot:
-        figtree_rootcred_tree = contree.figtree(labelfield="rootcred", printdist=printdist, print_leaflabels=True)
+        figtree_rootcred_tree = contree.figtree(labelfield="rootcred", printdist=printdist)
 
     if not args.mcc:
         newick_branchID_tree = contree.newick(labelfield="branchID", printdist=printdist)
