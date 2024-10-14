@@ -282,8 +282,16 @@ def build_parser():
 
     ####################################################################################
 
-    infile_grp = parser.add_argument_group("Input tree files")
-    infile_excl = infile_grp.add_mutually_exclusive_group()
+    inout_grp = parser.add_argument_group("Input and output")
+    infile_excl = inout_grp.add_mutually_exclusive_group()
+
+    inout_grp.add_argument("--informat", action="store", metavar="FORMAT",
+                      choices=["nexus", "newick"], default="nexus",
+                      help="format of input tree files: %(choices)s [default: %(default)s]")
+
+    inout_grp.add_argument("--outformat", action="store", metavar="FORMAT",
+                      choices=["nexus", "newick"], default="nexus",
+                      help="format of output tree file: %(choices)s [default: %(default)s]")
 
     infile_excl.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
                         help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
@@ -291,6 +299,23 @@ def build_parser():
     infile_excl.add_argument("-w", action="append", dest="fileweights",
                         nargs=2, metavar=("WEIGHT", "FILE"),
                         help="input FILEs with specified weights (repeat -w WEIGHT FILE option for each input file)")
+
+    inout_grp.add_argument("--autow", action="store_true", dest="autoweight",
+                     help="automatically assign file weights based on tree counts, so all files have equal impact "
+                         + "(default is for all trees, not files, to be equally important)")
+
+    inout_grp.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
+                      help="base name of output files (default: derived from input file)")
+
+    inout_grp.add_argument("-n", action="store_true", dest="nowarn",
+                      help="no warning when overwriting files")
+
+    inout_grp.add_argument("-v", action="store_true", dest="verbose",
+                      help="verbose: show full traceback in the event of failed python execution")
+
+    inout_grp.add_argument("-q", action="store_true", dest="quiet",
+                      help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
+
 
     ####################################################################################
 
@@ -416,34 +441,11 @@ def build_parser():
 
     outformat_grp = parser.add_argument_group("Output to terminal and files")
 
-    outformat_grp.add_argument("-n", action="store_true", dest="nowarn",
-                      help="no warning when overwriting files")
-
-    outformat_grp.add_argument("-v", action="store_true", dest="verbose",
-                      help="verbose: show full traceback in the event of failed python execution")
-
-    outformat_grp.add_argument("-q", action="store_true", dest="quiet",
-                      help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
-
-    outformat_grp.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
-                      help="base name of output files (default: derived from input file)")
 
     ####################################################################################
 
     other_grp = parser.add_argument_group("Other options")
 
-    other_grp.add_argument("--autow", action="store_true", dest="autoweight",
-                     help="automatically assign file weights based on tree counts, so all files have equal impact "
-                         + "(default is for all trees, not files, to be equally important)")
-
-    other_grp.add_argument("--informat", action="store", metavar="FORMAT",
-                      choices=["nexus", "newick"], default="nexus",
-                      help="format of input tree files: %(choices)s [default: %(default)s]")
-
-    other_grp.add_argument("--outformat", action="store", metavar="FORMAT",
-                      choices=["nexus", "newick"], default="nexus",
-                      help="format of output tree file: %(choices)s [default: %(default)s]")
-                      
     other_grp.add_argument("--nolabel", action="store_true", dest="nolabel",
                      help=argparse.SUPPRESS # do not print branch labels (=clade probabilities) on summary tree
                      )
