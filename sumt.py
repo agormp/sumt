@@ -33,7 +33,6 @@ def main(commandlist=None):
             ave_std = compute_converge_stats(treesummarylist, args)
 
         treesummary = merge_treesummaries(treesummarylist)
-        treesummary.add_branchid()
 
         contree, logcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
 
@@ -950,7 +949,7 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     elif args.biplen and args.mcc:
         contree = treesummary.set_mean_biplen(contree)
 
-    # If root is bifurcation and one child is leaf: Remove branchID (=leafname) and label from other child-branch
+    # If root is bifurcation and one child is leaf: Remove label from other child-branch
     # (In this case both branches from root are the same bipartition, so not useful to label internal branch part)
     # Python note: not sure this generalizes to all tree types. think...
     rootkids = contree.children(contree.root)
@@ -960,7 +959,6 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
             node2 = rootkids[1]
         else:
             node2 = rootkids[0]
-        contree.set_branch_attribute(contree.root, node2, "branchID", "")
         contree.set_branch_attribute(contree.root, node2, "label", "")
 
     if args.trackblen or args.trackdepth or args.cadepth:
@@ -1012,11 +1010,6 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
         confile.write("   tree prob = ")
         confile.write(newick_prob_tree)
-        if not args.mcc:
-            confile.write("\n\n   [In this tree branch labels indicate the bipartition ID listed in the file {}.\n".format(args.outbase.name + ".parts"))
-            confile.write("    These branch labels can be used for interpreting the table of branch lenght info in that file]\n")
-            confile.write("   tree partID = ")
-            confile.write(newick_branchID_tree)
         confile.write("\nend;\n")
     confile.close()
 
