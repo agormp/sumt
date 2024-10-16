@@ -760,7 +760,7 @@ def compute_converge_biparts(treesummarylist, args):
     for treesummary in treesummarylist:
         for bipart,branch in treesummary.bipartsummary.items():
             (bip1, bip2) = bipart
-            if len(bip1)>1 and len(bip2)>1 and branch.freq >= args.minfreq:
+            if len(bip1)>1 and len(bip2)>1 and branch.posterior >= args.minfreq:
                 bipset.add(bipart)
 
     # For each internal bipart: compute std of freq of this bipart across all treesummaries
@@ -769,7 +769,7 @@ def compute_converge_biparts(treesummarylist, args):
         for treesummary in treesummarylist:
             # If current bipartition not in current treesummary: set freq=0.0
             if bipart in treesummary.bipartsummary:
-                freqlist.append(treesummary.bipartsummary[bipart].freq)
+                freqlist.append(treesummary.bipartsummary[bipart].posterior)
             else:
                 freqlist.append(0.0)
         sum_std += statistics.stdev(freqlist)
@@ -790,16 +790,16 @@ def compute_converge_clades(treesummarylist, args):
     for treesummary in treesummarylist:
         for clade,node in treesummary.cladesummary.items():
             leafset = clade.get_clade()
-            if len(leafset)>1 and node.freq >= args.minfreq:
+            if len(leafset)>1 and node.posterior >= args.minfreq:
                 cladeset.add(clade)
 
-    # For each internal bipart: compute std of freq of this bipart across all treesummaries
+    # For each clade: compute std of freq of this clade across all treesummaries
     for clade in cladeset:
         freqlist = []
         for treesummary in treesummarylist:
             # If current clade not in current treesummary: set freq=0.0
             if clade in treesummary.cladesummary:
-                freqlist.append(treesummary.cladesummary[clade].freq)
+                freqlist.append(treesummary.cladesummary[clade].posterior)
             else:
                 freqlist.append(0.0)
         sum_std += statistics.stdev(freqlist)
@@ -873,7 +873,7 @@ def bipart_report(treesummary, args):
     bipreport = []
     for _,bipart in treesummary.sorted_biplist:
         branch = treesummary.bipartsummary[bipart]
-        freq = branch.freq
+        freq = branch.posterior
         if freq > args.minfreq:
             bipstring = bipart_to_string(bipart, position_dict, leaflist)
             bipsize = bipstring.count("*")              # Size of smaller set
@@ -1082,7 +1082,7 @@ def topo_report(treesummary, args):
         toposummary = treesummary.biptoposummary
     toporeport = []
     for topology, topostruct in toposummary.items():
-        toporeport.append((topostruct.freq, topostruct.tree))
+        toporeport.append((topostruct.posterior, topostruct.tree))
 
     # Sort report according to frequency (higher values first) and return
     toporeport = sorted(toporeport, key=itemgetter(0), reverse=True)
