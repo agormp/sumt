@@ -971,13 +971,12 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     else:
         printlabels = True
 
+    metacomment_fields = ["posterior", "length"]
+    if args.trackroot:
+        metacomment_fields.append("rootcred")
+
     newick_prob_tree = contree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
     
-    if args.trackroot:
-        figtree_rootcred_tree = contree.figtree(labelfield="rootcred", printdist=printdist)
-
-    if not args.mcc:
-        newick_branchID_tree = contree.newick(labelfield="branchID", printdist=printdist)
 
     if args.mbc:
         confilename = args.outbase.parent / (args.outbase.name + ".mbc")
@@ -1020,12 +1019,6 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     else:
         print(f"   Consensus tree written to {confilename}")
         
-    if args.trackroot:
-        rootcredname = str(confilename) + ".rootcred"
-        with open(rootcredname, "w") as outfile:
-            outfile.write(figtree_rootcred_tree)
-        print(f"   Root credibility tree written to {rootcredname}")
-
     return contree, logcred
 
 ##########################################################################################
