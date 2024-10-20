@@ -423,7 +423,7 @@ def build_parser():
 
     bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
 
-    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=0, nargs='+',
+    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=[0], nargs='+',
                            help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
                            + "Either one value (used on all input files), or one value per input file.")
 
