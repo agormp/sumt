@@ -1,5 +1,3 @@
-# By Anders Gorm Pedersen, agpe@dtu.dk
-
 import phylotreelib as pt
 import argparse, os, sys, time, math, copy, psutil, statistics, configparser
 from itertools import (takewhile,repeat)
@@ -48,81 +46,6 @@ def main(commandlist=None):
         handle_error(error, args.verbose)
 
 ####################################################################################
-####################################################################################
-
-class ProgressBar:
-    def __init__(self, total_trees, burnin, quiet=False):
-        self.quiet = quiet
-        self.total_trees = total_trees
-        self.burnin = burnin
-        self.processed_trees = 0
-        self.progscale = "0      10      20      30      40      50      60      70      80      90     100"
-        self.progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
-        self.ndots = len(self.progticks)
-        self.n_tot = total_trees - burnin
-        self.trees_per_dot = self.n_tot / self.ndots
-        self.n_dotsprinted = 0
-
-        # Print progress bar header
-        if not self.quiet:
-            print("\n\n   Processing trees:")
-            print(f"   {self.progscale}")
-            print(f"   {self.progticks}")
-            print("   ", end="")
-            sys.stdout.flush()
-
-    def update(self):
-        """ Update the progress bar based on the number of processed trees. """
-        if not self.quiet:
-            self.processed_trees += 1
-            n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
-            if self.n_dotsprinted < n_dots_expected:
-                n_missing = n_dots_expected - self.n_dotsprinted
-                sys.stdout.write("*" * n_missing)
-                sys.stdout.flush()
-                self.n_dotsprinted += n_missing
-
-    def complete(self):
-        """ Ensure all dots are printed at the end if they haven't been already. """
-        if not self.quiet:
-            if self.n_dotsprinted < self.ndots:
-                n_missing = self.ndots - self.n_dotsprinted
-                sys.stdout.write("*" * n_missing)
-                sys.stdout.flush()
-
-####################################################################################
-####################################################################################
-
-class OutputManager:
-    def __init__(self, args):
-        self.quiet = args.quiet
-        self.verbose = args.verbose
-
-    def info(self, message="", margin=3, end="\n"):
-        if not self.quiet:
-            print(f"{margin * ' '}{message}", end=end)
-
-    def force(self, message="", margin=3, end="\n"):
-        if not self.quiet:
-            print(f"{margin * ' '}{message}", end=end)
-            sys.stdout.flush()
-
-    def warning(self, message):
-        if not self.quiet and self.verbose:
-            print(f"{self.margin * ' '}[WARNING] {message}")
-            
-####################################################################################
-####################################################################################
-
-def setup_output_directory(outbase):
-    outbase.parent.mkdir(parents=True, exist_ok=True)
-    
-####################################################################################
-
-def track_memory_usage(pid):
-    return pid.memory_full_info().rss
-  
-####################################################################################      
 
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
@@ -412,6 +335,42 @@ def build_parser():
 
 ####################################################################################
 
+def read_outgroup(ogfile):
+    infile = open(ogfile, "r")
+    outgroup = []
+    for line in infile:
+        leaf = line.strip()
+        outgroup.append(leaf)
+    infile.close()
+    return outgroup
+
+####################################################################################
+
+class OutputManager:
+    def __init__(self, args):
+        self.quiet = args.quiet
+        self.verbose = args.verbose
+
+    def info(self, message="", margin=3, end="\n"):
+        if not self.quiet:
+            print(f"{margin * ' '}{message}", end=end)
+
+    def force(self, message="", margin=3, end="\n"):
+        if not self.quiet:
+            print(f"{margin * ' '}{message}", end=end)
+            sys.stdout.flush()
+
+    def warning(self, message):
+        if not self.quiet and self.verbose:
+            print(f"{self.margin * ' '}[WARNING] {message}")
+            
+####################################################################################
+
+def setup_output_directory(outbase):
+    outbase.parent.mkdir(parents=True, exist_ok=True)
+    
+####################################################################################
+
 def parse_infilelist(args):
 
     # If only unweighted filenames are given:
@@ -447,53 +406,42 @@ def parse_infilelist(args):
 
 ####################################################################################
 
-def read_outgroup(ogfile):
-    infile = open(ogfile, "r")
-    outgroup = []
-    for line in infile:
-        leaf = line.strip()
-        outgroup.append(leaf)
-    infile.close()
-    return outgroup
+def count_trees(wt_file_list, args, output):
 
-####################################################################################
+    count_list = []
+    burnin_list = []
+    n_postburnin = []
+    for i,(wt, filename) in enumerate(wt_file_list):
+        treelist = []
+        output.force(f"Counting trees in file {str(filename):<40}", end="")
+        n_tot = fast_treecount(filename, args)
+        output.force(f"{n_tot:>15,d}")
+        burnin = int(args.burninfrac[i] * n_tot)
+        count_list.append(n_tot)
+        burnin_list.append(burnin)
+        n_postburnin.append(n_tot - burnin)
 
-def count_trees_by_parsing(filename, args):
-    # Open treefile. Discard (i.e., silently pass by) the requested number of trees
-    if args.informat == "nexus":
-        treefile = pt.Nexustreefile(filename)
-    else:
-        treefile = pt.Newicktreefile(filename)
-    treecount = 0
-    for tree in treefile:
-        treecount += 1
-    return treecount
+    # If automatic weighting requested: Compute new weights
+    if args.autoweight:
+        countsum = sum(n_postburnin)
+        countavg = countsum / len(n_postburnin)
+        new_wt_list = [countavg / count for count in n_postburnin]  # Normalized so avg=1
 
-####################################################################################
+    # Construct final combined wt + count + burnin + filename list
+    wt_count_burnin_filename_list = []
+    for i in range(len(wt_file_list)):
+        filename = wt_file_list[i][1]
+        count = count_list[i]
+        burnin = burnin_list[i]
+        if args.autoweight:
+            wt = new_wt_list[i]
+        else:
+            wt = wt_file_list[i][0]
 
-def count_bytestring(filename, bytestring):
-    """Fast counting of specific pattern. Bytestring argument must be given
-    with b modifier (e.g., b');')"""
+        wt_count_burnin_filename_list.append((wt, count, burnin, filename))
 
-    # Modified from: https://stackoverflow.com/a/27517681/7836730
-    with open(filename, 'rb') as f:
-        bufsize = 1024*1024
-        bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
-
-        prev_buf = b""
-        count = 0
-
-        for buf in bufgen:
-            count += buf.count(bytestring)
-
-            # For multi-byte patterns, consider overlaps between buffers
-            if len(bytestring) > 1 and len(prev_buf) > 0:
-                merged = prev_buf[-len(bytestring)+1:] + buf[:len(bytestring)-1]
-                count += merged.count(bytestring)
-
-            prev_buf = buf
-
-    return count
+    n_trees_analyzed = sum(count_list) - sum (burnin_list)
+    return (n_trees_analyzed, wt_count_burnin_filename_list)
 
 ####################################################################################
 
@@ -536,44 +484,49 @@ def fast_treecount(filename, args):
 
 ####################################################################################
 
-def count_trees(wt_file_list, args, output):
+def count_bytestring(filename, bytestring):
+    """Fast counting of specific pattern. Bytestring argument must be given
+    with b modifier (e.g., b');')"""
 
-    count_list = []
-    burnin_list = []
-    n_postburnin = []
-    for i,(wt, filename) in enumerate(wt_file_list):
-        treelist = []
-        output.force(f"Counting trees in file {str(filename):<40}", end="")
-        n_tot = fast_treecount(filename, args)
-        output.force(f"{n_tot:>15,d}")
-        burnin = int(args.burninfrac[i] * n_tot)
-        count_list.append(n_tot)
-        burnin_list.append(burnin)
-        n_postburnin.append(n_tot - burnin)
+    # Modified from: https://stackoverflow.com/a/27517681/7836730
+    with open(filename, 'rb') as f:
+        bufsize = 1024*1024
+        bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
 
-    # If automatic weighting requested: Compute new weights
-    if args.autoweight:
-        countsum = sum(n_postburnin)
-        countavg = countsum / len(n_postburnin)
-        new_wt_list = [countavg / count for count in n_postburnin]  # Normalized so avg=1
+        prev_buf = b""
+        count = 0
 
-    # Construct final combined wt + count + burnin + filename list
-    wt_count_burnin_filename_list = []
-    for i in range(len(wt_file_list)):
-        filename = wt_file_list[i][1]
-        count = count_list[i]
-        burnin = burnin_list[i]
-        if args.autoweight:
-            wt = new_wt_list[i]
-        else:
-            wt = wt_file_list[i][0]
+        for buf in bufgen:
+            count += buf.count(bytestring)
 
-        wt_count_burnin_filename_list.append((wt, count, burnin, filename))
+            # For multi-byte patterns, consider overlaps between buffers
+            if len(bytestring) > 1 and len(prev_buf) > 0:
+                merged = prev_buf[-len(bytestring)+1:] + buf[:len(bytestring)-1]
+                count += merged.count(bytestring)
 
-    n_trees_analyzed = sum(count_list) - sum (burnin_list)
-    return (n_trees_analyzed, wt_count_burnin_filename_list)
+            prev_buf = buf
+
+    return count
 
 ####################################################################################
+
+def count_trees_by_parsing(filename, args):
+    # Open treefile. Discard (i.e., silently pass by) the requested number of trees
+    if args.informat == "nexus":
+        treefile = pt.Nexustreefile(filename)
+    else:
+        treefile = pt.Newicktreefile(filename)
+    treecount = 0
+    for tree in treefile:
+        treecount += 1
+    return treecount
+
+####################################################################################
+
+def track_memory_usage(pid):
+    return pid.memory_full_info().rss
+  
+####################################################################################      
 
 def process_trees(wt_count_burnin_filename_list, args, output):
 
@@ -628,6 +581,48 @@ def process_trees(wt_count_burnin_filename_list, args, output):
 
 ##########################################################################################
 
+class ProgressBar:
+    def __init__(self, total_trees, burnin, quiet=False):
+        self.quiet = quiet
+        self.total_trees = total_trees
+        self.burnin = burnin
+        self.processed_trees = 0
+        self.progscale = "0      10      20      30      40      50      60      70      80      90     100"
+        self.progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
+        self.ndots = len(self.progticks)
+        self.n_tot = total_trees - burnin
+        self.trees_per_dot = self.n_tot / self.ndots
+        self.n_dotsprinted = 0
+
+        # Print progress bar header
+        if not self.quiet:
+            print("\n\n   Processing trees:")
+            print(f"   {self.progscale}")
+            print(f"   {self.progticks}")
+            print("   ", end="")
+            sys.stdout.flush()
+
+    def update(self):
+        """ Update the progress bar based on the number of processed trees. """
+        if not self.quiet:
+            self.processed_trees += 1
+            n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
+            if self.n_dotsprinted < n_dots_expected:
+                n_missing = n_dots_expected - self.n_dotsprinted
+                sys.stdout.write("*" * n_missing)
+                sys.stdout.flush()
+                self.n_dotsprinted += n_missing
+
+    def complete(self):
+        """ Ensure all dots are printed at the end if they haven't been already. """
+        if not self.quiet:
+            if self.n_dotsprinted < self.ndots:
+                n_missing = self.ndots - self.n_dotsprinted
+                sys.stdout.write("*" * n_missing)
+                sys.stdout.flush()
+
+####################################################################################
+
 def compute_converge_stats(treesummarylist, args):
     """Compute average bipartition/clade frequency standard deviation between treesummaries"""
 
@@ -645,35 +640,6 @@ def compute_converge_stats(treesummarylist, args):
         ave_std = compute_converge_clades(treesummarylist, args)
     else:
         ave_std = compute_converge_biparts(treesummarylist, args)
-    return ave_std
-
-##########################################################################################
-
-def compute_converge_biparts(treesummarylist, args):
-    sum_std = 0
-    N = float(len(treesummarylist))
-
-    # Find combined set of bipartitions (excluding external branches)
-    # Only biparts that have freq >= minfreq are kept
-    bipset = set()
-    for treesummary in treesummarylist:
-        for bipart,branch in treesummary.bipartsummary.items():
-            (bip1, bip2) = bipart
-            if len(bip1)>1 and len(bip2)>1 and branch.posterior >= args.minfreq:
-                bipset.add(bipart)
-
-    # For each internal bipart: compute std of freq of this bipart across all treesummaries
-    for bipart in bipset:
-        freqlist = []
-        for treesummary in treesummarylist:
-            # If current bipartition not in current treesummary: set freq=0.0
-            if bipart in treesummary.bipartsummary:
-                freqlist.append(treesummary.bipartsummary[bipart].posterior)
-            else:
-                freqlist.append(0.0)
-        sum_std += statistics.stdev(freqlist)
-
-    ave_std = sum_std / len(bipset)
     return ave_std
 
 ##########################################################################################
@@ -703,6 +669,35 @@ def compute_converge_clades(treesummarylist, args):
         sum_std += statistics.stdev(freqlist)
 
     ave_std = sum_std / len(cladeset)
+    return ave_std
+
+##########################################################################################
+
+def compute_converge_biparts(treesummarylist, args):
+    sum_std = 0
+    N = float(len(treesummarylist))
+
+    # Find combined set of bipartitions (excluding external branches)
+    # Only biparts that have freq >= minfreq are kept
+    bipset = set()
+    for treesummary in treesummarylist:
+        for bipart,branch in treesummary.bipartsummary.items():
+            (bip1, bip2) = bipart
+            if len(bip1)>1 and len(bip2)>1 and branch.posterior >= args.minfreq:
+                bipset.add(bipart)
+
+    # For each internal bipart: compute std of freq of this bipart across all treesummaries
+    for bipart in bipset:
+        freqlist = []
+        for treesummary in treesummarylist:
+            # If current bipartition not in current treesummary: set freq=0.0
+            if bipart in treesummary.bipartsummary:
+                freqlist.append(treesummary.bipartsummary[bipart].posterior)
+            else:
+                freqlist.append(0.0)
+        sum_std += statistics.stdev(freqlist)
+
+    ave_std = sum_std / len(bipset)
     return ave_std
 
 ##########################################################################################
@@ -779,22 +774,6 @@ def set_sumtree_blen(sumtree, args):
     
 ##########################################################################################
 
-def open_file_with_warning(filename, nowarn):
-    if nowarn:
-        return open(filename, "w")
-    elif filename.is_file():
-        overwrite = input(f"\n   File {filename} already exists.\n   Overwrite (y/n): ")
-        if overwrite == "y":
-            print(f"   Overwriting file {filename}\n")
-            return open(filename, "w")  # Overwrite
-        else:
-            print(f"   Appending to file {filename}\n")
-            return open(filename, "a")  # Append
-    else:
-        return open(filename, "w")
-  
-##########################################################################################      
-        
 def print_sumtree(sumtree, args):
 
     printdist = args.trackblen or args.trackdepth or args.cadepth
@@ -834,6 +813,22 @@ def print_sumtree(sumtree, args):
         return f"Consensus tree written to {confilename}"
         
 ##########################################################################################
+
+def open_file_with_warning(filename, nowarn):
+    if nowarn:
+        return open(filename, "w")
+    elif filename.is_file():
+        overwrite = input(f"\n   File {filename} already exists.\n   Overwrite (y/n): ")
+        if overwrite == "y":
+            print(f"   Overwriting file {filename}\n")
+            return open(filename, "w")  # Overwrite
+        else:
+            print(f"   Appending to file {filename}\n")
+            return open(filename, "a")  # Append
+    else:
+        return open(filename, "w")
+  
+##########################################################################################      
 
 def compute_trprobs(treesummary, args):
     """Returns sorted list of [freq, tree] lists (highest freq first)"""
@@ -882,6 +877,7 @@ def print_trprobs(trproblist, args):
     return f"Tree probabilities written to {topofilename}"
 
 ##########################################################################################
+
 
 def compute_summary_variables(sumtree, treesummary, start, memory1, ave_std, args):
     sumdict = {}
