@@ -39,8 +39,8 @@ def main(commandlist=None):
             trprobs_status_message = print_trprobs(trproblist, args)
             output.info(trprobs_status_message)
         
-        sumdict = compute_summary_variables(sumtree, treesummary, start, memory1, ave_std, args)
-        print_result_summary(sumdict, sumtree, args, output)
+        print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
+                             memory1, ave_std, args, output)
 
     except Exception as error:
         handle_error(error, args.verbose)
@@ -878,72 +878,26 @@ def print_trprobs(trproblist, args):
 
 ##########################################################################################
 
+def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
+                         memory1, ave_std, args, output):
 
-def compute_summary_variables(sumtree, treesummary, start, memory1, ave_std, args):
-    sumdict = {}
-    
-    memory2 = track_memory_usage(pid)
-    sumdict["memorymax"] = max(memory1, memory2) 
-    
-    sumdict["ave_std"] = ave_std
-
-    if args.treeprobs:
-        if args.trackclades:
-            sumdict["n_topo_seen"] = len(treesummary.cladetoposummary)
-        elif args.trackbips:
-            sumdict["n_topo_seen"] = len(treesummary.biptoposummary)
-
-    nrootkids = len(sumtree.children(sumtree.root))
-    if nrootkids == 2:
-        sumdict['rootdegree'] = "bifurcation"
-    elif nrootkids == 3:
-        sumdict['rootdegree'] = "trifurcation"
-    else:
-        sumdict['rootdegree'] = "multifurcation"
-
-    n_leaves = len(treesummary.leaves)
-    sumdict['n_leaves'] = n_leaves
-
-    if args.mcc:
-        sumdict['n_uniq_groupings'] = len(treesummary.cladesummary) - n_leaves
-        sumdict['theo_max_groups'] = n_leaves - 1
-    else:
-        sumdict['n_uniq_groupings'] = len(treesummary.bipartsummary) - n_leaves
-        sumdict['theo_max_groups'] = n_leaves - 3
-
-    sumdict['n_internal_biparts'] = sumtree.n_bipartitions()
-
-    if args.mcc:
-        sumdict['treetype'], sumdict['branchtype'], sumdict['space'] = "MCC", "clade", " " * 7
-    elif args.mbc:
-        sumdict['treetype'], sumdict['branchtype'], sumdict['space'] = "MBC", "bipartition", " " * 1
-    else:
-        sumdict['treetype'], sumdict['branchtype'], sumdict['space'] = "Consensus", "bipartition", " " * 1
-
-    time_spent = time.time() - start
-    sumdict["h"] = int(time_spent/3600)
-    sumdict["m"] = int((time_spent % 3600)/60)
-    sumdict["s"] = int(time_spent % 60)
-
-    return sumdict
-
-##########################################################################################
-
-def print_result_summary(sumdict, sumtree, args):
-    
-    sd = sumdict
+    sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, memory1, ave_std, args)
+    (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
+     treetype, n_internal_biparts, rootdegree, h, m, s, memorymax) = sumvar_tuple
+     
+    print(f"treetype: {treetype}") #DEBUG
     
     # Information about bipartitions, clades and topologies
     output.info()
-    output.info(f"Number of leaves on input trees: {sd['n_leaves']:>7,d}")
+    output.info(f"Number of leaves on input trees: {n_leaves:>7,d}")
     if args.treeprobs:
-        output.info(f"Different topologies seen: {sd['n_topo_seen']:>13,d}")
-        output.info(f"Different {sd['branchtype']}s seen:{sd['space']}{sd['n_uniq_groupings']:>11,d} (theoretical maximum: {sd['theo_max_groups'] * sd['n_topo_seen']:,d})")
+        output.info(f"Different topologies seen: {n_topo_seen:>13,d}")
+        output.info(f"Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
     else:
-        output.info(f"Different {sd['branchtype']}s seen:{sd['space']}{sd['n_uniq_grouping']s:>11,d} (theoretical maximum: {sd['theo_max_groups'] * sd['n_trees_analyzed']:,d})")
-    output.info(f"{'Bipartitions in ' + {sd['treetype']} + ' tree:':<34}{sd['n_internal_biparts']:>6,d} (theoretical maximum: {sd['theo_max_groups']:,d})")
+        output.info(f"Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
+    output.info(f"{'Bipartitions in {treetype} tree:':<34}{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
 
-    if sd['n_internal_biparts'] < sd['theo_max_bips']:
+    if n_internal_biparts < theo_max_groups:
         output.info("(tree contains polytomies)", margin=44)
     else:
         output.info("(tree is fully resolved - no polytomies)", margin=44)
@@ -951,18 +905,18 @@ def print_result_summary(sumdict, sumtree, args):
     # Information about rooting
     if not (args.actively_rooted or args.mcc):
         output.info()
-        output.info(f"{sd['treetype']} tree has not been explicitly rooted")
-        output.info(f"Tree has been rooted at random internal node; root is at {sd['rootdegree']}")
+        output.info(f"{treetype} tree has not been explicitly rooted")
+        output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
     else:
         if args.rootog:
             output.info()
-            output.info(f"{sd['treetype']} tree has been rooted based on outgroup")
+            output.info(f"{treetype} tree has been rooted based on outgroup")
         elif args.rootmid:
             output.info()
-            output.info(f"{sd['treetype']} tree has been midpoint-rooted")
+            output.info(f"{treetype} tree has been midpoint-rooted")
         elif args.rootminvar:
             output.info()
-            output.info(f"{sd['treetype']} tree has been rooted using minimum variance-rooting")
+            output.info(f"{treetype} tree has been rooted using minimum variance-rooting")
         elif args.mcc:
             output.info()
             output.info(f"MCC tree rooted at original root of tree sample having highest clade credibility")
@@ -990,21 +944,73 @@ def print_result_summary(sumdict, sumtree, args):
     # Information about log credibility
     if args.mbc or (args.mcc and not args.actively_rooted):
         output.info()
-        output.info(f"Highest log {sd['branchtype']} credibility:  {sd['logcred']:.6g}")
+        output.info(f"Highest log {branchtype} credibility:  {logcred:.6g}")
     else:
         output.info()
-        output.info(f"Log {sd['branchtype']} credibility:  {sd['logcred']:.6g}")
+        output.info(f"Log {branchtype} credibility:  {logcred:.6g}")
 
     if args.std:
-        output.info(f"Average standard deviation of split frequencies: {sd['ave_std']:.6f}")
+        output.info(f"Average standard deviation of split frequencies: {ave_std:.6f}")
 
     output.info()
-    output.info(f"Done. {sd['n_trees_analyzed']:,d} trees analyzed.\n   Time spent: {sd['h']:d}:{sd['m']:02d}:{sd['s']:02d} (h:m:s)")
+    output.info(f"Done. {n_trees_analyzed:,d} trees analyzed.\n   Time spent: {h:d}:{m:02d}:{s:02d} (h:m:s)")
 
     if memorymax > 1E9:
-        output.info("Max memory used: {:,.2f} GB.".format( sd['memorymax']  / (1024**3) ))
+        output.info("Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
     else:
-        output.info("Max memory used: {:,.2f} MB.".format( sd['memorymax']  / (1024**2) ))
+        output.info("Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
+
+##########################################################################################
+
+def compute_summary_variables(sumtree, treesummary, pid, start, memory1, ave_std, args):
+    
+    memory2 = track_memory_usage(pid)
+    memorymax = max(memory1, memory2) 
+    
+    ave_std = ave_std
+
+    if args.treeprobs:
+        if args.trackclades:
+            n_topo_seen = len(treesummary.cladetoposummary)
+        elif args.trackbips:
+            n_topo_seen = len(treesummary.biptoposummary)
+    else:
+        n_topo_seen = None
+
+    nrootkids = len(sumtree.children(sumtree.root))
+    if nrootkids == 2:
+        rootdegree = "bifurcation"
+    elif nrootkids == 3:
+        rootdegree = "trifurcation"
+    else:
+        rootdegree = "multifurcation"
+
+    n_leaves = len(treesummary.leaves)
+    n_leaves = n_leaves
+
+    if args.mcc:
+        n_uniq_groupings = len(treesummary.cladesummary) - n_leaves
+        theo_max_groups = n_leaves - 1
+    else:
+        n_uniq_groupings = len(treesummary.bipartsummary) - n_leaves
+        theo_max_groups = n_leaves - 3
+
+    n_internal_biparts = sumtree.n_bipartitions()
+
+    if args.mcc:
+        treetype, branchtype, space = "MCC", "clade", " " * 7
+    elif args.mbc:
+        treetype, branchtype, space = "MBC", "bipartition", " " * 1
+    else:
+        treetype, branchtype, space = "Consensus", "bipartition", " " * 1
+
+    time_spent = time.time() - start
+    h = int(time_spent/3600)
+    m = int((time_spent % 3600)/60)
+    s = int(time_spent % 60)
+
+    return   (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
+              treetype, n_internal_biparts, rootdegree, h, m, s, memorymax)
 
 ##########################################################################################
 
