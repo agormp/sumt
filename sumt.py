@@ -35,7 +35,7 @@ def main(commandlist=None):
         output.info(sumtree_status_message)
         
         if args.treeprobs:
-            trproblist = compute_trprobs(treesummary, args):
+            trproblist = compute_trprobs(treesummary, args)
             trprobs_status_message = print_trprobs(trproblist, args)
             output.info(trprobs_status_message)
         
