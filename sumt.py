@@ -25,129 +25,73 @@ def main(commandlist=None):
         treesummarylist = process_trees(wt_count_burnin_filename_list, args, output)
         if args.std:
             ave_std = compute_converge_stats(treesummarylist, args)
-
+        else:
+            ave_std = None
         treesummary = merge_treesummaries(treesummarylist)
-
-        contree, logcred = compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list)
-
-        if args.trackblen:
-            compute_and_print_biparts(treesummary, args)
-        # should i compute summaries for depths? where else are they computed?
-
+        
+        sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list)
+        sumtree = root_sumtree(sumtree, args)
+        sumtree = annotate_sumtree_root(sumtree, args)
+        sumtree = set_sumtree_blen(sumtree, args)
+        sumtree_status_message = print_sumtree(sumtree, args)
+        output.info(sumtree_status_message)
+        
         if args.treeprobs:
-            compute_and_print_trprobs(treesummary, args)
-            if args.trackclades:
-                n_topo_seen = len(treesummary.cladetoposummary)
-            elif args.trackbips:
-                n_topo_seen = len(treesummary.biptoposummary)
+            trproblist = compute_trprobs(treesummary, args):
+            trprobs_status_message = print_trprobs(trproblist, args)
+            output.info(trprobs_status_message)
+        
+        sumdict = compute_summary_variables(sumtree, treesummary, start, memory1, ave_std, args)
+        print_result_summary(sumdict, sumtree, args, output)
 
-        stop=time.time()
-
-        memory2 = pid.memory_full_info().rss
-        memorymax = max(memory1, memory2)
-
-        nrootkids = len(contree.children(contree.root))
-        if nrootkids == 2:
-            rootdegree = "bifurcation"
-        elif nrootkids == 3:
-            rootdegree = "trifurcation"
-        else:
-            rootdegree = "multifurcation"
-
-        n_leaves = len(treesummary.leaves)
-        if args.mcc:
-            n_uniq_groupings = len(treesummary.cladesummary) - n_leaves
-        else:
-            n_uniq_groupings = len(treesummary.bipartsummary) - n_leaves
-
-        theo_max_clades = n_leaves - 1
-        theo_max_bips = n_leaves - 3
-        if args.mcc:
-            theo_max_groups = theo_max_clades
-        else:
-            theo_max_groups = theo_max_bips
-        n_internal_biparts = contree.n_bipartitions()
-
-        if args.mcc:
-            treetype = "MCC"
-            branchtype = "clade"
-            space = " " * 7
-        elif args.mbc:
-            treetype = "MBC"
-            branchtype = "bipartition"
-            space = " " * 1
-        else:
-            treetype = "Consensus"
-            branchtype = "bipartition"
-            space = " " * 1
-
-        # Information about bipartitions, clades and topologies
-        print(f"\n   Number of leaves on input trees: {n_leaves:>7,d}")
-        if args.treeprobs:
-            print("   Different topologies seen: {:>13,d}".format(n_topo_seen))
-            print(f"   Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
-        else:
-            print(f"   Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
-        print("   {:<34}".format(f"Bipartitions in {treetype} tree:"), end="")
-        print(f"{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_bips:,d})")
-
-        if n_internal_biparts < theo_max_bips:
-            print("                                            (tree contains polytomies)")
-        else:
-            print("                                            (tree is fully resolved - no polytomies)")
+    except Exception as error:
+        handle_error(error, args.verbose)
 
 ####################################################################################
 ####################################################################################
 
-        # Information about rooting
-        if not (args.actively_rooted or args.mcc):
-            print(f"\n   {treetype} tree has not been explicitly rooted")
-            print(f"   Tree has been rooted at random internal node; root is at {rootdegree}")
-        else:
-            if args.rootog:
-                print(f"\n   {treetype} tree has been rooted based on outgroup")
-            elif args.rootmid:
-                print(f"\n   {treetype} tree has been midpoint-rooted")
-            elif args.rootminvar:
-                print(f"\n   {treetype} tree has been rooted using minimum variance-rooting")
-            elif args.mcc:
-                print(f"\n   MCC tree rooted at original root of tree sample having highest clade credibility")
+class ProgressBar:
+    def __init__(self, total_trees, burnin, quiet=False):
+        self.quiet = quiet
+        self.total_trees = total_trees
+        self.burnin = burnin
+        self.processed_trees = 0
+        self.progscale = "0      10      20      30      40      50      60      70      80      90     100"
+        self.progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
+        self.ndots = len(self.progticks)
+        self.n_tot = total_trees - burnin
+        self.trees_per_dot = self.n_tot / self.ndots
+        self.n_dotsprinted = 0
 
-        if args.rootcred:
-            if args.actively_rooted or args.mcc:
-                print(f"   Root credibility (frequency of root bipartition in input trees):       {contree.rootcred * 100:.1f}%")
-            print(f"   Cumulated root credibility (sum of rootcred for all branches in tree): {contree.cumulated_rootcred * 100:.1f}%")
-            
+        # Print progress bar header
+        if not self.quiet:
+            print("\n\n   Processing trees:")
+            print(f"   {self.progscale}")
+            print(f"   {self.progticks}")
+            print("   ", end="")
+            sys.stdout.flush()
 
-        # Information about branch lengths
-        if args.meandepth:
-            print(f"\n   Branch lengths set based on mean node depths in input trees")
-        if args.cadepth:
-            print(f"\n   Branch lengths set based on common ancestor depths in input trees")
-        elif args.biplen:
-            print(f"\n   Branch lengths set based on mean branch lengths for corresponding bipartitions")
-        elif args.noblen:
-            print(f"\n   Branch lengths have not been tracked")
+    def update(self):
+        """ Update the progress bar based on the number of processed trees. """
+        if not self.quiet:
+            self.processed_trees += 1
+            n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
+            if self.n_dotsprinted < n_dots_expected:
+                n_missing = n_dots_expected - self.n_dotsprinted
+                sys.stdout.write("*" * n_missing)
+                sys.stdout.flush()
+                self.n_dotsprinted += n_missing
 
-        # Information about log credibility
-        if args.mbc or (args.mcc and not args.actively_rooted):
-            print(f"\n   Highest log {branchtype} credibility:  {logcred:.6g}")
-        else:
-            print(f"\n   Log {branchtype} credibility:  {logcred:.6g}")
+    def complete(self):
+        """ Ensure all dots are printed at the end if they haven't been already. """
+        if not self.quiet:
+            if self.n_dotsprinted < self.ndots:
+                n_missing = self.ndots - self.n_dotsprinted
+                sys.stdout.write("*" * n_missing)
+                sys.stdout.flush()
 
-        if args.std:
-            print(("   Average standard deviation of split frequencies: {:.6f}".format(ave_std)))
-
-        time_spent=stop-start
-        h = int(time_spent/3600)
-        m = int((time_spent % 3600)/60)
-        s = int(time_spent % 60)
-        print(f"\n   Done. {n_trees_analyzed:,d} trees analyzed.\n   Time spent: {h:d}:{m:02d}:{s:02d} (h:m:s)")
-
-        if memorymax > 1E9:
-            print("   Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
-        else:
-            print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
+####################################################################################
+####################################################################################
 
 class OutputManager:
     def __init__(self, args):
@@ -467,45 +411,6 @@ def build_parser():
     return parser
 
 ####################################################################################
-####################################################################################
-
-class ProgressBar:
-    def __init__(self, total_trees, burnin):
-        self.total_trees = total_trees
-        self.burnin = burnin
-        self.processed_trees = 0
-        self.progscale = "0      10      20      30      40      50      60      70      80      90     100"
-        self.progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
-        self.ndots = len(self.progticks)
-        self.n_tot = total_trees - burnin
-        self.trees_per_dot = self.n_tot / self.ndots
-        self.n_dotsprinted = 0
-
-        # Print progress bar header
-        sys.stdout.write("\n\n   Processing trees:")
-        sys.stdout.write(f"\n   {self.progscale}\n")
-        sys.stdout.write(f"   {self.progticks}\n   ")
-        sys.stdout.flush()
-
-    def update(self):
-        """ Update the progress bar based on the number of processed trees. """
-        self.processed_trees += 1
-        n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
-        if self.n_dotsprinted < n_dots_expected:
-            n_missing = n_dots_expected - self.n_dotsprinted
-            sys.stdout.write("*" * n_missing)
-            sys.stdout.flush()
-            self.n_dotsprinted += n_missing
-
-    def complete(self):
-        """ Ensure all dots are printed at the end if they haven't been already. """
-        if self.n_dotsprinted < self.ndots:
-            n_missing = self.ndots - self.n_dotsprinted
-            sys.stdout.write("*" * n_missing)
-            sys.stdout.flush()
-
-####################################################################################
-####################################################################################
 
 def parse_infilelist(args):
 
@@ -704,7 +609,7 @@ def process_trees(wt_count_burnin_filename_list, args, output):
                                          trackblen=trackblen, trackdepth=trackdepth)
 
         # Initialize the progress bar
-        progress = ProgressBar(total_trees=count, burnin=burnin)
+        progress = ProgressBar(total_trees=count, burnin=burnin, args.quiet)
 
         # Read post-burnin trees from file, add to treesummary, print progress bar
         for j in range(burnin, count):
@@ -958,10 +863,10 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     else:
         printdist = False
         
-    if args.nolabel:
-        printlabels = False
-    else:
-        printlabels = True
+def print_sumtree(sumtree, args):
+
+    printdist = args.trackblen or args.trackdepth or args.cadepth
+    printlabels = not args.nolabel
 
     metacomment_fields = ["posterior", "length"]
     if args.trackroot:
@@ -969,7 +874,6 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
 
     newick_prob_tree = contree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
     
-
     if args.mbc:
         confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:
@@ -986,24 +890,13 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
             confile = open(confilename, "w")            # Overwrite
             print("   Overwriting file {}\n".format(confilename))
         else:
-            confile = open(confilename, "a")            # Append
-            print("   Appending to file {}\n".format(confilename))
-    else:
-        confile = open(confilename, "w")
-
-    if args.outformat == "newick":
-        confile.write(newick_prob_tree)
-        confile.write("\n")
-    else:
-        confile.write("#NEXUS\n")
-        confile.write("\n")
-        confile.write("begin trees;\n")
-        confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
-        confile.write("   tree prob = ")
-        confile.write(newick_prob_tree)
-        confile.write("\nend;\n")
-    confile.close()
-
+            confile.write("#NEXUS\n\n")
+            confile.write("begin trees;\n")
+            confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
+            confile.write("   tree prob = ")
+            confile.write(newick_prob_tree)
+            confile.write("\nend;\n")
+        
     if args.mbc:
         return f"Maximum bipartition credibility tree written to {confilename}"
     elif args.mcc:
@@ -1011,15 +904,28 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     else:
         return f"Consensus tree written to {confilename}"
         
-    return contree, logcred
-
-##########################################################################################
 ##########################################################################################
 
-def compute_and_print_trprobs(treesummary, args):
-    topolist = topo_report(treesummary, args)
+def compute_trprobs(treesummary, args):
+    """Returns sorted list of [freq, tree] lists (highest freq first)"""
 
-    # Before printing results: check whether file already exist
+    # Python note: root trees in trprobs?
+    if treesummary.trackclades:
+        toposummary = treesummary.cladetoposummary
+    elif treesummary.trackbips:
+        toposummary = treesummary.biptoposummary
+    trproblist = []
+    for topology, topostruct in toposummary.items():
+        trproblist.append((topostruct.posterior, topostruct.tree))
+
+    # Sort report according to frequency (higher values first) and return
+    trproblist = sorted(trproblist, key=itemgetter(0), reverse=True)
+
+    return trproblist
+
+##########################################################################################
+
+def print_trprobs(trproblist, args):
     topofilename = args.outbase.parent / (args.outbase.name + ".trprobs")
     if args.nowarn:
         topofile = open(topofilename, "w")
@@ -1029,39 +935,75 @@ def compute_and_print_trprobs(treesummary, args):
             topofile = open(topofilename, "w")            # Overwrite
             print(f"   Overwriting file {topofilename}\n")
         else:
-            topofile = open(topofilename, "a")            # Append
-            print(f"   Appending to file {topofilename}\n")
-    else:
-        topofile = open(topofilename, "w")
-
-    topofile.write("#NEXUS\n")
-    topofile.write("\n")
-    if args.treeprobs < 1:
-        topofile.write(f"[This file contains the {round(args.treeprobs*100)}% most probable trees found during the\n")
-        topofile.write(f"MCMC search, sorted by posterior probability (the {round(args.treeprobs*100)}% HPD interval).\n")
-    else:
-        topofile.write("[This file contains all trees that were found during the MCMC\n")
-        topofile.write("search, sorted by posterior probability. \n")
-    topofile.write("Lower case 'p' indicates the posterior probability of a tree.\n")
-    topofile.write("Upper case 'P' indicates the cumulative posterior probability.]\n")
-    topofile.write("\n")
-    topofile.write("begin trees;\n")
-    topofile.write(treesummary.translateblock)
-    n=1
-    cum = 0.0
-    for (freq, tree) in topolist:
-        cum += freq
-        treestring = tree.newick(printdist=False, printlabels=False, transdict=treesummary.transdict)
-        topofile.write(f"    tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
-        n += 1
-        if cum > args.treeprobs:
-            break
-
-    topofile.write("end;\n")
-    topofile.close()
-    print(f"   Tree probabilities written to {topofilename}")
+            topofile.write("[This file contains all trees that were found during the MCMC\n")
+            topofile.write("search, sorted by posterior probability. \n")
+        topofile.write("Lower case 'p' indicates the posterior probability of a tree.\n")
+        topofile.write("Upper case 'P' indicates the cumulative posterior probability.]\n\n")
+        topofile.write("begin trees;\n")
+        topofile.write(treesummary.translateblock)
+        n = 1
+        cum = 0.0
+        for (freq, tree) in trproblist:
+            cum += freq
+            treestring = tree.newick(printdist=False, printlabels=False, transdict=treesummary.transdict)
+            topofile.write(f"    tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
+            n += 1
+            if cum > args.treeprobs:
+                break
+        topofile.write("end;\n")
+        
+    return f"Tree probabilities written to {topofilename}"
 
 ##########################################################################################
+
+def compute_summary_variables(sumtree, treesummary, start, memory1, ave_std, args):
+    sumdict = {}
+    
+    memory2 = track_memory_usage(pid)
+    sumdict["memorymax"] = max(memory1, memory2) 
+    
+    sumdict["ave_std"] = ave_std
+
+    if args.treeprobs:
+        if args.trackclades:
+            sumdict["n_topo_seen"] = len(treesummary.cladetoposummary)
+        elif args.trackbips:
+            sumdict["n_topo_seen"] = len(treesummary.biptoposummary)
+
+    nrootkids = len(sumtree.children(sumtree.root))
+    if nrootkids == 2:
+        sumdict['rootdegree'] = "bifurcation"
+    elif nrootkids == 3:
+        sumdict['rootdegree'] = "trifurcation"
+    else:
+        sumdict['rootdegree'] = "multifurcation"
+
+    n_leaves = len(treesummary.leaves)
+    sumdict['n_leaves'] = n_leaves
+
+    if args.mcc:
+        sumdict['n_uniq_groupings'] = len(treesummary.cladesummary) - n_leaves
+        sumdict['theo_max_groups'] = n_leaves - 1
+    else:
+        sumdict['n_uniq_groupings'] = len(treesummary.bipartsummary) - n_leaves
+        sumdict['theo_max_groups'] = n_leaves - 3
+
+    sumdict['n_internal_biparts'] = sumtree.n_bipartitions()
+
+    if args.mcc:
+        sumdict['treetype'], sumdict['branchtype'], sumdict['space'] = "MCC", "clade", " " * 7
+    elif args.mbc:
+        sumdict['treetype'], sumdict['branchtype'], sumdict['space'] = "MBC", "bipartition", " " * 1
+    else:
+        sumdict['treetype'], sumdict['branchtype'], sumdict['space'] = "Consensus", "bipartition", " " * 1
+
+    time_spent = time.time() - start
+    sumdict["h"] = int(time_spent/3600)
+    sumdict["m"] = int((time_spent % 3600)/60)
+    sumdict["s"] = int(time_spent % 60)
+
+    return sumdict
+
 ##########################################################################################
 
 def print_result_summary(sumdict, sumtree, args):
