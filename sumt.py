@@ -562,7 +562,7 @@ def process_trees(wt_count_burnin_filename_list, args, output):
                                          trackblen=trackblen, trackdepth=trackdepth)
 
         # Initialize the progress bar
-        progress = ProgressBar(total_trees=count, burnin=burnin, args.quiet)
+        progress = ProgressBar(total_trees=count, burnin=burnin, quiet=args.quiet)
 
         # Read post-burnin trees from file, add to treesummary, print progress bar
         for j in range(burnin, count):
