@@ -6,12 +6,11 @@ from itertools import (takewhile,repeat)
 from operator import itemgetter
 from pathlib import Path
 import gc
-
 gc.disable()        # Faster. Assume no cyclic references will ever be created
 
+####################################################################################
+
 def main(commandlist=None):
-    # Python note: "commandlist" is to enable unit testing of argparse code
-    # https://jugmac00.github.io/blog/testing-argparse-applications-the-better-way/
     start=time.time()
     args = parse_commandline(commandlist)
 
@@ -102,6 +101,8 @@ def main(commandlist=None):
         else:
             print("                                            (tree is fully resolved - no polytomies)")
 
+####################################################################################
+####################################################################################
 
         # Information about rooting
         if not (args.actively_rooted or args.mcc):
@@ -170,6 +171,7 @@ def main(commandlist=None):
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
     # Will be "None" when run in script mode, and argparse will then automatically take values from sys.argv[1:]
+    # https://jugmac00.github.io/blog/testing-argparse-applications-the-better-way/
 
     parser = build_parser()
     args = parser.parse_args(commandlist)
@@ -269,7 +271,6 @@ def parse_commandline(commandlist):
 
     return args
 
-####################################################################################
 ####################################################################################
 
 def build_parser():
@@ -528,7 +529,6 @@ def parse_infilelist(args):
     return wt_file_list
 
 ####################################################################################
-####################################################################################
 
 def read_outgroup(ogfile):
     infile = open(ogfile, "r")
@@ -539,7 +539,6 @@ def read_outgroup(ogfile):
     infile.close()
     return outgroup
 
-####################################################################################
 ####################################################################################
 
 def count_trees_by_parsing(filename, args):
@@ -553,18 +552,6 @@ def count_trees_by_parsing(filename, args):
         treecount += 1
     return treecount
 
-####################################################################################
-#
-# def count_bytestring(filename, bytestring):
-#     """Fast counting of specific pattern. Bytestring argument must be given
-#     with b modifier (e.g., b');')"""
-#
-#     # from: https://stackoverflow.com/a/27517681/7836730
-#     f = open(filename, 'rb')
-#     bufsize = 1024*1024
-#     bufgen = takewhile(lambda x: x, (f.raw.read(bufsize) for _ in repeat(None)))
-#     return sum( buf.count(bytestring) for buf in bufgen)
-#
 ####################################################################################
 
 def count_bytestring(filename, bytestring):
@@ -748,7 +735,6 @@ def compute_converge_stats(treesummarylist, args):
     return ave_std
 
 ##########################################################################################
-##########################################################################################
 
 def compute_converge_biparts(treesummarylist, args):
     sum_std = 0
@@ -778,7 +764,6 @@ def compute_converge_biparts(treesummarylist, args):
     return ave_std
 
 ##########################################################################################
-##########################################################################################
 
 def compute_converge_clades(treesummarylist, args):
     sum_std = 0
@@ -807,7 +792,6 @@ def compute_converge_clades(treesummarylist, args):
     ave_std = sum_std / len(cladeset)
     return ave_std
 
-##########################################################################################
 ##########################################################################################
 
 def  merge_treesummaries(treesummarylist):
