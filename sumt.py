@@ -27,7 +27,7 @@ def main(commandlist=None):
             ave_std = None
         treesummary = merge_treesummaries(treesummarylist)
         
-        sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list)
+        sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
         sumtree = root_sumtree(sumtree, args)
         sumtree = annotate_sumtree_root(sumtree, args)
         sumtree = set_sumtree_blen(sumtree, args)
@@ -712,19 +712,24 @@ def  merge_treesummaries(treesummarylist):
 
 ##########################################################################################
 
-def compute_sumtree(treesummary, args, wt_count_burnin_filename_list):
+def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
 
     if args.mcc:
-        sys.stdout.write("\n   Finding Maximum Clade Credibility tree...")
-        sys.stdout.flush()
+        output.info()
+        output.force("Finding Maximum Clade Credibility tree...", end="")
         sumtree, logcred = treesummary.max_clade_cred_tree()
     elif args.mbc:
-        sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
-        sys.stdout.flush()
+        output.info()
+        output.force("Finding Maximum Bipartition Credibility tree...", end="")
         sumtree, logcred = treesummary.max_bipart_cred_tree()
-    else:
-        sys.stdout.write("\n   Computing consensus tree...")
-        sys.stdout.flush()
+    elif args.con:
+        output.info()
+        output.force("Computing consensus tree...", end="")
+        sumtree = treesummary.contree(allcompat=args.all)
+        logcred = treesummary.log_bipart_credibility(sumtree.topology())
+    elif args.all:
+        output.info()
+        output.force("Computing consensus tree, adding all compatible bipartitions...", end="")
         sumtree = treesummary.contree(allcompat=args.all)
         logcred = treesummary.log_bipart_credibility(sumtree.topology())
     sys.stdout.write("done.\n")
