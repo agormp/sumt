@@ -104,11 +104,16 @@ def parse_commandline(commandlist):
     if args.quiet:
         args.nowarn = True
         
-    if args.rootog and not (args.outgroup or args.ogfile):
-        parser.error("Option --rootog requires specifying outgroup using either --og or --ogfile")
+    if args.ogfile:
+        args.outgroup = read_outgroup(args.ogfile)
 
-    if args.mcc and (args.rootog or args.rootmid or args.rootminvar):
-        parser.error("MCC tree is not compatible with any of these rooting methods: --rootmid, --rootminvar, --rootog")
+    if (args.outgroup or args.rootmid or args.rootminvar):
+        args.actively_rooted = True
+    else:
+        args.actively_rooted = False
+        
+    if args.mcc and args.actively_rooted:
+        parser.error("Rooting method should not be specified for MCC trees (input trees are already assumed to be rooted)")
 
     # Bipartitions need to be tracked in these situations
     if args.con or args.all or args.mbc or args.biplen:
@@ -139,14 +144,6 @@ def parse_commandline(commandlist):
         args.trackdepth = True
     else:
         args.trackdepth = False
-
-    if args.ogfile:
-        args.outgroup = read_outgroup(args.ogfile)
-
-    if (args.outgroup or args.rootmid or args.rootminvar):
-        args.actively_rooted = True
-    else:
-        args.actively_rooted = False
 
     return args
 
@@ -280,16 +277,11 @@ def build_parser():
     root_excl.add_argument("--rootminvar", action="store_true",
                       help="perform minimum variance rooting of summary tree")
 
-    root_excl.add_argument("--rootog", action="store_true",
-                      help="root summary tree on outgroup (requires specifying outgroup using --og or --ogfile)")
-                      
-    og_group = root_grp.add_mutually_exclusive_group()
-    
-    og_group.add_argument('--og', dest="outgroup", metavar="NAME", nargs="+", default=None,
-                      help='specify outgroup taxon/taxa on command-line')
-                      
-    og_group.add_argument('--ogfile', action="store", metavar="FILE", default=None,
-                      help="specify outgroup taxon/taxa in file (one name per line)")
+    root_excl.add_argument("--rootog", dest="outgroup", metavar="NAME", nargs="+", default=None,
+                      help="root summary tree on outgroup; specify outgroup taxon/taxa on command-line")
+                          
+    root_excl.add_argument('--rootogfile', dest="ogfile", action="store", metavar="FILE", default=None,
+                      help="root summary tree on outgroup; specify outgroup taxon/taxa in file (one name per line)")
                       
     root_grp.add_argument("--rootcred", action="store_true",
                           help=("compute root credibility for all possible rooting locations and add a 'rootcred' "
@@ -741,7 +733,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
 
 def root_sumtree(sumtree, args):
 
-    if args.rootog:
+    if args.outgroup:
         sumtree.rootout(args.outgroup)
     elif args.rootmid:
         sumtree.rootmid()
@@ -912,7 +904,7 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
         output.info(f"{treetype} tree has not been explicitly rooted")
         output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
     else:
-        if args.rootog:
+        if args.outgroup:
             output.info()
             output.info(f"{treetype} tree has been rooted based on outgroup")
         elif args.rootmid:
