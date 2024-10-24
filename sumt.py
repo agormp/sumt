@@ -884,8 +884,6 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
     sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, memory1, ave_std, args)
     (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
      treetype, n_internal_biparts, rootdegree, h, m, s, memorymax) = sumvar_tuple
-     
-    print(f"treetype: {treetype}") #DEBUG
     
     # Information about bipartitions, clades and topologies
     output.info()
@@ -895,7 +893,8 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
         output.info(f"Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
     else:
         output.info(f"Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
-    output.info(f"{'Bipartitions in {treetype} tree:':<34}{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
+    tmpstr = f"Bipartitions in {treetype} tree:"
+    output.info(f"{tmpstr:<34}{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
 
     if n_internal_biparts < theo_max_groups:
         output.info("(tree contains polytomies)", margin=44)
