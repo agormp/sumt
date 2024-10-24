@@ -717,7 +717,7 @@ def  merge_treesummaries(treesummarylist):
 
 ##########################################################################################
 
-def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
+def compute_sumtree(treesummary, args, wt_count_burnin_filename_list):
 
     if args.mcc:
         sys.stdout.write("\n   Finding Maximum Clade Credibility tree...")
@@ -734,18 +734,36 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
         logcred = treesummary.log_bipart_credibility(contree.topology())
     sys.stdout.write("done.\n")
     sys.stdout.flush()
+    
+    return sumtree, logcred
+    
+##########################################################################################
+
+def root_sumtree(sumtree, args):
 
     if args.rootog:
         contree.rootout(args.outgroup)
     elif args.rootmid:
         contree.rootmid()
     elif args.rootminvar:
-        contree.rootminvar()
+        sumtree.rootminvar()
+    
+    return sumtree
+    
+##########################################################################################
+
+def annotate_sumtree_root(sumtree, args):
 
     if args.rootcred:
         if args.actively_rooted or args.mcc:
-            contree.rootcred = treesummary.compute_rootcred(contree)
-        contree = treesummary.set_rootcredibility(contree)  # Add branch attribute with root credibilities
+            sumtree.rootcred = treesummary.compute_rootcred(sumtree)
+        sumtree = treesummary.set_rootcredibility(sumtree)  # Add branch attribute with root credibilities
+
+    return sumtree
+    
+##########################################################################################
+
+def set_sumtree_blen(sumtree, args):
 
     if args.meandepth:
         contree = treesummary.set_mean_node_depths(contree)
