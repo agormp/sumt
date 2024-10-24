@@ -722,16 +722,16 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list):
     if args.mcc:
         sys.stdout.write("\n   Finding Maximum Clade Credibility tree...")
         sys.stdout.flush()
-        contree, logcred = treesummary.max_clade_cred_tree()
+        sumtree, logcred = treesummary.max_clade_cred_tree()
     elif args.mbc:
         sys.stdout.write("\n   Finding Maximum Bipartition Credibility tree...")
         sys.stdout.flush()
-        contree, logcred = treesummary.max_bipart_cred_tree()
+        sumtree, logcred = treesummary.max_bipart_cred_tree()
     else:
         sys.stdout.write("\n   Computing consensus tree...")
         sys.stdout.flush()
-        contree = treesummary.contree(allcompat=args.all)
-        logcred = treesummary.log_bipart_credibility(contree.topology())
+        sumtree = treesummary.contree(allcompat=args.all)
+        logcred = treesummary.log_bipart_credibility(sumtree.topology())
     sys.stdout.write("done.\n")
     sys.stdout.flush()
     
@@ -742,9 +742,9 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list):
 def root_sumtree(sumtree, args):
 
     if args.rootog:
-        contree.rootout(args.outgroup)
+        sumtree.rootout(args.outgroup)
     elif args.rootmid:
-        contree.rootmid()
+        sumtree.rootmid()
     elif args.rootminvar:
         sumtree.rootminvar()
     
@@ -766,26 +766,18 @@ def annotate_sumtree_root(sumtree, args):
 def set_sumtree_blen(sumtree, args):
 
     if args.meandepth:
-        contree = treesummary.set_mean_node_depths(contree)
+        sumtree = treesummary.set_mean_node_depths(sumtree)
     elif args.cadepth:
         sys.stdout.write("   Computing common ancestor depths...")
         sys.stdout.flush()
-        contree = treesummary.set_ca_node_depths(contree, wt_count_burnin_filename_list)
+        sumtree = treesummary.set_ca_node_depths(sumtree, wt_count_burnin_filename_list)
         sys.stdout.write("done.\n")
     elif args.biplen and args.mcc:
-        contree = treesummary.set_mean_biplen(contree)
-
-    # If root is bifurcation and one child is leaf: Remove label from other child-branch
-    # (In this case both branches from root are the same bipartition, so not useful to label internal branch part)
-    # Python note: not sure this generalizes to all tree types. think...
-    rootkids = contree.children(contree.root)
-    if (len(rootkids) == 2) and (rootkids & contree.leaves):
-        rootkids = list(rootkids)
-        if rootkids[0] in contree.leaves:
-            node2 = rootkids[1]
-        else:
-            node2 = rootkids[0]
-        contree.set_branch_attribute(contree.root, node2, "label", "")
+        sumtree = treesummary.set_mean_biplen(sumtree)
+        
+    return sumtree
+    
+##########################################################################################
 
     if args.trackblen or args.trackdepth or args.cadepth:
         printdist = True
@@ -801,7 +793,7 @@ def print_sumtree(sumtree, args):
     if args.trackroot:
         metacomment_fields.append("rootcred")
 
-    newick_prob_tree = contree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
+    newick_prob_tree = sumtree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
     
     if args.mbc:
         confilename = args.outbase.parent / (args.outbase.name + ".mbc")
