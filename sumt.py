@@ -66,10 +66,10 @@ def parse_commandline(commandlist):
             exit()
 
     if not (args.con or args.all or args.mcc or args.mbc):
-        parser.error("\n    One of --con, --all, --mcc, or --mbc must be specified\n    (to select type of summary tree)")
+        parser.error("One of --con, --all, --mcc, or --mbc must be specified\n    (to select type of summary tree)")
 
     if not (args.noblen or args.biplen or args.meandepth or args.cadepth):
-        parser.error("\n    One of --noblen, --biplen, --meandepth, or --cadepth must be specified\n    (to select how to estimate branch lengths)")
+        parser.error("One of --noblen, --biplen, --meandepth, or --cadepth must be specified\n    (to select how to estimate branch lengths)")
 
     if not args.infilelist and not args.fileweights:
         parser.error("Please list one or more tree files.")
