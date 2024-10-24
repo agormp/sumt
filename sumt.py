@@ -19,13 +19,10 @@ def main(commandlist=None):
     try:
         setup_output_directory(args.outbase)        
         wt_file_list = parse_infilelist(args)
-
-        n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args)
-
-        memory1 = pid.memory_full_info().rss
-
-        treesummarylist = process_trees(wt_count_burnin_filename_list, args)
-
+        n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args, output)
+        memory1 = track_memory_usage(pid)
+        
+        treesummarylist = process_trees(wt_count_burnin_filename_list, args, output)
         if args.std:
             ave_std = compute_converge_stats(treesummarylist, args)
 
@@ -177,6 +174,11 @@ def setup_output_directory(outbase):
     outbase.parent.mkdir(parents=True, exist_ok=True)
     
 ####################################################################################
+
+def track_memory_usage(pid):
+    return pid.memory_full_info().rss
+  
+####################################################################################      
 
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
