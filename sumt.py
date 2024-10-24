@@ -12,6 +12,7 @@ gc.disable()        # Faster. Assume no cyclic references will ever be created
 
 def main(commandlist=None):
     start=time.time()
+    pid = psutil.Process(os.getpid())
     args = parse_commandline(commandlist)
 
     try:
