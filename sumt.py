@@ -17,11 +17,7 @@ def main(commandlist=None):
     output = OutputManager(args)
 
     try:
-        pid = psutil.Process(os.getpid())
-        args.outbase.parent.mkdir(parents=True, exist_ok=True) # Create intermediate dirs
-        if args.quiet:
-            sys.stdout = open(os.devnull, 'w')
-
+        setup_output_directory(args.outbase)        
         wt_file_list = parse_infilelist(args)
 
         n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args)
@@ -176,6 +172,10 @@ class OutputManager:
             
 ####################################################################################
 ####################################################################################
+
+def setup_output_directory(outbase):
+    outbase.parent.mkdir(parents=True, exist_ok=True)
+    
 ####################################################################################
 
 def parse_commandline(commandlist):
