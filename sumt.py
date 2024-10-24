@@ -1011,6 +1011,16 @@ def print_result_summary(sumdict, sumtree, args):
         output.info("Max memory used: {:,.2f} MB.".format( sd['memorymax']  / (1024**2) ))
 
 ##########################################################################################
+
+def handle_error(error, verbose):
+    print("\n\nExecution failed:\n")
+    if verbose:
+        import traceback
+        traceback.print_exc(file=sys.stdout)
+    else:
+        print(error)
+    sys.exit()
+    
 ##########################################################################################
 
 if __name__ == "__main__":
