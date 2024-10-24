@@ -14,6 +14,7 @@ def main(commandlist=None):
     start=time.time()
     pid = psutil.Process(os.getpid())
     args = parse_commandline(commandlist)
+    output = OutputManager(args)
 
     try:
         pid = psutil.Process(os.getpid())
@@ -155,17 +156,25 @@ def main(commandlist=None):
         else:
             print("   Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
 
+class OutputManager:
+    def __init__(self, args):
+        self.quiet = args.quiet
+        self.verbose = args.verbose
 
-    except Exception as error:
-        print("\n\nExecution failed:\n")
-        if args.verbose:
-            import traceback
-            traceback.print_exc(file=sys.stdout)
-        else:
-            print(error)
+    def info(self, message="", margin=3, end="\n"):
+        if not self.quiet:
+            print(f"{margin * ' '}{message}", end=end)
 
-        sys.exit()
+    def force(self, message="", margin=3, end="\n"):
+        if not self.quiet:
+            print(f"{margin * ' '}{message}", end=end)
+            sys.stdout.flush()
 
+    def warning(self, message):
+        if not self.quiet and self.verbose:
+            print(f"{self.margin * ' '}[WARNING] {message}")
+            
+####################################################################################
 ####################################################################################
 ####################################################################################
 
@@ -620,18 +629,16 @@ def fast_treecount(filename, args):
 
 ####################################################################################
 
-def count_trees(wt_file_list, args):
+def count_trees(wt_file_list, args, output):
 
     count_list = []
     burnin_list = []
     n_postburnin = []
     for i,(wt, filename) in enumerate(wt_file_list):
         treelist = []
-        sys.stdout.write(f"   Counting trees in file {str(filename):<40}")
-        sys.stdout.flush()
+        output.force(f"Counting trees in file {str(filename):<40}", end="")
         n_tot = fast_treecount(filename, args)
-        sys.stdout.write(f"{n_tot:>15,d}\n")
-        sys.stdout.flush()
+        output.force(f"{n_tot:>15,d}")
         burnin = int(args.burninfrac[i] * n_tot)
         count_list.append(n_tot)
         burnin_list.append(burnin)
@@ -660,17 +667,15 @@ def count_trees(wt_file_list, args):
     return (n_trees_analyzed, wt_count_burnin_filename_list)
 
 ####################################################################################
-####################################################################################
 
-def process_trees(wt_count_burnin_filename_list, args):
+def process_trees(wt_count_burnin_filename_list, args, output):
 
     treesummarylist = []
     interner = pt.Interner()
 
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
-
-        sys.stdout.write("\n   Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
-        sys.stdout.flush()
+        output.force()
+        output.force("Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
 
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
         if args.informat == "nexus":
@@ -679,7 +684,8 @@ def process_trees(wt_count_burnin_filename_list, args):
             treefile = pt.Newicktreefile(filename, interner=interner)
         for j in range(burnin):
             treefile.readtree(returntree=False)
-        sys.stdout.write(f"\n   Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac[i]:.2f})")
+        output.info()
+        output.info(f"Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac[i]:.2f})")
 
         # Instantiate Treesummary.
         trackbips = args.trackbips
@@ -709,11 +715,10 @@ def process_trees(wt_count_burnin_filename_list, args):
         progress.complete()
 
         treesummarylist.append(treesummary)
-        print("\n")
+        output.info()
 
     return treesummarylist
 
-##########################################################################################
 ##########################################################################################
 
 def compute_converge_stats(treesummarylist, args):
@@ -998,11 +1003,11 @@ def compute_and_print_contree(treesummary, args, wt_count_burnin_filename_list):
     confile.close()
 
     if args.mbc:
-        print(f"   Maximum bipartition credibility tree written to {confilename}")
+        return f"Maximum bipartition credibility tree written to {confilename}"
     elif args.mcc:
-        print(f"   Maximum clade credibility tree written to {confilename}")
+        return f"Maximum clade credibility tree written to {confilename}"
     else:
-        print(f"   Consensus tree written to {confilename}")
+        return f"Consensus tree written to {confilename}"
         
     return contree, logcred
 
@@ -1057,22 +1062,82 @@ def compute_and_print_trprobs(treesummary, args):
 ##########################################################################################
 ##########################################################################################
 
-def topo_report(treesummary, args):
-    """Returns list of [freq, treestring] lists"""
+def print_result_summary(sumdict, sumtree, args):
+    
+    sd = sumdict
+    
+    # Information about bipartitions, clades and topologies
+    output.info()
+    output.info(f"Number of leaves on input trees: {sd['n_leaves']:>7,d}")
+    if args.treeprobs:
+        output.info(f"Different topologies seen: {sd['n_topo_seen']:>13,d}")
+        output.info(f"Different {sd['branchtype']}s seen:{sd['space']}{sd['n_uniq_groupings']:>11,d} (theoretical maximum: {sd['theo_max_groups'] * sd['n_topo_seen']:,d})")
+    else:
+        output.info(f"Different {sd['branchtype']}s seen:{sd['space']}{sd['n_uniq_grouping']s:>11,d} (theoretical maximum: {sd['theo_max_groups'] * sd['n_trees_analyzed']:,d})")
+    output.info(f"{'Bipartitions in ' + {sd['treetype']} + ' tree:':<34}{sd['n_internal_biparts']:>6,d} (theoretical maximum: {sd['theo_max_groups']:,d})")
 
-    # Python note: root trees in trprobs?
-    if treesummary.trackclades:
-        toposummary = treesummary.cladetoposummary
-    elif treesummary.trackbips:
-        toposummary = treesummary.biptoposummary
-    toporeport = []
-    for topology, topostruct in toposummary.items():
-        toporeport.append((topostruct.posterior, topostruct.tree))
+    if sd['n_internal_biparts'] < sd['theo_max_bips']:
+        output.info("(tree contains polytomies)", margin=44)
+    else:
+        output.info("(tree is fully resolved - no polytomies)", margin=44)
 
-    # Sort report according to frequency (higher values first) and return
-    toporeport = sorted(toporeport, key=itemgetter(0), reverse=True)
+    # Information about rooting
+    if not (args.actively_rooted or args.mcc):
+        output.info()
+        output.info(f"{sd['treetype']} tree has not been explicitly rooted")
+        output.info(f"Tree has been rooted at random internal node; root is at {sd['rootdegree']}")
+    else:
+        if args.rootog:
+            output.info()
+            output.info(f"{sd['treetype']} tree has been rooted based on outgroup")
+        elif args.rootmid:
+            output.info()
+            output.info(f"{sd['treetype']} tree has been midpoint-rooted")
+        elif args.rootminvar:
+            output.info()
+            output.info(f"{sd['treetype']} tree has been rooted using minimum variance-rooting")
+        elif args.mcc:
+            output.info()
+            output.info(f"MCC tree rooted at original root of tree sample having highest clade credibility")
 
-    return toporeport
+    if args.rootcred:
+        if args.actively_rooted or args.mcc:
+            output.info(f"Root credibility (frequency of root bipartition in input trees):       {sumtree.rootcred * 100:.1f}%")
+        output.info(f"Cumulated root credibility (sum of rootcred for all branches in tree): {sumtree.cumulated_rootcred * 100:.1f}%")
+        
+
+    # Information about branch lengths
+    if args.meandepth:
+        output.info()
+        output.info(f"Branch lengths set based on mean node depths in input trees")
+    if args.cadepth:
+        output.info()
+        output.info(f"Branch lengths set based on common ancestor depths in input trees")
+    elif args.biplen:
+        output.info()
+        output.info(f"Branch lengths set based on mean branch lengths for corresponding bipartitions")
+    elif args.noblen:
+        output.info()
+        output.info(f"Branch lengths have not been tracked")
+
+    # Information about log credibility
+    if args.mbc or (args.mcc and not args.actively_rooted):
+        output.info()
+        output.info(f"Highest log {sd['branchtype']} credibility:  {sd['logcred']:.6g}")
+    else:
+        output.info()
+        output.info(f"Log {sd['branchtype']} credibility:  {sd['logcred']:.6g}")
+
+    if args.std:
+        output.info(f"Average standard deviation of split frequencies: {sd['ave_std']:.6f}")
+
+    output.info()
+    output.info(f"Done. {sd['n_trees_analyzed']:,d} trees analyzed.\n   Time spent: {sd['h']:d}:{sd['m']:02d}:{sd['s']:02d} (h:m:s)")
+
+    if memorymax > 1E9:
+        output.info("Max memory used: {:,.2f} GB.".format( sd['memorymax']  / (1024**3) ))
+    else:
+        output.info("Max memory used: {:,.2f} MB.".format( sd['memorymax']  / (1024**2) ))
 
 ##########################################################################################
 ##########################################################################################
