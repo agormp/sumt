@@ -779,10 +779,21 @@ def set_sumtree_blen(sumtree, args):
     
 ##########################################################################################
 
-    if args.trackblen or args.trackdepth or args.cadepth:
-        printdist = True
+def open_file_with_warning(filename, nowarn):
+    if nowarn:
+        return open(filename, "w")
+    elif filename.is_file():
+        overwrite = input(f"\n   File {filename} already exists.\n   Overwrite (y/n): ")
+        if overwrite == "y":
+            print(f"   Overwriting file {filename}\n")
+            return open(filename, "w")  # Overwrite
+        else:
+            print(f"   Appending to file {filename}\n")
+            return open(filename, "a")  # Append
     else:
-        printdist = False
+        return open(filename, "w")
+  
+##########################################################################################      
         
 def print_sumtree(sumtree, args):
 
@@ -803,13 +814,10 @@ def print_sumtree(sumtree, args):
         confilename = args.outbase.parent / (args.outbase.name + ".all")
     else:
         confilename = args.outbase.parent / (args.outbase.name + ".con")
-    if args.nowarn:
-        confile = open(confilename, "w")
-    elif confilename.is_file():
-        overwrite = input(f"\n   File {confilename} already exists.\n   Overwrite (y/n): ")
-        if overwrite== "y":
-            confile = open(confilename, "w")            # Overwrite
-            print("   Overwriting file {}\n".format(confilename))
+    with open_file_with_warning(confilename, args.nowarn) as confile:
+        if args.outformat == "newick":
+            confile.write(newick_prob_tree)
+            confile.write("\n")
         else:
             confile.write("#NEXUS\n\n")
             confile.write("begin trees;\n")
@@ -848,13 +856,11 @@ def compute_trprobs(treesummary, args):
 
 def print_trprobs(trproblist, args):
     topofilename = args.outbase.parent / (args.outbase.name + ".trprobs")
-    if args.nowarn:
-        topofile = open(topofilename, "w")
-    elif topofilename.is_file():
-        overwrite = input(f"\n   File {topofilename} already exists.\n   Overwrite (y/n): ")
-        if overwrite== "y":
-            topofile = open(topofilename, "w")            # Overwrite
-            print(f"   Overwriting file {topofilename}\n")
+    with open_file_with_warning(topofilename, args.nowarn) as topofile:
+        topofile.write("#NEXUS\n\n")
+        if args.treeprobs < 1:
+            topofile.write(f"[This file contains the {round(args.treeprobs*100)}% most probable trees found during the\n")
+            topofile.write(f"MCMC search, sorted by posterior probability (the {round(args.treeprobs*100)}% HPD interval).\n")
         else:
             topofile.write("[This file contains all trees that were found during the MCMC\n")
             topofile.write("search, sorted by posterior probability. \n")
