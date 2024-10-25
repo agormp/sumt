@@ -29,8 +29,8 @@ def main(commandlist=None):
         
         sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
         sumtree = root_sumtree(sumtree, args)
-        sumtree = annotate_sumtree_root(sumtree, args)
-        sumtree = set_sumtree_blen(sumtree, args)
+        sumtree = annotate_sumtree_root(sumtree, treesummary, args)
+        sumtree = set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output)
         sumtree_status_message = print_sumtree(sumtree, args)
         output.info(sumtree_status_message)
         
@@ -553,7 +553,7 @@ def process_trees(wt_count_burnin_filename_list, args, output):
                                          trackblen=trackblen, trackdepth=trackdepth)
 
         # Initialize the progress bar
-        progress = ProgressBar(total_trees=count, burnin=burnin, quiet=args.quiet)
+        progress = ProgressBar(total_trees=count, burnin=burnin, output=output, quiet=args.quiet)
 
         # Read post-burnin trees from file, add to treesummary, print progress bar
         for j in range(burnin, count):
@@ -573,7 +573,8 @@ def process_trees(wt_count_burnin_filename_list, args, output):
 ##########################################################################################
 
 class ProgressBar:
-    def __init__(self, total_trees, burnin, quiet=False):
+    def __init__(self, total_trees, burnin, output, quiet=False):
+        self.output = output
         self.quiet = quiet
         self.total_trees = total_trees
         self.burnin = burnin
@@ -743,7 +744,7 @@ def root_sumtree(sumtree, args):
     
 ##########################################################################################
 
-def annotate_sumtree_root(sumtree, args):
+def annotate_sumtree_root(sumtree, treesummary, args):
 
     if args.rootcred:
         if args.actively_rooted or args.mcc:
@@ -754,7 +755,7 @@ def annotate_sumtree_root(sumtree, args):
     
 ##########################################################################################
 
-def set_sumtree_blen(sumtree, args):
+def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output):
 
     if args.meandepth:
         sumtree = treesummary.set_mean_node_depths(sumtree)
