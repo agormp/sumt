@@ -784,18 +784,15 @@ def print_sumtree(sumtree, args):
 
     with open_file_with_warning(confilename, args.nowarn) as confile:
         if args.outformat == "newick":
-            newick_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
+            tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
                                               labelfield="posterior")            
-            confile.write(newick_prob_tree)
-            confile.write("\n")
         else:
-            
-            nexus_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
+            tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
                                       labelfield="posterior",  
                                       metacomlist_nodes=metacomlist_nodes, 
                                       metacomlist_branches=metacomlist_branches)
-            confile.write(nexus_str)
-            confile.write("\n")
+        confile.write(tree_str)
+        confile.write("\n")
 
     if args.mbc:
         return f"Maximum bipartition credibility tree written to {confilename}"
