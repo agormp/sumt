@@ -771,13 +771,12 @@ def print_sumtree(sumtree, args):
 
     printdist = args.trackblen or args.trackdepth or args.cadepth
     printlabels = not args.nolabel
-
-    metacomment_fields = ["posterior", "length"]
+        
+    metacomlist_branches = ["posterior", "length", "length_sd"]
     if args.trackroot:
-        metacomment_fields.append("rootcred")
+        metacomlist_branches.append("rootcred")
+    metacomlist_nodes = []
 
-    newick_prob_tree = sumtree.newick(labelfield="label", printdist=printdist, printlabels=printlabels)
-    
     if args.mbc:
         confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:
