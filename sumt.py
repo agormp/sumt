@@ -340,18 +340,18 @@ class OutputManager:
         self.quiet = args.quiet
         self.verbose = args.verbose
 
-    def info(self, message="", margin=3, end="\n"):
+    def info(self, message="", padding=3, end="\n"):
         if not self.quiet:
-            print(f"{margin * ' '}{message}", end=end)
+            print(f"{padding * ' '}{message}", end=end)
 
-    def force(self, message="", margin=3, end="\n"):
+    def force(self, message="", padding=3, end="\n"):
         if not self.quiet:
-            print(f"{margin * ' '}{message}", end=end)
+            print(f"{padding * ' '}{message}", end=end)
             sys.stdout.flush()
 
     def warning(self, message):
         if not self.quiet and self.verbose:
-            print(f"{self.margin * ' '}[WARNING] {message}")
+            print(f"{self.padding * ' '}[WARNING] {message}")
             
 ####################################################################################
 
@@ -598,7 +598,7 @@ class ProgressBar:
             n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
             if self.n_dotsprinted < n_dots_expected:
                 n_missing = n_dots_expected - self.n_dotsprinted
-                self.output.force("*" * n_missing, margin=0, end="")
+                self.output.force("*" * n_missing, padding=0, end="")
                 self.n_dotsprinted += n_missing
 
     def complete(self):
@@ -719,7 +719,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
         output.force("Computing consensus tree, adding all compatible bipartitions...", end="")
         sumtree = treesummary.contree(allcompat=args.all)
         logcred = treesummary.log_bipart_credibility(sumtree.topology())
-    output.force("done", margin=0)
+    output.force("done", padding=0)
     
     return sumtree, logcred
     
@@ -756,7 +756,7 @@ def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, 
     elif args.cadepth:
         output.force("Computing common ancestor depths...", end="")
         sumtree = treesummary.set_ca_node_depths(sumtree, wt_count_burnin_filename_list)
-        output.force("done", margin=0)
+        output.force("done", padding=0)
     elif args.biplen and args.mcc:
         sumtree = treesummary.set_mean_biplen(sumtree)
         
@@ -892,9 +892,9 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
     output.info(f"{tmpstr:<34}{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
 
     if n_internal_biparts < theo_max_groups:
-        output.info("(tree contains polytomies)", margin=44)
+        output.info("(tree contains polytomies)", padding=44)
     else:
-        output.info("(tree is fully resolved - no polytomies)", margin=44)
+        output.info("(tree is fully resolved - no polytomies)", padding=44)
 
     # Information about rooting
     if not (args.actively_rooted or args.mcc):
