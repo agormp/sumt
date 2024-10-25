@@ -588,11 +588,11 @@ class ProgressBar:
 
         # Print progress bar header
         if not self.quiet:
-            print("\n\n   Processing trees:")
-            print(f"   {self.progscale}")
-            print(f"   {self.progticks}")
-            print("   ", end="")
-            sys.stdout.flush()
+            self.output.force()
+            self.output.force("Processing trees:")
+            self.output.force(f"{self.progscale}")
+            self.output.force(f"{self.progticks}")
+            self.output.force("", end="")
 
     def update(self):
         """ Update the progress bar based on the number of processed trees. """
@@ -601,8 +601,7 @@ class ProgressBar:
             n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
             if self.n_dotsprinted < n_dots_expected:
                 n_missing = n_dots_expected - self.n_dotsprinted
-                sys.stdout.write("*" * n_missing)
-                sys.stdout.flush()
+                self.output.force("*" * n_missing, margin=0, end="")
                 self.n_dotsprinted += n_missing
 
     def complete(self):
@@ -610,8 +609,7 @@ class ProgressBar:
         if not self.quiet:
             if self.n_dotsprinted < self.ndots:
                 n_missing = self.ndots - self.n_dotsprinted
-                sys.stdout.write("*" * n_missing)
-                sys.stdout.flush()
+                self.output.force("*" * n_missing)
 
 ####################################################################################
 
@@ -724,8 +722,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
         output.force("Computing consensus tree, adding all compatible bipartitions...", end="")
         sumtree = treesummary.contree(allcompat=args.all)
         logcred = treesummary.log_bipart_credibility(sumtree.topology())
-    sys.stdout.write("done.\n")
-    sys.stdout.flush()
+    output.force("done", margin=0)
     
     return sumtree, logcred
     
@@ -760,10 +757,9 @@ def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, 
     if args.meandepth:
         sumtree = treesummary.set_mean_node_depths(sumtree)
     elif args.cadepth:
-        sys.stdout.write("   Computing common ancestor depths...")
-        sys.stdout.flush()
+        output.force("Computing common ancestor depths...", end="")
         sumtree = treesummary.set_ca_node_depths(sumtree, wt_count_burnin_filename_list)
-        sys.stdout.write("done.\n")
+        output.force("done", margin=0)
     elif args.biplen and args.mcc:
         sumtree = treesummary.set_mean_biplen(sumtree)
         
