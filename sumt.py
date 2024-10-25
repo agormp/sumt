@@ -781,7 +781,7 @@ def print_sumtree(sumtree, args):
         node_attributes.update({"depth", "dept_sd"})
         branch_attributes.add("length")
     if args.trackroot:
-        branch_attributes.append("rootcred")
+        branch_attributes.add("rootcred")
 
     if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
