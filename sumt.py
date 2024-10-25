@@ -21,10 +21,7 @@ def main(commandlist=None):
         memory1 = track_memory_usage(pid)
         
         treesummarylist = process_trees(wt_count_burnin_filename_list, args, output)
-        if args.std:
-            ave_std = compute_converge_stats(treesummarylist, args)
-        else:
-            ave_std = None
+        ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
         
         sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
