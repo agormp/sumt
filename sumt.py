@@ -777,14 +777,11 @@ def print_sumtree(sumtree, args):
         metacomlist_branches.append("rootcred")
     metacomlist_nodes = []
 
-    if args.mbc:
-        confilename = args.outbase.parent / (args.outbase.name + ".mbc")
-    elif args.mcc:
-        confilename = args.outbase.parent / (args.outbase.name + ".mcc")
-    elif args.all:
-        confilename = args.outbase.parent / (args.outbase.name + ".all")
-    else:
-        confilename = args.outbase.parent / (args.outbase.name + ".con")
+    if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
+    elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
+    elif args.all:  confilename = args.outbase.parent / (args.outbase.name + ".all")
+    elif args.con:  confilename = args.outbase.parent / (args.outbase.name + ".con")
+
     with open_file_with_warning(confilename, args.nowarn) as confile:
         if args.outformat == "newick":
             newick_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
