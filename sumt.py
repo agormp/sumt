@@ -787,16 +787,19 @@ def print_sumtree(sumtree, args):
         confilename = args.outbase.parent / (args.outbase.name + ".con")
     with open_file_with_warning(confilename, args.nowarn) as confile:
         if args.outformat == "newick":
+            newick_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
+                                              labelfield="posterior")            
             confile.write(newick_prob_tree)
             confile.write("\n")
         else:
-            confile.write("#NEXUS\n\n")
-            confile.write("begin trees;\n")
-            confile.write("   [In this tree branch labels indicate the posterior probability of the bipartition corresponding to the branch.]\n")
-            confile.write("   tree prob = ")
-            confile.write(newick_prob_tree)
-            confile.write("\nend;\n")
-        
+            
+            nexus_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
+                                      labelfield="posterior",  
+                                      metacomlist_nodes=metacomlist_nodes, 
+                                      metacomlist_branches=metacomlist_branches)
+            confile.write(nexus_str)
+            confile.write("\n")
+
     if args.mbc:
         return f"Maximum bipartition credibility tree written to {confilename}"
     elif args.mcc:
