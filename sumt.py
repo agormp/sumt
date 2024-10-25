@@ -769,10 +769,19 @@ def print_sumtree(sumtree, args):
     printdist = args.trackblen or args.trackdepth or args.cadepth
     printlabels = not args.nolabel
         
-    metacomlist_branches = ["posterior", "length", "length_sd"]
+    branch_attributes = set()
+    node_attributes = set()
+    if args.trackbips:
+        branch_attributes.add("posterior")
+    if args.trackblen:
+        branch_attributes.update({"length", "length_sd"})
+    if args.trackclades:
+        node_attributes.add("posterior")
+    if args.trackdepth:
+        node_attributes.update({"depth", "dept_sd"})
+        branch_attributes.add("length")
     if args.trackroot:
-        metacomlist_branches.append("rootcred")
-    metacomlist_nodes = []
+        branch_attributes.append("rootcred")
 
     if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
@@ -785,9 +794,9 @@ def print_sumtree(sumtree, args):
                                               labelfield="posterior")            
         else:
             tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
-                                      labelfield="posterior",  
-                                      metacomlist_nodes=metacomlist_nodes, 
-                                      metacomlist_branches=metacomlist_branches)
+                                     labelfield="posterior",  
+                                     node_attributes=node_attributes, 
+                                     branch_attributes=branch_attributes)
         confile.write(tree_str)
         confile.write("\n")
 
