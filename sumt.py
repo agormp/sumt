@@ -12,9 +12,9 @@ def main(commandlist=None):
     start=time.time()
     pid = psutil.Process(os.getpid())
     args = parse_commandline(commandlist)
-    output = OutputManager(args)
 
     try:
+        output = OutputManager(args)
         setup_output_directory(args.outbase)        
         wt_file_list = parse_infilelist(args)
         n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args, output)
