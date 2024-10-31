@@ -301,12 +301,7 @@ def build_parser():
                       help="compute average standard deviation of split frequencies (ASDSF)")
 
     bayes_grp.add_argument("-f", type=float, dest="minfreq", metavar="NUM", default=0.1,
-                      help="Minimum frequency for including bipartitions in report and in computation of ASDSF [default: %(default)s]")
-
-    ####################################################################################
-
-    outformat_grp = parser.add_argument_group("Output to terminal and files")
-
+                      help="Minimum frequency for including bipartitions in computation of ASDSF [default: %(default)s]")
 
     ####################################################################################
 
