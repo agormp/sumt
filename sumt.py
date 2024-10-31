@@ -24,9 +24,9 @@ def main(commandlist=None):
         treesummary = merge_treesummaries(treesummarylist)
 
         sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
+        sumtree = set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output)
         sumtree = root_sumtree(sumtree, args)
         sumtree = annotate_sumtree_root(sumtree, treesummary, args)
-        sumtree = set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output)
         sumtree_status_message = print_sumtree(sumtree, args)
         output.info(sumtree_status_message)
         
