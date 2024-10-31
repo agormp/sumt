@@ -890,23 +890,22 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
         output.info("(tree is fully resolved - no polytomies)", padding=44)
 
     # Information about rooting
-    if not (args.actively_rooted or args.mcc):
-        output.info()
-        output.info(f"{treetype} tree has not been explicitly rooted")
-        output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
+    output.info()
+    if not args.actively_rooted:
+        if args.mcc:
+            output.info(f"MCC tree rooted at original root of tree sample having highest clade credibility")
+        else:
+            output.info(f"{treetype} tree has not been explicitly rooted")
+            output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
     else:
         if args.outgroup:
-            output.info()
             output.info(f"{treetype} tree has been rooted based on outgroup")
         elif args.rootmid:
-            output.info()
             output.info(f"{treetype} tree has been midpoint-rooted")
         elif args.rootminvar:
-            output.info()
             output.info(f"{treetype} tree has been rooted using minimum variance-rooting")
-        elif args.mcc:
-            output.info()
-            output.info(f"MCC tree rooted at original root of tree sample having highest clade credibility")
+        else:
+            raise TreeError("rooting error") # Python note: Should never go here - remove when code tested
 
     if args.rootcred:
         if args.actively_rooted or args.mcc:
