@@ -17,13 +17,12 @@ def main(commandlist=None):
         output = OutputManager(args)
         setup_output_directory(args.outbase)        
         wt_file_list = parse_infilelist(args)
-        n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args, output)
-        memory1 = track_memory_usage(pid)
-        
+        n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args, output)        
+
         treesummarylist = process_trees(wt_count_burnin_filename_list, args, output)
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
-        
+
         sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
         sumtree = root_sumtree(sumtree, args)
         sumtree = annotate_sumtree_root(sumtree, treesummary, args)
@@ -37,8 +36,7 @@ def main(commandlist=None):
             output.info(trprobs_status_message)
         
         print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
-                             memory1, ave_std, args, output)
-
+                             ave_std, args, output)
     except Exception as error:
         handle_error(error, args.verbose)
 
@@ -874,9 +872,9 @@ def print_trprobs(trproblist, args):
 ##########################################################################################
 
 def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
-                         memory1, ave_std, args, output):
+                         ave_std, args, output):
 
-    sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, memory1, ave_std, args)
+    sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, ave_std, args)
     (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
      treetype, n_internal_biparts, rootdegree, h, m, s, memorymax) = sumvar_tuple
     
@@ -956,10 +954,9 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
 
 ##########################################################################################
 
-def compute_summary_variables(sumtree, treesummary, pid, start, memory1, ave_std, args):
+def compute_summary_variables(sumtree, treesummary, pid, start, ave_std, args):
     
-    memory2 = track_memory_usage(pid)
-    memorymax = max(memory1, memory2) 
+    memorymax = track_memory_usage(pid)
     
     ave_std = ave_std
 
