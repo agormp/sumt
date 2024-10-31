@@ -32,7 +32,7 @@ def main(commandlist=None):
         
         if args.treeprobs:
             trproblist = compute_trprobs(treesummary, args)
-            trprobs_status_message = print_trprobs(trproblist, args)
+            trprobs_status_message = print_trprobs(treesummary, trproblist, args)            
             output.info(trprobs_status_message)
         
         print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
@@ -842,7 +842,7 @@ def compute_trprobs(treesummary, args):
 
 ##########################################################################################
 
-def print_trprobs(trproblist, args):
+def print_trprobs(treesummary, trproblist, args):
     topofilename = args.outbase.parent / (args.outbase.name + ".trprobs")
     with open_file_with_warning(topofilename, args.nowarn) as topofile:
         topofile.write("#NEXUS\n\n")
