@@ -869,7 +869,7 @@ def print_trprobs(treesummary, trproblist, args):
 def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
                          ave_std, args, output):
 
-    sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, ave_std, args)
+    sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, args)
     (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
      treetype, n_internal_biparts, rootdegree, h, m, s, memorymax) = sumvar_tuple
     
@@ -949,12 +949,10 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
 
 ##########################################################################################
 
-def compute_summary_variables(sumtree, treesummary, pid, start, ave_std, args):
+def compute_summary_variables(sumtree, treesummary, pid, start, args):
     
     memorymax = track_memory_usage(pid)
     
-    ave_std = ave_std
-
     if args.treeprobs:
         if args.trackclades:
             n_topo_seen = len(treesummary.cladetoposummary)
@@ -997,7 +995,7 @@ def compute_summary_variables(sumtree, treesummary, pid, start, ave_std, args):
 
     return   (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
               treetype, n_internal_biparts, rootdegree, h, m, s, memorymax)
-
+              
 ##########################################################################################
 
 def handle_error(error, verbose):
