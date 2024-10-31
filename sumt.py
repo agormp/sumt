@@ -889,6 +889,20 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
     else:
         output.info("(tree is fully resolved - no polytomies)", padding=44)
 
+    # Information about branch lengths
+    if args.meandepth:
+        output.info()
+        output.info(f"Branch lengths set based on mean node depths in input trees")
+    if args.cadepth:
+        output.info()
+        output.info(f"Branch lengths set based on common ancestor depths in input trees")
+    elif args.biplen:
+        output.info()
+        output.info(f"Branch lengths set based on mean branch lengths for corresponding bipartitions")
+    elif args.noblen:
+        output.info()
+        output.info(f"Branch lengths have not been tracked")
+
     # Information about rooting
     output.info()
     if not args.actively_rooted:
@@ -912,20 +926,6 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
             output.info(f"Root credibility (frequency of root bipartition in input trees):       {sumtree.rootcred * 100:.1f}%")
         output.info(f"Cumulated root credibility (sum of rootcred for all branches in tree): {sumtree.cumulated_rootcred * 100:.1f}%")
         
-
-    # Information about branch lengths
-    if args.meandepth:
-        output.info()
-        output.info(f"Branch lengths set based on mean node depths in input trees")
-    if args.cadepth:
-        output.info()
-        output.info(f"Branch lengths set based on common ancestor depths in input trees")
-    elif args.biplen:
-        output.info()
-        output.info(f"Branch lengths set based on mean branch lengths for corresponding bipartitions")
-    elif args.noblen:
-        output.info()
-        output.info(f"Branch lengths have not been tracked")
 
     # Information about log credibility
     if args.mbc or (args.mcc and not args.actively_rooted):
