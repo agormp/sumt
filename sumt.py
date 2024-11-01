@@ -807,10 +807,12 @@ def open_file_with_warning(filename, nowarn):
     elif filename.is_file():
         overwrite = input(f"\n   File {filename} already exists.\n   Overwrite (y/n): ")
         if overwrite == "y":
-            print(f"   Overwriting file {filename}\n")
+            output.info(f"Overwriting file {filename}")
+            output.info()
             return open(filename, "w")  # Overwrite
         else:
-            print(f"   Appending to file {filename}\n")
+            output.info(f"Appending to file {filename}")
+            output.info()
             return open(filename, "a")  # Append
     else:
         return open(filename, "w")
