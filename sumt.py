@@ -27,8 +27,7 @@ def main(commandlist=None):
         sumtree = set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output)
         sumtree = root_sumtree(sumtree, args)
         sumtree = annotate_sumtree_root(sumtree, treesummary, args)
-        sumtree_status_message = print_sumtree(sumtree, args)
-        output.info(sumtree_status_message)
+        print_sumtree(sumtree, args, output)
         
         if args.treeprobs:
             trproblist = compute_trprobs(treesummary, args)
@@ -757,7 +756,7 @@ def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, 
     
 ##########################################################################################
 
-def print_sumtree(sumtree, args):
+def print_sumtree(sumtree, args, output):
 
     printdist = args.trackblen or args.trackdepth or args.cadepth
     printlabels = not args.nolabel
@@ -794,11 +793,11 @@ def print_sumtree(sumtree, args):
         confile.write("\n")
 
     if args.mbc:
-        return f"Maximum bipartition credibility tree written to {confilename}"
+        output.info(f"Maximum bipartition credibility tree written to {confilename}")
     elif args.mcc:
-        return f"Maximum clade credibility tree written to {confilename}"
+        output.info(f"Maximum clade credibility tree written to {confilename}")
     else:
-        return f"Consensus tree written to {confilename}"
+        output.info(f"Consensus tree written to {confilename}")
         
 ##########################################################################################
 
