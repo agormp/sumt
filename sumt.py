@@ -999,7 +999,7 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
 ##########################################################################################
 
 def handle_error(error, verbose):
-    print("\n\nExecution failed:\n")
+    print("\n\nExecution failed:")
     if verbose:
         import traceback
         traceback.print_exc(file=sys.stdout)
