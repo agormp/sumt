@@ -767,7 +767,7 @@ def print_sumtree(sumtree, args, output):
         branch_attributes.add("posterior")
     if args.trackblen:
         branch_attributes.update({"length", "length_sd"})
-    if args.trackclades:
+    if args.mcc:
         node_attributes.add("posterior")
     if args.trackdepth:
         node_attributes.update({"depth", "depth_sd"}) 
