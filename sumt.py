@@ -271,7 +271,7 @@ def build_parser():
     root_excl.add_argument("--rootminvar", action="store_true",
                       help="perform minimum variance rooting of summary tree")
 
-    root_excl.add_argument("--rootog", dest="outgroup", metavar="NAME", nargs="+", default=None,
+    root_excl.add_argument("--rootog", dest="outgroup", metavar="TAX", nargs="+", default=None,
                       help="root summary tree on outgroup; specify outgroup taxon/taxa on command-line")
                           
     root_excl.add_argument('--rootogfile', dest="ogfile", action="store", metavar="FILE", default=None,
