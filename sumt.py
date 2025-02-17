@@ -871,7 +871,7 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
                          ave_std, args, output):
 
     sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, args)
-    (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
+    (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen, 
      treetype, n_internal_biparts, rootdegree, h, m, s, memorymax) = sumvar_tuple
     
     # Information about bipartitions, clades and topologies
@@ -879,13 +879,13 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
     output.info(f"Number of leaves on input trees: {n_leaves:>7,d}")
     if args.treeprobs:
         output.info(f"Different topologies seen: {n_topo_seen:>13,d}")
-        output.info(f"Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
+        output.info(f"Different {grouptype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_topo_seen:,d})")
     else:
-        output.info(f"Different {branchtype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
+        output.info(f"Different {grouptype}s seen:{space}{n_uniq_groupings:>11,d} (theoretical maximum: {theo_max_groups * n_trees_analyzed:,d})")
     tmpstr = f"Bipartitions in {treetype} tree:"
-    output.info(f"{tmpstr:<34}{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_groups:,d})")
+    output.info(f"{tmpstr:<34}{n_internal_biparts:>6,d} (theoretical maximum: {theo_max_biparts:,d})")
 
-    if n_internal_biparts < theo_max_groups:
+    if n_internal_biparts < theo_max_biparts:
         output.info("(tree contains polytomies)", padding=44)
     else:
         output.info("(tree is fully resolved - no polytomies)", padding=44)
@@ -931,10 +931,10 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
     # Information about log credibility
     if args.mbc or (args.mcc and not args.actively_rooted):
         output.info()
-        output.info(f"Highest log {branchtype} credibility:  {logcred:.6g}")
+        output.info(f"Highest log {grouptype} credibility:  {logcred:.6g}")
     else:
         output.info()
-        output.info(f"Log {branchtype} credibility:  {logcred:.6g}")
+        output.info(f"Log {grouptype} credibility:  {logcred:.6g}")
 
     if args.std:
         output.info(f"Average standard deviation of split frequencies: {ave_std:.6f}")
@@ -970,30 +970,30 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
         rootdegree = "multifurcation"
 
     n_leaves = len(treesummary.leaves)
-    n_leaves = n_leaves
 
     if args.mcc:
-        n_uniq_groupings = len(treesummary.cladesummary) - n_leaves
+        n_uniq_groupings = len(treesummary.cladesummary)
         theo_max_groups = n_leaves - 1
     else:
         n_uniq_groupings = len(treesummary.bipartsummary) - n_leaves
         theo_max_groups = n_leaves - 3
 
+    theo_max_biparts = n_leaves - 3
     n_internal_biparts = sumtree.n_bipartitions()
 
     if args.mcc:
-        treetype, branchtype, space = "MCC", "clade", " " * 7
+        treetype, grouptype, space = "MCC", "clade", " " * 7
     elif args.mbc:
-        treetype, branchtype, space = "MBC", "bipartition", " " * 1
+        treetype, grouptype, space = "MBC", "bipartition", " " * 1
     else:
-        treetype, branchtype, space = "Consensus", "bipartition", " " * 1
+        treetype, grouptype, space = "Consensus", "bipartition", " " * 1
 
     time_spent = time.time() - start
     h = int(time_spent/3600)
     m = int((time_spent % 3600)/60)
     s = int(time_spent % 60)
 
-    return   (n_leaves, branchtype, space, n_uniq_groupings, theo_max_groups, n_topo_seen, 
+    return   (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen, 
               treetype, n_internal_biparts, rootdegree, h, m, s, memorymax)
               
 ##########################################################################################
