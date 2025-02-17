@@ -780,7 +780,7 @@ def print_sumtree(sumtree, args, output):
     elif args.all:  confilename = args.outbase.parent / (args.outbase.name + ".all")
     elif args.con:  confilename = args.outbase.parent / (args.outbase.name + ".con")
 
-    with open_file_with_warning(confilename, args.nowarn) as confile:
+    with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "newick":
             tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
                                               labelfield="posterior")            
@@ -801,7 +801,7 @@ def print_sumtree(sumtree, args, output):
         
 ##########################################################################################
 
-def open_file_with_warning(filename, nowarn):
+def open_file_with_warning(filename, nowarn, output):
     if nowarn:
         return open(filename, "w")
     elif filename.is_file():
