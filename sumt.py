@@ -717,6 +717,23 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
     
 ##########################################################################################
 
+def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output):
+
+    if args.meandepth:
+        output.force("Computing mean node depths...", end="")
+        sumtree = treesummary.set_mean_node_depths(sumtree)
+    elif args.cadepth:
+        output.force("Computing common ancestor depths...", end="")
+        sumtree = treesummary.set_ca_node_depths(sumtree, wt_count_burnin_filename_list)
+    elif args.biplen and args.mcc:
+        output.force("Computing mean bipartition lengths...", end="")
+        sumtree = treesummary.set_mean_biplen(sumtree)
+    output.force("done", padding=0)
+        
+    return sumtree
+
+##########################################################################################
+
 def root_sumtree(sumtree, args):
 
     if args.outgroup:
@@ -734,24 +751,11 @@ def annotate_sumtree_root(sumtree, treesummary, args):
 
     if args.rootcred:
         if args.actively_rooted or args.mcc:
+            print("###starting compute_rootcred") #DEBUG
             sumtree.rootcred = treesummary.compute_rootcred(sumtree)
+        print("###starting set_rootcredibility") #DEBUG
         sumtree = treesummary.set_rootcredibility(sumtree)  # Add branch attribute with root credibilities
 
-    return sumtree
-    
-##########################################################################################
-
-def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output):
-
-    if args.meandepth:
-        sumtree = treesummary.set_mean_node_depths(sumtree)
-    elif args.cadepth:
-        output.force("Computing common ancestor depths...", end="")
-        sumtree = treesummary.set_ca_node_depths(sumtree, wt_count_burnin_filename_list)
-        output.force("done", padding=0)
-    elif args.biplen and args.mcc:
-        sumtree = treesummary.set_mean_biplen(sumtree)
-        
     return sumtree
     
 ##########################################################################################
