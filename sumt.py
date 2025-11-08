@@ -152,7 +152,7 @@ def build_parser():
 
     ####################################################################################
 
-    inout_grp = parser.add_argument_group("Input and output")
+    inout_grp = parser.add_argument_group("INPUT AND OUTPUT")
     infile_excl = inout_grp.add_mutually_exclusive_group()
 
     inout_grp.add_argument("--informat", action="store", metavar="FORMAT",
@@ -189,7 +189,7 @@ def build_parser():
 
     ####################################################################################
 
-    sumtype_grp = parser.add_argument_group("Type of summary tree (pick one option)")
+    sumtype_grp = parser.add_argument_group("TYPE OF SUMMARY TREE (pick one option)")
     sumtype_excl = sumtype_grp.add_mutually_exclusive_group()
 
     sumtype_excl.add_argument("--con", action="store_true",
@@ -219,7 +219,7 @@ def build_parser():
 
     ####################################################################################
 
-    blen_grp = parser.add_argument_group(title= "Estimation of branch lengths (pick one option)")
+    blen_grp = parser.add_argument_group(title= "ESTIMATION OF BRANCH LENGTHS (pick one option)")
     blen_excl = blen_grp.add_mutually_exclusive_group()
     blen_excl.add_argument("--noblen", action="store_true",
                       help="Do not set branch lengths (only the topology and branch- or clade-"
@@ -261,7 +261,7 @@ def build_parser():
 
     ####################################################################################
 
-    root_grp = parser.add_argument_group("Rooting of summary tree")
+    root_grp = parser.add_argument_group("ROOTING OF SUMMARY TREE")
     
     root_excl = root_grp.add_mutually_exclusive_group()
     
@@ -287,7 +287,7 @@ def build_parser():
                          
     ####################################################################################
 
-    bayes_grp = parser.add_argument_group("Bayesian phylogeny options")
+    bayes_grp = parser.add_argument_group("BAYESIAN PHYLOGENY OPTIONS")
 
     bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=[0], nargs='+',
                            help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
@@ -304,7 +304,7 @@ def build_parser():
 
     ####################################################################################
 
-    other_grp = parser.add_argument_group("Other options")
+    other_grp = parser.add_argument_group("OTHER OPTIONS")
 
     other_grp.add_argument("--nolabel", action="store_true", dest="nolabel",
                      help=argparse.SUPPRESS # do not print branch labels (=clade probabilities) on summary tree
