@@ -454,7 +454,7 @@ def fast_treecount(filename, args):
         return count_trees_by_parsing(filename, args)
 
     # Final attempt to infer ntrees for nexus files:
-    # count "= (", "=  and "tree "
+    # count "= (",  and "tree "
     # Add the values that are not 0 to list, choose minimum as count
     # Should be robust to most variations, but should check at end of sumt...
     n_eqparen = count_bytestring(filename, b"= (")
