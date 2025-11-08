@@ -516,7 +516,7 @@ def process_trees(wt_count_burnin_filename_list, args, output):
 
     for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
         output.force()
-        output.force("Analyzing file: {} (Weight: {:5.3f})".format(filename, weight))
+        output.force(f"Analyzing file: {filename} (Weight: {weight:5.3f})")
 
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
         if args.informat == "nexus":
