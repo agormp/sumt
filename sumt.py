@@ -156,12 +156,13 @@ def build_parser():
     infile_excl = inout_grp.add_mutually_exclusive_group()
 
     inout_grp.add_argument("--informat", action="store", metavar="FORMAT",
-                      choices=["nexus", "newick"], default="nexus",
+                      choices=["newick", "nexus"], default="nexus",
                       help="format of input tree files: %(choices)s [default: %(default)s]")
 
     inout_grp.add_argument("--outformat", action="store", metavar="FORMAT",
-                      choices=["nexus", "newick"], default="nexus",
-                      help="format of output tree file: %(choices)s [default: %(default)s]")
+                      choices=["newick", "nexus", "mcnexus"], default="mcnexus",
+                      help="format of output tree file: %(choices)s [default: %(default)s]. "
+                          +"mcnexus: nexus with metacomments as used by BEAST (e.g., [&height=100.0])")
 
     infile_excl.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
                         help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
