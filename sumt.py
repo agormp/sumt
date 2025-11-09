@@ -766,20 +766,6 @@ def print_sumtree(sumtree, args, output):
     printdist = args.trackblen or args.trackdepth or args.cadepth
     printlabels = not args.nolabel
         
-    branch_attributes = set()
-    node_attributes = set()
-    if args.trackbips:
-        branch_attributes.add("posterior")
-    if args.trackblen:
-        branch_attributes.update({"length", "length_sd"})
-    if args.mcc:
-        node_attributes.add("posterior")
-    if args.trackdepth:
-        node_attributes.update({"depth", "depth_sd"}) 
-        branch_attributes.add("length")
-    if args.trackroot:
-        branch_attributes.add("rootcred")
-    
     if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
     elif args.all:  confilename = args.outbase.parent / (args.outbase.name + ".all")
@@ -789,7 +775,23 @@ def print_sumtree(sumtree, args, output):
         if args.outformat == "newick":
             tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
                                               labelfield="posterior")            
+        elif args.outformat == "nexus":
+            tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
+                                     labelfield="posterior")            
         else:
+            branch_attributes = set()
+            node_attributes = set()
+            if args.trackbips:
+                branch_attributes.add("posterior")
+            if args.trackblen:
+                branch_attributes.update({"length", "length_sd"})
+            if args.mcc:
+                node_attributes.add("posterior")
+            if args.trackdepth:
+                node_attributes.update({"depth", "depth_sd"}) 
+                branch_attributes.add("length")
+            if args.trackroot:
+                branch_attributes.add("rootcred")
             tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
                                      labelfield="posterior",  
                                      node_attributes=node_attributes, 
