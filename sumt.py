@@ -753,9 +753,7 @@ def annotate_sumtree_root(sumtree, treesummary, args):
 
     if args.rootcred:
         if args.actively_rooted or args.mcc:
-            print("###starting compute_rootcred") #DEBUG
             sumtree.rootcred = treesummary.compute_rootcred(sumtree)
-        print("###starting set_rootcredibility") #DEBUG
         sumtree = treesummary.set_rootcredibility(sumtree)  # Add branch attribute with root credibilities
 
     return sumtree
@@ -780,7 +778,7 @@ def print_sumtree(sumtree, args, output):
         branch_attributes.add("length")
     if args.trackroot:
         branch_attributes.add("rootcred")
-
+    
     if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
     elif args.all:  confilename = args.outbase.parent / (args.outbase.name + ".all")
