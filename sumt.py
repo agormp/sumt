@@ -121,7 +121,7 @@ def parse_commandline(commandlist):
     else:
         args.trackclades = False
 
-    # Root needs to be tracked in these situations:
+    # Root needs to be tracked if rootcred==True:
     if args.rootcred:   
         args.trackroot = True
     else:
@@ -133,7 +133,7 @@ def parse_commandline(commandlist):
     else:
         args.trackblen = False
 
-    # Node depths need to be tracked if meandepth is set
+    # Node depths need to be tracked if meandepth==True
     if args.meandepth:
         args.trackdepth = True
     else:
