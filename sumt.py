@@ -206,7 +206,8 @@ def build_parser():
                               + "log of clade frequencies). The MCC tree is therefore a tree that has been "
                               + "observed in the pool of tree samples, differing from the consensus tree "
                               + "which typically does not match any individual sample. "
-                              + "NOTE 1: only meaningful if input trees are estimated using clock model. "
+                              + "NOTE 1: only meaningful if input trees are estimated using clock model "
+                              + "or otherwise rooted. "
                               + "NOTE 2: by default, the MCC tree uses the rooting of the specific tree sample. "
                               + "This will often (but not always) correspond to the "
                               + "bipartition where the root is most commonly found in the input trees.")
@@ -765,7 +766,7 @@ def print_sumtree(sumtree, args, output):
 
     printdist = args.trackblen or args.trackdepth or args.cadepth
     printlabels = not args.nolabel
-        
+            
     if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
     elif args.all:  confilename = args.outbase.parent / (args.outbase.name + ".all")
