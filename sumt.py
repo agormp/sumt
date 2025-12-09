@@ -138,7 +138,6 @@ def parse_commandline(commandlist):
         args.trackdepth = True
     else:
         args.trackdepth = False
-
     return args
 
 ####################################################################################
@@ -626,6 +625,7 @@ def compute_converge_stats(treesummarylist, args):
 ##########################################################################################
 
 def compute_converge_clades(treesummarylist, args):
+    """Compute average clade frequency standard deviation between treesummaries"""
     sum_std = 0
     N = float(len(treesummarylist))
 
@@ -655,6 +655,7 @@ def compute_converge_clades(treesummarylist, args):
 ##########################################################################################
 
 def compute_converge_biparts(treesummarylist, args):
+    """Compute average bipartition frequency standard deviation between treesummaries"""
     sum_std = 0
     N = float(len(treesummarylist))
 
@@ -684,6 +685,7 @@ def compute_converge_biparts(treesummarylist, args):
 ##########################################################################################
 
 def  merge_treesummaries(treesummarylist):
+    """Combine multiple TreeSummary objects into one"""
 
     treesummary = treesummarylist[0]
     for treesummary2 in treesummarylist[1:]:
@@ -694,7 +696,7 @@ def  merge_treesummaries(treesummarylist):
 ##########################################################################################
 
 def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
-
+    """Compute requested summary tree (MCC, MBC, consensus, consensus with all compat)"""
     if args.mcc:
         output.info()
         output.force("Finding Maximum Clade Credibility tree...", end="")
@@ -720,7 +722,8 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
 ##########################################################################################
 
 def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output):
-
+    """Set branch lengths on precomputed summary tree, using requested approach"""
+    
     if args.meandepth:
         output.force("Computing mean node depths...", end="")
         sumtree = treesummary.set_mean_node_depths(sumtree)
