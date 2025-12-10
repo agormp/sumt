@@ -773,6 +773,7 @@ def print_sumtree(sumtree, args, output):
 
     printdist = args.trackblen or args.trackdepth or args.cadepth
     printlabels = not args.nolabel
+    precision=7
             
     if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
     elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
@@ -782,10 +783,10 @@ def print_sumtree(sumtree, args, output):
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "newick":
             tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
-                                              labelfield="posterior")            
+                                     labelfield="posterior", precision=precision)            
         elif args.outformat == "nexus":
             tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
-                                     labelfield="posterior")            
+                                     labelfield="posterior", precision=precision)            
         else:
             branch_attributes = set()
             node_attributes = set()
@@ -803,7 +804,8 @@ def print_sumtree(sumtree, args, output):
             tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
                                      labelfield="posterior",  
                                      node_attributes=node_attributes, 
-                                     branch_attributes=branch_attributes)
+                                     branch_attributes=branch_attributes,
+                                     precision=precision)
         confile.write(tree_str)
         confile.write("\n")
 
