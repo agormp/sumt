@@ -23,7 +23,7 @@ def main(commandlist=None):
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
 
-        sumtree, logcred = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
+        sumtree = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
         sumtree = set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output)
         sumtree = root_sumtree(sumtree, args)
         sumtree = annotate_sumtree_root(sumtree, treesummary, args)
@@ -34,7 +34,7 @@ def main(commandlist=None):
             trprobs_status_message = print_trprobs(treesummary, trproblist, args)            
             output.info(trprobs_status_message)
         
-        print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
+        print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
                              ave_std, args, output)
     except Exception as error:
         handle_error(error, args.verbose)
@@ -704,24 +704,22 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
     if args.mcc:
         output.info()
         output.force("Finding Maximum Clade Credibility tree...", end="")
-        sumtree, logcred = treesummary.max_clade_cred_tree()
+        sumtree = treesummary.max_clade_cred_tree()
     elif args.mbc:
         output.info()
         output.force("Finding Maximum Bipartition Credibility tree...", end="")
-        sumtree, logcred = treesummary.max_bipart_cred_tree()
+        sumtree = treesummary.max_bipart_cred_tree()
     elif args.con:
         output.info()
         output.force("Computing consensus tree...", end="")
         sumtree = treesummary.contree(allcompat=args.all)
-        logcred = treesummary.log_bipart_credibility(sumtree.topology())
     elif args.all:
         output.info()
         output.force("Computing consensus tree, adding all compatible bipartitions...", end="")
         sumtree = treesummary.contree(allcompat=args.all)
-        logcred = treesummary.log_bipart_credibility(sumtree.topology())
     output.force("done", padding=0)
     
-    return sumtree, logcred
+    return sumtree
     
 ##########################################################################################
 
@@ -884,7 +882,7 @@ def print_trprobs(treesummary, trproblist, args):
 
 ##########################################################################################
 
-def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_analyzed,
+def print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
                          ave_std, args, output):
 
     sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, args)
@@ -948,10 +946,10 @@ def print_result_summary(sumtree, logcred, treesummary, start, pid, n_trees_anal
     # Information about log credibility
     if args.mbc or (args.mcc and not args.actively_rooted):
         output.info()
-        output.info(f"Highest log {grouptype} credibility:  {logcred:.6g}")
+        output.info(f"Highest log {grouptype} credibility:  {sumtree.logcred:.6g}")
     else:
         output.info()
-        output.info(f"Log {grouptype} credibility:  {logcred:.6g}")
+        output.info(f"Log {grouptype} credibility:  {sumtree.logcred:.6g}")
 
     if args.std:
         output.info(f"Average standard deviation of split frequencies: {ave_std:.6f}")
