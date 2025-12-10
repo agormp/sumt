@@ -534,13 +534,17 @@ def process_trees(wt_count_burnin_filename_list, args, output):
         trackroot = args.trackroot
         trackblen = args.trackblen
         trackdepth = args.trackdepth
-        if args.mcc or args.mbc or args.treeprobs:
-            treesummary = pt.BigTreeSummary(store_trees=args.treeprobs,
-                                            trackbips=trackbips, trackclades=trackclades, trackroot=trackroot,
-                                            trackblen=trackblen, trackdepth=trackdepth)
-        else:
-            treesummary = pt.TreeSummary(trackbips=trackbips, trackclades=trackclades, trackroot=trackroot,
-                                         trackblen=trackblen, trackdepth=trackdepth)
+        tracktopo = args.mcc or args.mbc or args.treeprobs
+
+        treesummary = pt.TreeSummary(
+            trackbips=args.trackbips,
+            trackclades=args.trackclades,
+            trackroot=args.trackroot,
+            trackblen=args.trackblen,
+            trackdepth=args.trackdepth,
+            tracktopo=tracktopo,
+            store_trees=args.treeprobs
+        )
 
         # Initialize the progress bar
         progress = ProgressBar(total_trees=count, burnin=burnin, output=output, quiet=args.quiet)
