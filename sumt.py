@@ -24,9 +24,6 @@ def main(commandlist=None):
         treesummary = merge_treesummaries(treesummarylist)
 
         sumtree = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
-        sumtree = set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output)
-        sumtree = root_sumtree(sumtree, args)
-        sumtree = annotate_sumtree_root(sumtree, treesummary, args)
         print_sumtree(sumtree, args, output)
         
         if args.treeprobs:
@@ -700,76 +697,60 @@ def  merge_treesummaries(treesummarylist):
 ##########################################################################################
 
 def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
-    """Compute requested summary tree (MCC, MBC, consensus, consensus with all compat)"""
-    if args.mcc:
-        output.info()
-        output.force("Finding Maximum Clade Credibility tree...", end="")
-        sumtree = treesummary.max_clade_cred_tree()
-    elif args.mbc:
-        output.info()
-        output.force("Finding Maximum Bipartition Credibility tree...", end="")
-        sumtree = treesummary.max_bipart_cred_tree()
-    elif args.con:
-        output.info()
-        output.force("Computing consensus tree...", end="")
-        sumtree = treesummary.contree(allcompat=args.all)
-    elif args.all:
-        output.info()
-        output.force("Computing consensus tree, adding all compatible bipartitions...", end="")
-        sumtree = treesummary.contree(allcompat=args.all)
-    output.force("done", padding=0)
-    
-    return sumtree
-    
-##########################################################################################
+    """Controls computation of summary tree, setting of node depths and branch lengths,
+       and annotation of summary tree with relevant attributes.
+       """
+    treetype = "mcc" if args.mcc else "mbc" if args.mbc else "all" if args.all else "con"
 
-def set_sumtree_blen(sumtree, treesummary, wt_count_burnin_filename_list, args, output):
-    """Set branch lengths on precomputed summary tree, using requested approach"""
-    
-    if args.meandepth:
-        output.force("Computing mean node depths...", end="")
-        sumtree = treesummary.set_mean_node_depths(sumtree)
-        output.force("done", padding=0)
-    elif args.cadepth:
-        output.force("Computing common ancestor depths...", end="")
-        sumtree = treesummary.set_ca_node_depths(sumtree, wt_count_burnin_filename_list)
-        output.force("done", padding=0)
-    elif args.biplen and args.mcc:
-        output.force("Computing mean bipartition lengths...", end="")
-        sumtree = treesummary.set_mean_biplen(sumtree)
-        output.force("done", padding=0)
-        
-    return sumtree
-
-##########################################################################################
-
-def root_sumtree(sumtree, args):
-
+    # Rooting: only do something if user asked for it; otherwise keep "input"
     if args.outgroup:
-        sumtree.rootout(args.outgroup)
+        rooting = "og"
+        og = args.outgroup
     elif args.rootmid:
-        sumtree.rootmid()
+        rooting = "mid"
+        og = None
     elif args.rootminvar:
-        sumtree.rootminvar()
+        rooting = "minvar"
+        og = None
+    else:
+        rooting = "input"
+        og = None
+
+    # Branch-length method
+    if args.noblen:
+        blen = "none"    
+    elif args.biplen:
+        blen = "biplen"
+    elif args.meandepth:
+        blen = "meandepth"
+    elif args.cadepth:
+        blen = "cadepth"
+    else:
+        raise pt.TreeError("Internal error: no blen mode selected")
+
+    output.info()
+    output.force("Computing summary tree...", end="")
+
+    sumtree = treesummary.compute_sumtree(
+        treetype=treetype,
+        rooting=rooting,
+        blen=blen,
+        og=og,
+        wt_count_burnin_filename_list=wt_count_burnin_filename_list
+    )
+
+    output.force("done", padding=0)
+
+    if args.rootcred and (args.actively_rooted or args.mcc):
+        sumtree.rootcred = treesummary.compute_rootcred(sumtree)
     
-    return sumtree
-    
-##########################################################################################
-
-def annotate_sumtree_root(sumtree, treesummary, args):
-
-    if args.rootcred:
-        if args.actively_rooted or args.mcc:
-            sumtree.rootcred = treesummary.compute_rootcred(sumtree)
-        sumtree = treesummary.set_rootcredibility(sumtree)  # Add branch attribute with root credibilities
-
     return sumtree
     
 ##########################################################################################
 
 def print_sumtree(sumtree, args, output):
 
-    printdist = args.trackblen or args.trackdepth or args.cadepth
+    printdist = not args.noblen   # Python note: or always True if we set lengths to 0.0 for noblen
     printlabels = not args.nolabel
     precision=7
             
