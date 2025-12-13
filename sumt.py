@@ -766,25 +766,19 @@ def print_sumtree(sumtree, args, output):
         elif args.outformat == "nexus":
             tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
                                      labelfield="posterior", precision=precision)            
-        else:
-            branch_attributes = set()
-            node_attributes = set()
-            if args.trackbips:
-                branch_attributes.add("posterior")
-            if args.trackblen:
-                branch_attributes.update({"length", "length_sd"})
-            if args.mcc:
-                node_attributes.add("posterior")
-            if args.trackdepth:
-                node_attributes.update({"depth", "depth_sd"}) 
-                branch_attributes.add("length")
-            if args.trackroot:
-                branch_attributes.add("rootcred")
-            tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
-                                     labelfield="posterior",  
-                                     node_attributes=node_attributes, 
-                                     branch_attributes=branch_attributes,
-                                     precision=precision)
+        elif args.outformat == "mcnexus":
+            node_attributes = getattr(sumtree, "_print_node_attributes", None)
+            branch_attributes = getattr(sumtree, "_print_branch_attributes", None)
+
+            tree_str = sumtree.nexus(
+                printdist=printdist,
+                printlabels=printlabels,
+                labelfield="label",          
+                node_attributes=node_attributes,
+                branch_attributes=branch_attributes,
+                precision=precision
+            )
+            
         confile.write(tree_str)
         confile.write("\n")
 
