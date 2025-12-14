@@ -118,7 +118,7 @@ def parse_commandline(commandlist):
     else:
         args.trackclades = False
 
-    # Root needs to be tracked if rootcred==True, OR if using biplen with mcc:
+    # Root needs to be tracked if rootcred==True, OR if using biplen with MCC:
     if args.rootcred or (args.mcc and args.biplen):   
         args.trackroot = True
     else:
