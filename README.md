@@ -1,6 +1,6 @@
 # sumt
 
-![](https://img.shields.io/badge/version-3.10.0-blue)
+![](https://img.shields.io/badge/version-3.11.0-blue)
 [![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=PyPI%20downloads&service=github)](https://pepy.tech/project/sumt)
 [![DOI](https://zenodo.org/badge/461522623.svg)](https://zenodo.org/doi/10.5281/zenodo.10148693)
 
