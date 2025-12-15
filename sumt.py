@@ -955,7 +955,7 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
     n_leaves = len(treesummary.leaves)
 
     if args.mcc:
-        n_uniq_groupings = len(treesummary.cladesummary)
+        n_uniq_groupings = len(treesummary.cladesummary) - n_leaves
         theo_max_groups = n_leaves - 1
     else:
         n_uniq_groupings = len(treesummary.bipartsummary) - n_leaves
