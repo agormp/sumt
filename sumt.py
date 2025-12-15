@@ -526,20 +526,13 @@ def process_trees(wt_count_burnin_filename_list, args, output):
         output.info(f"Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac[i]:.2f})")
 
         # Instantiate Treesummary.
-        trackbips = args.trackbips
-        trackclades = args.trackclades
-        trackroot = args.trackroot
-        trackblen = args.trackblen
-        trackdepth = args.trackdepth
-        tracktopo = args.mcc or args.mbc or args.treeprobs
-
         treesummary = pt.TreeSummary(
             trackbips=args.trackbips,
             trackclades=args.trackclades,
             trackroot=args.trackroot,
             trackblen=args.trackblen,
             trackdepth=args.trackdepth,
-            tracktopo=tracktopo,
+            tracktopo=args.mcc or args.mbc or args.treeprobs,
             store_trees=args.treeprobs
         )
 
