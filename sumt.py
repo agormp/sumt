@@ -703,8 +703,7 @@ def  merge_treesummaries(treesummarylist):
 def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
     """Controls computation of summary tree, setting of node depths and branch lengths,
        and annotation of summary tree with relevant attributes.
-       """
-    treetype = "mcc" if args.mcc else "mbc" if args.mbc else "all" if args.all else "con"
+       """    
 
     # Rooting: only do something if user asked for it; otherwise keep "input"
     if args.outgroup:
@@ -736,7 +735,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
     output.force("Computing summary tree...", end="")
 
     sumtree = treesummary.compute_sumtree(
-        treetype=treetype,
+        treetype=args.treetype,
         rooting=rooting,
         blen=blen,
         og=og,
@@ -745,7 +744,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
 
     output.force("done", padding=0)
 
-    if args.rootcred and (args.actively_rooted or args.mcc):
+    if args.rootcred and (args.actively_rooted or args.treetype in ("mcc", "hipstr", "mrhipstr")):
         sumtree.rootcred = treesummary.compute_rootcred(sumtree)
     
     return sumtree
@@ -758,10 +757,7 @@ def print_sumtree(sumtree, args, output):
     printlabels = not args.nolabel
     precision=7
             
-    if args.mbc:    confilename = args.outbase.parent / (args.outbase.name + ".mbc")
-    elif args.mcc:  confilename = args.outbase.parent / (args.outbase.name + ".mcc")
-    elif args.all:  confilename = args.outbase.parent / (args.outbase.name + ".all")
-    elif args.con:  confilename = args.outbase.parent / (args.outbase.name + ".con")
+    confilename = args.outbase.parent / (args.outbase.name + f".{args.treetype}")
 
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "newick":
@@ -786,10 +782,14 @@ def print_sumtree(sumtree, args, output):
         confile.write(tree_str)
         confile.write("\n")
 
-    if args.mbc:
+    if args.treetype == "mbc":
         output.info(f"Maximum bipartition credibility tree written to {confilename}")
-    elif args.mcc:
+    elif args.treetype == "mcc":
         output.info(f"Maximum clade credibility tree written to {confilename}")
+    elif args.treetype == "hipstr":
+        output.info(f"HIPSTR tree written to {confilename}")
+    elif args.treetype == "mrhipstr":
+        output.info(f"Majority rule HIPSTR (mrHIPSTR) tree written to {confilename}")
     else:
         output.info(f"Consensus tree written to {confilename}")
         
@@ -901,29 +901,29 @@ def print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
     # Information about rooting
     output.info()
     if not args.actively_rooted:
-        if args.mcc:
-            output.info(f"MCC tree rooted at original root of tree sample having highest clade credibility")
+        if args.treetype in ("mcc", "hipstr", "mrhipstr"):
+            output.info(f"{args.treetype} tree rooted at original root of tree sample having highest clade credibility")
         else:
-            output.info(f"{treetype} tree has not been explicitly rooted")
+            output.info(f"{args.treetype} tree has not been explicitly rooted")
             output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
     else:
         if args.outgroup:
-            output.info(f"{treetype} tree has been rooted based on outgroup")
+            output.info(f"{args.treetype} tree has been rooted based on outgroup")
         elif args.rootmid:
-            output.info(f"{treetype} tree has been midpoint-rooted")
+            output.info(f"{args.treetype} tree has been midpoint-rooted")
         elif args.rootminvar:
-            output.info(f"{treetype} tree has been rooted using minimum variance-rooting")
+            output.info(f"{args.treetype} tree has been rooted using minimum variance-rooting")
         else:
             raise TreeError("rooting error") # Python note: Should never go here - remove when code tested
 
     if args.rootcred:
-        if args.actively_rooted or args.mcc:
+        if args.actively_rooted or args.treetype in ("mcc", "hipstr", "mrhipstr"):
             output.info(f"Root credibility (frequency of root bipartition in input trees):       {sumtree.rootcred * 100:.1f}%")
         output.info(f"Cumulated root credibility (sum of rootcred for all branches in tree): {sumtree.cumulated_rootcred * 100:.1f}%")
         
 
     # Information about log credibility
-    if args.mbc or (args.mcc and not args.actively_rooted):
+    if args.treetype == "mbc" or (args.treetype == "mcc" and not args.actively_rooted):
         output.info()
         output.info(f"Highest log {grouptype} credibility:  {sumtree.logcred:.6g}")
     else:
@@ -965,7 +965,7 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
 
     n_leaves = len(treesummary.leaves)
 
-    if args.mcc:
+    if args.treetype in ("mcc", "hipstr", "mrhipstr"):
         n_uniq_groupings = len(treesummary.cladesummary) - n_leaves
         theo_max_groups = n_leaves - 1
     else:
@@ -975,10 +975,14 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
     theo_max_biparts = n_leaves - 3
     n_internal_biparts = sumtree.n_bipartitions()
 
-    if args.mcc:
+    if args.treetype == "mcc":
         treetype, grouptype, space = "MCC", "clade", " " * 7
-    elif args.mbc:
+    elif args.treetype == "mbc":
         treetype, grouptype, space = "MBC", "bipartition", " " * 1
+    elif args.treetype == "hipstr":
+        treetype, grouptype, space = "HIPSTR", "clade", " " * 7
+    elif args.treetype == "mrhipstr":
+        treetype, grouptype, space = "mrHIPSTR", "clade", " " * 7
     else:
         treetype, grouptype, space = "Consensus", "bipartition", " " * 1
 
