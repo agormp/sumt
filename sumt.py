@@ -542,7 +542,8 @@ def process_trees(wt_count_burnin_filename_list, args, output):
             trackroot=args.trackroot,
             trackblen=args.trackblen,
             trackdepth=args.trackdepth,
-            tracktopo=args.mcc or args.mbc or args.treeprobs,
+            tracktopo=args.tracktopo,
+            track_subcladepairs=args.track_subcladepairs,
             store_trees=args.treeprobs
         )
 
