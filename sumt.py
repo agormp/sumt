@@ -186,7 +186,7 @@ def build_parser():
     ####################################################################################
 
     sumtype_grp = parser.add_argument_group("TYPE OF SUMMARY TREE (pick one option)")
-    sumtype_excl = sumtype_grp.add_mutually_exclusive_group()
+    sumtype_excl = sumtype_grp.add_mutually_exclusive_group(required=True)
 
     sumtype_excl.add_argument("--con", action="store_true",
                               help="majority rule consensus tree")
@@ -217,7 +217,7 @@ def build_parser():
     ####################################################################################
 
     blen_grp = parser.add_argument_group(title= "ESTIMATION OF BRANCH LENGTHS (pick one option)")
-    blen_excl = blen_grp.add_mutually_exclusive_group()
+    blen_excl = blen_grp.add_mutually_exclusive_group(required=True)
     blen_excl.add_argument("--noblen", action="store_true",
                       help="Do not set branch lengths (only the topology and branch- or clade-"
                           + "support of the summary tree are estimated). ")
