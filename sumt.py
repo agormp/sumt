@@ -188,13 +188,13 @@ def build_parser():
     sumtype_grp = parser.add_argument_group("TYPE OF SUMMARY TREE (pick one option)")
     sumtype_excl = sumtype_grp.add_mutually_exclusive_group(required=True)
 
-    sumtype_excl.add_argument("--con", action="store_true",
-                              help="majority rule consensus tree")
+    sumtype_excl.add_argument("--con", dest="treetype", action="store_const", const="con",
+                              help="majority rule consensus tree")    
 
-    sumtype_excl.add_argument("--all", action="store_true",
+    sumtype_excl.add_argument("--all", dest="treetype", action="store_const", const="all",
                               help="majority rule consensus tree with all compatible bipartitions added")
 
-    sumtype_excl.add_argument("--mcc", action="store_true",
+    sumtype_excl.add_argument("--mcc", dest="treetype", action="store_const", const="mcc",
                               help="Maximum Clade Credibility (MCC) tree. "
                               + "The MCC tree is determined by inspecting tree samples and selecting the "
                               + "tree that has the highest product of clade frequencies (= highest sum of "
@@ -207,13 +207,24 @@ def build_parser():
                               + "This will often (but not always) correspond to the "
                               + "bipartition where the root is most commonly found in the input trees.")
 
-    sumtype_excl.add_argument("--mbc", action="store_true",
+    sumtype_excl.add_argument("--mbc", dest="treetype", action="store_const", const="mbc",
                               help="Maximum Bipartition Credibility (MBC) tree. "
                               + "The MBC tree is similar to the MCC tree "
                               + "but counting bipartitions instead of clades, i.e. ignoring rooting "
                               + "(two input trees can have the same set of bipartitions, but be rooted "
                               + "in different locations).")
 
+    sumtype_excl.add_argument("--hip", dest="treetype", action="store_const", const="hipstr",
+                              help="HIPSTR summary tree (Highest Independent Posterior SubTree). "
+                                   "(see Baele et al., Bioinformatics, 2025, 41(10), btaf488)"
+                                   "The tree is built by choosing, at each internal node, the child clade "
+                                   "pair with the highest combined posterior support, producing a fully resolved "
+                                   "summary tree not necessarily observed among the input trees.")
+
+    sumtype_excl.add_argument("--mrhip", dest="treetype", action="store_const", const="mrhipstr",
+                              help="MrHIPSTR summary tree (majority rule HIPSTR tree). "
+                                   "Like HIPSTR, but only including clades with >= 50% support")
+                                   
     ####################################################################################
 
     blen_grp = parser.add_argument_group(title= "ESTIMATION OF BRANCH LENGTHS (pick one option)")
