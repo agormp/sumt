@@ -97,38 +97,43 @@ def parse_commandline(commandlist):
     else:
         args.actively_rooted = False
         
-    if args.mcc and args.actively_rooted:
-        parser.error("Rooting method should not be specified for MCC trees (input trees are already assumed to be rooted)")
+    if (args.treetype in ["mcc", "hipstr", "mrhipstr"]) and args.actively_rooted:
+        parser.error(f"Rooting method should not be specified for {args.treetype} trees (input trees are already assumed to be rooted)")
 
     # Bipartitions need to be tracked in these situations
-    if args.con or args.all or args.mbc or args.biplen:
-        args.trackbips = True
-    else:
-        args.trackbips = False
+    args.trackbips = (
+        args.treetype in ["con", "all", "mbc"]
+        or args.biplen
+    )
 
     # Clades need to be tracked in these situations:
-    if args.mcc or args.meandepth or args.cadepth:
-        args.trackclades = True
-    else:
-        args.trackclades = False
+    args.trackclades = (
+        args.treetype in ["mcc", "hipstr", "mrhipstr"]
+        or args.meandepth
+        or args.cadepth
+    )
 
-    # Root needs to be tracked if rootcred==True, OR if using biplen with MCC:
-    if args.rootcred or (args.mcc and args.biplen):   
-        args.trackroot = True
-    else:
-        args.trackroot = False
+    # Root needs to be tracked if rootcred==True, OR if using biplen with MCC, HIPSTR, or MrHIPSTR:
+    args.trackroot = (
+        args.rootcred
+        or (args.biplen and args.treetype in ("mcc", "hipstr", "mrhipstr"))
+    )
 
     # Branch lengths need to be tracked if biplen==True
-    if args.biplen:
-        args.trackblen = True
-    else:
-        args.trackblen = False
+    args.trackblen = args.biplen
 
     # Node depths need to be tracked if meandepth==True
-    if args.meandepth:
-        args.trackdepth = True
-    else:
-        args.trackdepth = False
+    args.trackdepth = args.meandepth
+        
+    # Subclade-pairs need to be tracked if using HIPSTR or MrHIPSTR
+    args.track_subcladepairs = args.treetype in ("hipstr", "mrhipstr")
+    
+    # Topologies need to be tracked if we want to compute MCC or MBC trees, or if we want to estimate tree probabilities
+    args.tracktopo = (
+        args.treetype in ("mcc", "mbc")
+        or args.treeprobs
+    )
+        
     return args
 
 ####################################################################################
