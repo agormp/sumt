@@ -22,9 +22,7 @@ def main(commandlist=None):
         treesummarylist = process_trees(wt_count_burnin_filename_list, args, output)
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
-
         sumtree = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
-        print_sumtree(sumtree, args, output)
         
         if args.treeprobs:
             trproblist = compute_trprobs(treesummary, args)
@@ -33,6 +31,8 @@ def main(commandlist=None):
         
         print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
                              ave_std, args, output)
+        print_sumtree(sumtree, args, output)
+        
     except Exception as error:
         handle_error(error, args.verbose)
 
