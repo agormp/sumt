@@ -621,7 +621,7 @@ def compute_converge_stats(treesummarylist, args):
     #       population estimates of std, and is in accordance with what MrBayes does. One could
     #       argue that N should be used instead of N-1 (to get the Max Likelihood estimate of std).
 
-    if args.mcc:
+    if args.treetype in ("mcc", "hip", "mrhip"):
         ave_std = compute_converge_clades(treesummarylist, args)
     else:
         ave_std = compute_converge_biparts(treesummarylist, args)
