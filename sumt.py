@@ -223,7 +223,7 @@ def build_parser():
 
     sumtype_excl.add_argument("--mrhip", dest="treetype", action="store_const", const="mrhip",
                               help="MrHIPSTR summary tree (majority rule HIPSTR tree). "
-                                   "Like HIPSTR, but only including clades with >= 50% support")
+                                   "Like HIPSTR, but only including clades with >= 50%% support")
                                    
     ####################################################################################
 
