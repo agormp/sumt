@@ -97,7 +97,7 @@ def parse_commandline(commandlist):
     else:
         args.actively_rooted = False
         
-    if (args.treetype in ["mcc", "hipstr", "mrhipstr"]) and args.actively_rooted:
+    if (args.treetype in ["mcc", "hip", "mrhip"]) and args.actively_rooted:
         parser.error(f"Rooting method should not be specified for {args.treetype} trees (input trees are already assumed to be rooted)")
 
     # Bipartitions need to be tracked in these situations
@@ -108,7 +108,7 @@ def parse_commandline(commandlist):
 
     # Clades need to be tracked in these situations:
     args.trackclades = (
-        args.treetype in ["mcc", "hipstr", "mrhipstr"]
+        args.treetype in ["mcc", "hip", "mrhip"]
         or args.meandepth
         or args.cadepth
     )
@@ -116,7 +116,7 @@ def parse_commandline(commandlist):
     # Root needs to be tracked if rootcred==True, OR if using biplen with MCC, HIPSTR, or MrHIPSTR:
     args.trackroot = (
         args.rootcred
-        or (args.biplen and args.treetype in ("mcc", "hipstr", "mrhipstr"))
+        or (args.biplen and args.treetype in ("mcc", "hip", "mrhip"))
     )
 
     # Branch lengths need to be tracked if biplen==True
@@ -126,7 +126,7 @@ def parse_commandline(commandlist):
     args.trackdepth = args.meandepth
         
     # Subclade-pairs need to be tracked if using HIPSTR or MrHIPSTR
-    args.track_subcladepairs = args.treetype in ("hipstr", "mrhipstr")
+    args.track_subcladepairs = args.treetype in ("hip", "mrhip")
     
     # Topologies need to be tracked if we want to compute MCC or MBC trees, or if we want to estimate tree probabilities
     args.tracktopo = (
@@ -214,14 +214,14 @@ def build_parser():
                               + "(two input trees can have the same set of bipartitions, but be rooted "
                               + "in different locations).")
 
-    sumtype_excl.add_argument("--hip", dest="treetype", action="store_const", const="hipstr",
+    sumtype_excl.add_argument("--hip", dest="treetype", action="store_const", const="hip",
                               help="HIPSTR summary tree (Highest Independent Posterior SubTree). "
                                    "(see Baele et al., Bioinformatics, 2025, 41(10), btaf488)"
                                    "The tree is built by choosing, at each internal node, the child clade "
                                    "pair with the highest combined posterior support, producing a fully resolved "
                                    "summary tree not necessarily observed among the input trees.")
 
-    sumtype_excl.add_argument("--mrhip", dest="treetype", action="store_const", const="mrhipstr",
+    sumtype_excl.add_argument("--mrhip", dest="treetype", action="store_const", const="mrhip",
                               help="MrHIPSTR summary tree (majority rule HIPSTR tree). "
                                    "Like HIPSTR, but only including clades with >= 50% support")
                                    
@@ -744,7 +744,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
 
     output.force("done", padding=0)
 
-    if args.rootcred and (args.actively_rooted or args.treetype in ("mcc", "hipstr", "mrhipstr")):
+    if args.rootcred and (args.actively_rooted or args.treetype in ("mcc", "hip", "mrhip")):
         sumtree.rootcred = treesummary.compute_rootcred(sumtree)
     
     return sumtree
@@ -782,13 +782,14 @@ def print_sumtree(sumtree, args, output):
         confile.write(tree_str)
         confile.write("\n")
 
+    output.info("")
     if args.treetype == "mbc":
         output.info(f"Maximum bipartition credibility tree written to {confilename}")
     elif args.treetype == "mcc":
         output.info(f"Maximum clade credibility tree written to {confilename}")
-    elif args.treetype == "hipstr":
+    elif args.treetype == "hip":
         output.info(f"HIPSTR tree written to {confilename}")
-    elif args.treetype == "mrhipstr":
+    elif args.treetype == "mrhip":
         output.info(f"Majority rule HIPSTR (mrHIPSTR) tree written to {confilename}")
     else:
         output.info(f"Consensus tree written to {confilename}")
@@ -965,7 +966,7 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
 
     n_leaves = len(treesummary.leaves)
 
-    if args.treetype in ("mcc", "hipstr", "mrhipstr"):
+    if args.treetype in ("mcc", "hip", "mrhip"):
         n_uniq_groupings = len(treesummary.cladesummary) - n_leaves
         theo_max_groups = n_leaves - 1
     else:
@@ -979,9 +980,9 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
         treetype, grouptype, space = "MCC", "clade", " " * 7
     elif args.treetype == "mbc":
         treetype, grouptype, space = "MBC", "bipartition", " " * 1
-    elif args.treetype == "hipstr":
+    elif args.treetype == "hip":
         treetype, grouptype, space = "HIPSTR", "clade", " " * 7
-    elif args.treetype == "mrhipstr":
+    elif args.treetype == "mrhip":
         treetype, grouptype, space = "mrHIPSTR", "clade", " " * 7
     else:
         treetype, grouptype, space = "Consensus", "bipartition", " " * 1
