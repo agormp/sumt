@@ -833,9 +833,9 @@ def compute_trprobs(treesummary, args):
 
 ##########################################################################################
 
-def print_trprobs(treesummary, trproblist, args):
+def print_trprobs(treesummary, trproblist, args, output):
     topofilename = args.outbase.parent / (args.outbase.name + ".trprobs")
-    with open_file_with_warning(topofilename, args.nowarn) as topofile:
+    with open_file_with_warning(topofilename, args.nowarn, output) as topofile:
         topofile.write("#NEXUS\n\n")
         if args.treeprobs < 1:
             topofile.write(f"[This file contains the {round(args.treeprobs*100)}% most probable trees found during the\n")
