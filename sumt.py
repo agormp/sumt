@@ -716,7 +716,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
         rooting = "minvar"
         og = None
     else:
-        rooting = "input"
+        rooting = None
         og = None
 
     # Branch-length method
