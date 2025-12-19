@@ -19,7 +19,7 @@ Branch lengths in summary tree can be set based on:
 
 * Mean node depths across input trees (for clock trees)
 * "Common Ancestor" node depths (for clock trees)
-* Mean length of bipartitions across input trees (splits) across input trees
+* Mean length of bipartitions (splits) across input trees across input trees
 
 Rooting can be done using:
 
