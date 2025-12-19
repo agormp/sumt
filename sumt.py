@@ -907,20 +907,20 @@ def print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
         elif treetype in ("hipstr", "mrhipstr"):
             output.info(f"{treetype} tree rooted at most frequently observed root bipartition")            
         else:
-            output.info(f"{args.treetype} tree has not been explicitly rooted")
+            output.info(f"{treetype} tree has not been explicitly rooted")
             output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
     else:
         if args.outgroup:
-            output.info(f"{args.treetype} tree has been rooted based on outgroup")
+            output.info(f"{treetype} tree has been rooted based on outgroup")
         elif args.rootmid:
-            output.info(f"{args.treetype} tree has been midpoint-rooted")
+            output.info(f"{treetype} tree has been midpoint-rooted")
         elif args.rootminvar:
-            output.info(f"{args.treetype} tree has been rooted using minimum variance-rooting")
+            output.info(f"{treetype} tree has been rooted using minimum variance-rooting")
         else:
             raise TreeError("rooting error") # Python note: Should never go here - remove when code tested
 
     if args.rootcred:
-        if args.actively_rooted or args.treetype in ("mcc", "hipstr", "mrhipstr"):
+        if args.actively_rooted or args.treetype in ("mcc", "hip", "mrhip"):
             output.info(f"Root credibility (frequency of root bipartition in input trees):       {sumtree.rootcred * 100:.1f}%")
         output.info(f"Cumulated root credibility (sum of rootcred for all branches in tree): {sumtree.cumulated_rootcred * 100:.1f}%")
         
