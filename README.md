@@ -19,7 +19,7 @@ Branch lengths in summary tree can be set based on:
 
 * Mean node depths across input trees (for clock trees)
 * "Common Ancestor" node depths (for clock trees)
-* Mean length of bipartitions across input trees (splits) across 
+* Mean length of bipartitions across input trees (splits) across input trees
 
 Rooting can be done using:
 
@@ -70,16 +70,18 @@ To cite sumt: use the link in the right sidebar under About --> Cite this reposi
 			* Maximum clade credibility (MCC) tree 
 		    * Maximum bipartition credibility (MBC) tree - this is similar to MCC, but ignoring location of root.
 			* HIPSTR tree ([highest independent posterior subtree reconstruction](https://academic.oup.com/bioinformatics/article/41/10/btaf488/8250098))
-		* By default, the summary tree contains NEXUS metacomments summarizing e.g. clade or bipartition frequencies, and mean and standard deviation for branch lengths or depths.
+			* mrHIPSTR (majority rule HIPSTR)
+		* By default, the summary tree contains [NEXUS metacomments](https://beast.community/nexus_metacomments) summarizing e.g. clade or bipartition frequencies, and mean and standard deviation for branch lengths or depths.
 	* During run: progress bar showing percentage of file analyzed
 	* (Optionally) File containing list of observed tree topologies with posterior and cumulated probabilities
 * Optimized for speed and memory usage
 * Option to discard fraction of trees as burn-in (for Bayesian analyses)
 * Option to compute average standard deviation of split frequencies when multiple input files are given. This can be used as a measure of convergence of Bayesian analyses, assuming that different files represent independent MCMC chains.
 * Option to include all compatible bipartitions in consensus tree (in addition to those that are present in more than 50% of input trees).
-* Options to root consensus tree using either outgroup, midpoint, [minimum variance](https://pubmed.ncbi.nlm.nih.gov/28800608/) rooting, or based on where root is most frequently placed in input tree sample
+* Options to root consensus tree using either outgroup, midpoint, [minimum variance](https://pubmed.ncbi.nlm.nih.gov/28800608/) rooting, or based on root of maximum credibility tree (for MCC), or root for most credible resolution of root bipartition (for HIPSTR and mrHIPSTR)
 * Option to set node depths to mean of those observed in input trees (only useful when input trees are based on clock model)
 * Option to set node depths using "common ancestor depths" in input trees (same as "treeannotator -heights ca" in the BEAST package; only useful when input trees are based on clock model)
+* When setting mean or CA node depths: depths of leaves will be the mean of those observed for leaves (only relevant when estimating some tip dates)
 * Option to assign specific weights to different input files.
 * Option to automatically assign weights so all files have equal impact regardless of number of trees in them.
 * Option to set basename of output files (default: basename will be stem of input file name)
