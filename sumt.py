@@ -902,8 +902,10 @@ def print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
     # Information about rooting
     output.info()
     if not args.actively_rooted:
-        if args.treetype in ("mcc", "hipstr", "mrhipstr"):
-            output.info(f"{args.treetype} tree rooted at original root of tree sample having highest clade credibility")
+        if treetype == "mcc":
+            output.info(f"{treetype} tree rooted at original root of tree sample having highest clade credibility")
+        elif treetype in ("hipstr", "mrhipstr"):
+            output.info(f"{treetype} tree rooted at most frequently observed root bipartition")            
         else:
             output.info(f"{args.treetype} tree has not been explicitly rooted")
             output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
