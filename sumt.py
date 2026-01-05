@@ -116,7 +116,7 @@ def parse_commandline(commandlist):
     # Root needs to be tracked if rootcred==True, OR if using biplen with MCC, HIPSTR, or MrHIPSTR:
     args.trackroot = (
         args.rootcred
-        or (args.biplen and args.treetype == "mcc")
+        or (args.biplen and (args.treetype == "mcc"))
     )
 
     # Branch lengths need to be tracked if biplen==True
