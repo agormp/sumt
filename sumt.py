@@ -744,9 +744,6 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
 
     output.force("done", padding=0)
 
-    if args.rootcred and (args.actively_rooted or args.treetype in ("mcc", "hip", "mrhip")):
-        sumtree.rootcred = treesummary.compute_rootcred(sumtree)
-    
     return sumtree
     
 ##########################################################################################
@@ -920,7 +917,7 @@ def print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
             raise TreeError("rooting error") # Python note: Should never go here - remove when code tested
 
     if args.rootcred:
-        if args.actively_rooted or args.treetype in ("mcc", "hip", "mrhip"):
+        if sumtree.rootcred:
             output.info(f"Root credibility (frequency of root bipartition in input trees):       {sumtree.rootcred * 100:.1f}%")
         output.info(f"Cumulated root credibility (sum of rootcred for all branches in tree): {sumtree.cumulated_rootcred * 100:.1f}%")
         
