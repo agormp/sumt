@@ -454,9 +454,9 @@ def process_trees(count_burnin_filename_list, args, output):
 
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
         if args.informat == "nexus":
-            treefile = pt.Nexustreefile(filename, interner=interner)
+            treefile = pt.Nexustreefile(filename)
         else:
-            treefile = pt.Newicktreefile(filename, interner=interner)
+            treefile = pt.Newicktreefile(filename)
         for j in range(burnin):
             treefile.readtree(returntree=False)
         output.info(f"Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac[i]:.2f})")
