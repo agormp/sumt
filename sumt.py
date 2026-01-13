@@ -16,13 +16,12 @@ def main(commandlist=None):
     try:
         output = OutputManager(args)
         setup_output_directory(args.outbase)        
-        wt_file_list = parse_infilelist(args)
-        n_trees_analyzed, wt_count_burnin_filename_list = count_trees(wt_file_list, args, output)        
+        n_trees_analyzed, count_burnin_filename_list = count_trees(args, output)        
 
-        treesummarylist = process_trees(wt_count_burnin_filename_list, args, output)
+        treesummarylist = process_trees(count_burnin_filename_list, args, output)
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
-        sumtree = compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output)
+        sumtree = compute_sumtree(treesummary, args, count_burnin_filename_list, output)
         
         if args.treeprobs:
             trproblist = compute_trprobs(treesummary, args)
@@ -56,15 +55,12 @@ def parse_commandline(commandlist):
             print("Unknown")
             exit()
 
-    if not args.infilelist and not args.fileweights:
+    if not args.infilelist:
         parser.error("Please list one or more tree files.")
 
     # If output basename is not set: use stem of infilenames minus all suffixes
     if not args.outbase:
-        if args.infilelist:
-            infilepath = args.infilelist[0]
-        else:
-            wt, infilepath = args.fileweights[0]
+        infilepath = args.infilelist[0]
         args.outbase = Path(infilepath.stem.split('.')[0])
 
     if len(args.burninfrac) == 1:
@@ -79,10 +75,7 @@ def parse_commandline(commandlist):
     if args.treeprobs and (args.treeprobs > 1 or args.treeprobs < 0):
         parser.error(f"option -t: NUM must be between 0.0 and 1.0 (provided value: -t {args.treeprobs})")
 
-    if args.infilelist:
-        nfiles = len(args.infilelist)
-    else:
-        nfiles = len(args.fileweights)
+    nfiles = len(args.infilelist)
     if args.std and nfiles==1:
         parser.error("cannot compute standard deviation (option -s) from one tree file")
 
@@ -161,14 +154,6 @@ def build_parser():
 
     infile_excl.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
                         help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
-
-    infile_excl.add_argument("-w", action="append", dest="fileweights",
-                        nargs=2, metavar=("WEIGHT", "FILE"),
-                        help="input FILEs with specified weights (repeat -w WEIGHT FILE option for each input file)")
-
-    inout_grp.add_argument("--autow", action="store_true", dest="autoweight",
-                     help="automatically assign file weights based on tree counts, so all files have equal impact "
-                         + "(default is for all trees, not files, to be equally important)")
 
     inout_grp.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
                       help="base name of output files (default: derived from input file)")
@@ -360,77 +345,20 @@ def setup_output_directory(outbase):
     
 ####################################################################################
 
-def parse_infilelist(args):
+def count_trees(args, output):
 
-    # If only unweighted filenames are given:
-    # Reformat list of filenames into (weight, filename) tuple format expected by program
-    # Set all weights to 1
-    if args.infilelist:
-        wt_file_list = [(1, filename) for filename in args.infilelist]
-
-    # If only weighted filenames are listed:
-    # Reformat list of tuples such that weight is in float (not string).
-    # Normalize weights so their average is one.
-    else:
-        wt_file_list = []
-
-        # Attempt to convert weight string to float. Print sensible error message if this fails
-        for (wt_string, filename) in args.fileweights:
-            try:
-                wt = float(wt_string)
-            except ValueError:
-                msg = f'Invalid file weight: "{wt_string}" - value has to be a real number.'
-                raise Exception(msg)
-            wt_file_list.append((wt, filename))
-
-        # Normalize weights, build final weight/file list:
-        wtsum = 0.0
-        n_files = len(wt_file_list)
-        for (wt, filename) in wt_file_list:
-            wtsum += wt
-        wt_avg = wtsum / n_files
-        wt_file_list = [(wt / wt_avg, filename) for (wt, filename) in wt_file_list]
-
-    return wt_file_list
-
-####################################################################################
-
-def count_trees(wt_file_list, args, output):
-
-    count_list = []
-    burnin_list = []
-    n_postburnin = []
-    for i,(wt, filename) in enumerate(wt_file_list):
+    count_burnin_filename_list = []
+    n_trees_analyzed = 0
+    for i,filename in enumerate(args.infilelist):
         treelist = []
         output.force(f"Counting trees in file {str(filename):<40}", end="")
         n_tot = fast_treecount(filename, args)
         output.force(f"{n_tot:>15,d}")
         burnin = int(args.burninfrac[i] * n_tot)
-        count_list.append(n_tot)
-        burnin_list.append(burnin)
-        n_postburnin.append(n_tot - burnin)
+        count_burnin_filename_list.append((n_tot, burnin, filename))
+        n_trees_analyzed += (n_tot - burnin)
 
-    # If automatic weighting requested: Compute new weights
-    if args.autoweight:
-        countsum = sum(n_postburnin)
-        countavg = countsum / len(n_postburnin)
-        new_wt_list = [countavg / count for count in n_postburnin]  # Normalized so avg=1
-
-    # Construct final combined wt + count + burnin + filename list
-    wt_count_burnin_filename_list = []
-    for i in range(len(wt_file_list)):
-        filename = wt_file_list[i][1]
-        count = count_list[i]
-        burnin = burnin_list[i]
-        if args.autoweight:
-            wt = new_wt_list[i]
-        else:
-            wt = wt_file_list[i][0]
-
-        wt_count_burnin_filename_list.append((wt, count, burnin, filename))
-
-    n_trees_analyzed = sum(count_list) - sum (burnin_list)
-    return (n_trees_analyzed, wt_count_burnin_filename_list)
+    return (n_trees_analyzed, count_burnin_filename_list)
 
 ####################################################################################
 
@@ -517,14 +445,12 @@ def track_memory_usage(pid):
   
 ####################################################################################      
 
-def process_trees(wt_count_burnin_filename_list, args, output):
+def process_trees(count_burnin_filename_list, args, output):
 
     treesummarylist = []
-    interner = pt.Interner()
-
-    for i, (weight, count, burnin, filename) in enumerate(wt_count_burnin_filename_list):
+    for i, (count, burnin, filename) in enumerate(count_burnin_filename_list):
         output.force()
-        output.force(f"Analyzing file: {filename} (Weight: {weight:5.3f})")
+        output.force(f"Analyzing file: {filename}")
 
         # Open treefile. Discard (i.e., silently pass by) the requested number of trees
         if args.informat == "nexus":
@@ -553,7 +479,7 @@ def process_trees(wt_count_burnin_filename_list, args, output):
         # Read post-burnin trees from file, add to treesummary, print progress bar
         for j in range(burnin, count):
             tree = treefile.readtree(returntree=True)
-            treesummary.add_tree(tree, weight)
+            treesummary.add_tree(tree)
             progress.update()
             del tree
 
@@ -700,7 +626,7 @@ def  merge_treesummaries(treesummarylist):
 
 ##########################################################################################
 
-def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
+def compute_sumtree(treesummary, args, count_burnin_filename_list, output):
     """Controls computation of summary tree, setting of node depths and branch lengths,
        and annotation of summary tree with relevant attributes.
        """    
@@ -739,7 +665,7 @@ def compute_sumtree(treesummary, args, wt_count_burnin_filename_list, output):
         rooting=rooting,
         blen=blen,
         og=og,
-        wt_count_burnin_filename_list=wt_count_burnin_filename_list
+        count_burnin_filename_list=count_burnin_filename_list
     )
 
     output.force("done", padding=0)
