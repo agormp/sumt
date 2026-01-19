@@ -22,7 +22,7 @@ def main(commandlist=None):
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
         sumtree = compute_sumtree(treesummary, args, count_burnin_filename_list, output)
-        
+
         if args.treeprobs:
             trproblist = compute_trprobs(treesummary, args)
             trprobs_status_message = print_trprobs(treesummary, trproblist, args, output)            
