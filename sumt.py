@@ -130,9 +130,15 @@ def parse_commandline(commandlist):
         args.rootcred
         or (args.biplen and (args.treetype == "mcc"))
     )
-
+    
     # Branch lengths need to be tracked if biplen==True
     args.trackblen = args.biplen
+
+    # Root-branch length fractions are only needed for MCC + biplen
+    args.trackrootblen = (
+        args.treetype == "mcc"
+        and args.biplen
+    )
 
     # Node depths need to be tracked if meandepth==True
     args.trackdepth = args.meandepth
