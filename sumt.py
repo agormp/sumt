@@ -71,7 +71,26 @@ def parse_commandline(commandlist):
 
     if any(x < 0 or x > 1 for x in args.burninfrac):
         parser.error("option -b: NUM must be between 0.0 and 1.0")
-
+        
+    if args.ci is None:
+        args.ci_probs = None
+    else:
+        args.ci_probs = []
+        for part in args.ci.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                p = float(part)
+            except ValueError:
+                parser.error(f"--ci: not a float: {part}")
+            if not (0.0 < p < 1.0):
+                parser.error(f"--ci: prob must be in (0,1): {p}")
+            args.ci_probs.append(p)
+        if not args.ci_probs:
+            raise ValueError("--ci: no probabilities provided")
+        args.ci_probs = sorted(set(args.ci_probs))             # de-duplicate + sort for stable output   
+                    
     if args.treeprobs and (args.treeprobs > 1 or args.treeprobs < 0):
         parser.error(f"option -t: NUM must be between 0.0 and 1.0 (provided value: -t {args.treeprobs})")
 
@@ -126,7 +145,10 @@ def parse_commandline(commandlist):
         args.treetype in ("mcc", "mbc")
         or args.treeprobs
     )
-        
+    
+    # Quantiles need to be tracked if requested computation of one or more credible intervals
+    args.trackci = bool(args.ci_probs)
+
     return args
 
 ####################################################################################
@@ -282,15 +304,21 @@ def build_parser():
 
     bayes_grp = parser.add_argument_group("BAYESIAN PHYLOGENY OPTIONS")
 
-    bayes_grp.add_argument("-b", dest="burninfrac", metavar="NUM", type=float, default=[0], nargs='+',
-                           help="burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
-                           + "Either one value (used on all input files), or one value per input file.")
-
-    bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="NUM",
-                      help="compute tree probabilities, report NUM percent credible interval [0 - 1]")
+    bayes_grp.add_argument("-b", dest="burninfrac", metavar="FRAC", type=float, default=[0], nargs='+',
+                           help="Burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
+                           + "Either a single value (applied to all input files), or one value per input file.")
+                           
+    bayes_grp.add_argument("--ci", metavar="PROB[,PROB,PROB,...]", type=str,
+                      help="Compute one or more Bayesian credible intervals for branch lengths or node depths "
+                           "(when available). PROB is the central CI probability in (0,1), e.g. "
+                           "0.8,0.9 to get both 80%% and 90%% credible intervals.")
+    
+    bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="PROB",
+                      help="Compute tree probabilities; report PROB percent credible interval [0 - 1]")
 
     bayes_grp.add_argument("-s", action="store_true", dest="std",
-                      help="compute average standard deviation of split frequencies (ASDSF)")
+                      help="compute average standard deviation of split frequencies (ASDSF) between "
+                           "individual tree-files.")
 
     bayes_grp.add_argument("-f", type=float, dest="minfreq", metavar="NUM", default=0.1,
                       help="Minimum frequency for including bipartitions in computation of ASDSF [default: %(default)s]")
@@ -467,10 +495,13 @@ def process_trees(count_burnin_filename_list, args, output):
             trackclades=args.trackclades,
             trackroot=args.trackroot,
             trackblen=args.trackblen,
+            trackrootblen=args.trackrootblen,
             trackdepth=args.trackdepth,
             tracktopo=args.tracktopo,
             track_subcladepairs=args.track_subcladepairs,
-            store_trees=args.treeprobs
+            store_trees=args.treeprobs,
+            trackci=args.trackci, 
+            ci_probs=args.ci_probs
         )
 
         # Initialize the progress bar
