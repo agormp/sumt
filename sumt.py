@@ -176,9 +176,11 @@ def build_parser():
                       help="format of input tree files: %(choices)s [default: %(default)s]")
 
     inout_grp.add_argument("--outformat", action="store", metavar="FORMAT",
-                      choices=["newick", "nexus", "mcnexus"], default="mcnexus",
-                      help="format of output tree file: %(choices)s [default: %(default)s]. "
-                          +"mcnexus: nexus with metacomments as used by BEAST (e.g., [&height=100.0])")
+                      choices=["newick", "nexus"], default="nexus",
+                      help="format of output tree file: %(choices)s [default: %(default)s]")
+                      
+    inout_grp.add_argument("--nometa", action="store_true",
+                           help="Do not include node/branch annotations as Nexus metacomments in the output tree.")
 
     infile_excl.add_argument("-i", action="append", dest='infilelist', metavar='FILE', type=Path,
                         help="input FILE(s) containing phylogenetic trees (repeat -i FILE option for each input file)")
@@ -722,22 +724,10 @@ def print_sumtree(sumtree, args, output):
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "newick":
             tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
-                                     labelfield="posterior", precision=precision)            
+                                     labelfield="label", precision=precision, print_meta=not args.nometa)            
         elif args.outformat == "nexus":
             tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
-                                     labelfield="posterior", precision=precision)            
-        elif args.outformat == "mcnexus":
-            node_attributes = getattr(sumtree, "_print_node_attributes", None)
-            branch_attributes = getattr(sumtree, "_print_branch_attributes", None)
-
-            tree_str = sumtree.nexus(
-                printdist=printdist,
-                printlabels=printlabels,
-                labelfield="label",          
-                node_attributes=node_attributes,
-                branch_attributes=branch_attributes,
-                precision=precision
-            )
+                                     labelfield="label", precision=precision,  print_meta=not args.nometa)            
             
         confile.write(tree_str)
         confile.write("\n")
