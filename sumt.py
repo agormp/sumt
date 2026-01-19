@@ -92,7 +92,7 @@ def parse_commandline(commandlist):
         args.ci_probs = sorted(set(args.ci_probs))             # de-duplicate + sort for stable output   
                     
     if args.treeprobs and (args.treeprobs > 1 or args.treeprobs < 0):
-        parser.error(f"option -t: NUM must be between 0.0 and 1.0 (provided value: -t {args.treeprobs})")
+        parser.error(f"option -t: NUM must be between 0.0 and 1.0 (provided value: {args.treeprobs})")
 
     nfiles = len(args.infilelist)
     if args.std and nfiles==1:
