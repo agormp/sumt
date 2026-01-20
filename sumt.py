@@ -516,7 +516,7 @@ def process_trees(count_burnin_filename_list, args, output):
         )
 
         # Initialize the progress bar
-        progress = ProgressBar(total_trees=count, burnin=burnin, output=output, quiet=args.quiet)
+        progress = ProgressBar(ntot=count-burnin, output=output, quiet=args.quiet)        
 
         # Read post-burnin trees from file, add to treesummary, print progress bar
         for j in range(burnin, count):
@@ -644,17 +644,15 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
 ##########################################################################################
 
 class ProgressBar:
-    def __init__(self, total_trees, burnin, output, quiet=False):
+    def __init__(self, ntot, output, quiet=False):
         self.output = output
         self.quiet = quiet
-        self.total_trees = total_trees
-        self.burnin = burnin
-        self.processed_trees = 0
         self.progscale = "0      10      20      30      40      50      60      70      80      90     100"
         self.progticks = "v-------v-------v-------v-------v-------v-------v-------v-------v-------v-------v"
         self.ndots = len(self.progticks)
-        self.n_tot = total_trees - burnin
-        self.trees_per_dot = self.n_tot / self.ndots
+        self.ntot = ntot
+        self.finished = 0
+        self.items_per_dot = self.ntot / self.ndots
         self.n_dotsprinted = 0
 
         # Print progress bar header
@@ -665,11 +663,11 @@ class ProgressBar:
             self.output.force(f"{self.progticks}")
             self.output.force("", end="")
 
-    def update(self):
+    def update(self, nfinished=1):
         """ Update the progress bar based on the number of processed trees. """
         if not self.quiet:
-            self.processed_trees += 1
-            n_dots_expected = math.floor(self.processed_trees / self.trees_per_dot)
+            self.finished += nfinished
+            n_dots_expected = math.floor(self.finished / self.items_per_dot)
             if self.n_dotsprinted < n_dots_expected:
                 n_missing = n_dots_expected - self.n_dotsprinted
                 self.output.force("*" * n_missing, padding=0, end="")
