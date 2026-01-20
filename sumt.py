@@ -1,5 +1,6 @@
 import phylotreelib as pt
 import argparse, os, sys, time, math, copy, psutil, statistics, configparser
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from itertools import (takewhile,repeat)
 from operator import itemgetter
 from pathlib import Path
@@ -18,7 +19,9 @@ def main(commandlist=None):
         setup_output_directory(args.outbase)        
         n_trees_analyzed, count_burnin_filename_list = count_trees(args, output)        
 
-        treesummarylist = process_trees(count_burnin_filename_list, args, output)
+        #treesummarylist = process_trees(count_burnin_filename_list, args, output)
+        treesummarylist = process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed,
+                                                    max_chunk_size=250)
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
         sumtree = compute_sumtree(treesummary, args, count_burnin_filename_list, output)
@@ -529,6 +532,114 @@ def process_trees(count_burnin_filename_list, args, output):
         output.info()
 
     return treesummarylist
+
+####################################################################################      
+
+def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed,
+                             max_chunk_size=250, n_workers=8, max_pending=None):
+    """Process trees using multiple processors. Based on concurrent.futures module"""
+                             
+    # Initialize the progress bar
+    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet)        
+    
+    treesummarylist = []
+    for i in range(len(count_burnin_filename_list)):
+        # Instantiate one Treesummary object for each file, add to list
+        ts_global = pt.TreeSummary(
+            trackbips=args.trackbips,
+            trackclades=args.trackclades,
+            trackroot=args.trackroot,
+            trackblen=args.trackblen,
+            trackrootblen=args.trackrootblen,
+            trackdepth=args.trackdepth,
+            tracktopo=args.tracktopo,
+            track_subcladepairs=args.track_subcladepairs,
+            store_trees=args.treeprobs,
+            trackci=args.trackci, 
+            ci_probs=args.ci_probs
+        )
+        treesummarylist.append(ts_global)
+    
+    pending = set()
+    chunk_iterator = iter(chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size))
+
+    with ProcessPoolExecutor(max_workers=n_workers) as ex:
+        
+        # Start process by filling up set of pending tasks
+        if max_pending is None:
+            max_pending = 2 * n_workers
+        while len(pending) < max_pending:
+            try:
+                chunk, file_idx, parser_obj = next(chunk_iterator)
+            except StopIteration:
+                break
+            future = ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args)            
+            pending.add(future)            
+
+        # Continuously remove finished tasks, and refill pending to capacity
+        while pending:
+            for future in as_completed(pending):
+                pending.remove(future)
+                tree_summary, file_idx = future.result()
+                treesummarylist[file_idx].update(tree_summary)
+                progress.update(len(tree_summary))
+                while len(pending) < max_pending:
+                    try:
+                        chunk, file_idx, parser_obj = next(chunk_iterator)
+                    except StopIteration:
+                        break
+                    future = ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args)
+                    pending.add(future)
+
+    return treesummarylist
+
+##########################################################################################
+
+def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
+    """yields (file_idx, parser_obj, chunk_of_tree_strings) 
+    for use in paralellel processing of treefiles"""
+        
+    for file_idx, (count, burnin, filename) in enumerate(count_burnin_filename_list):
+        with pt.Treefile(filename) as tf:
+            parser_obj = tf.parser_obj
+            for i in range(burnin):
+                tf.readtree(returntree=False)
+            chunk = []
+            for i in range(burnin, count):
+                treestr = tf.readtree(returntree=False)
+                chunk.append(treestr)
+                if len(chunk) == max_chunk_size:
+                    yield (chunk, file_idx, parser_obj)
+                    chunk = []
+            if chunk:
+                yield (chunk, file_idx, parser_obj)
+
+##########################################################################################
+
+def worker_process_chunk(chunk, file_idx, parser_obj, args):
+    """Parses all tree-strings in chunk and adds to local TreeSummary 
+    returns tuple of (TreeSummary, file_idx)"""
+    
+    # Instantiate Treesummary.
+    ts = pt.TreeSummary(
+        trackbips=args.trackbips,
+        trackclades=args.trackclades,
+        trackroot=args.trackroot,
+        trackblen=args.trackblen,
+        trackrootblen=args.trackrootblen,
+        trackdepth=args.trackdepth,
+        tracktopo=args.tracktopo,
+        track_subcladepairs=args.track_subcladepairs,
+        store_trees=args.treeprobs,
+        trackci=args.trackci, 
+        ci_probs=args.ci_probs
+    )
+
+    # Parse tree-strings, add Tree objects to TreeSummary
+    for treestr in chunk:
+        tree = pt.Tree._from_string_private(parser_obj, treestr)
+        ts.add_tree(tree)     
+    return (ts, file_idx)
 
 ##########################################################################################
 
