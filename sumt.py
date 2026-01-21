@@ -20,8 +20,7 @@ def main(commandlist=None):
         n_trees_analyzed, count_burnin_filename_list = count_trees(args, output)        
 
         #treesummarylist = process_trees(count_burnin_filename_list, args, output)
-        treesummarylist = process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed,
-                                                    max_chunk_size=250)
+        treesummarylist = process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed)
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
         sumtree = compute_sumtree(treesummary, args, count_burnin_filename_list, output)
