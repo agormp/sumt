@@ -1,13 +1,12 @@
 import phylotreelib as pt
 import argparse, os, sys, time, math, copy, psutil, statistics, configparser, threading
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 from dataclasses import dataclass
 from itertools import (takewhile,repeat)
 from operator import itemgetter
 from pathlib import Path
 import gc
 gc.disable()        # Faster. Assume no cyclic references will ever be created
-
 
 ####################################################################################
 
@@ -22,8 +21,13 @@ def main(commandlist=None):
         setup_output_directory(args.outbase)        
         n_trees_analyzed, count_burnin_filename_list = count_trees(args, output)        
 
-        #treesummarylist = process_trees(count_burnin_filename_list, args, output)
-        treesummarylist = process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed)
+        if args.cpus == 1:
+            treesummarylist = process_trees(count_burnin_filename_list, args, output)
+            worker_pids = None
+        else:
+            treesummarylist, worker_pids = process_trees_concurrent(
+                                count_burnin_filename_list, args, output, n_trees_analyzed)
+
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
         sumtree = compute_sumtree(treesummary, args, count_burnin_filename_list, output)
@@ -34,7 +38,7 @@ def main(commandlist=None):
             output.info(trprobs_status_message)
         
         print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
-                             ave_std, args, output, mem_mon)
+                             ave_std, args, output, mem_mon, worker_pids)
         print_sumtree(sumtree, args, output)
         
     except Exception as error:
@@ -234,6 +238,15 @@ def parse_commandline(commandlist):
     
     # Quantiles need to be tracked if requested computation of one or more credible intervals
     args.trackci = bool(args.ci_probs)
+    
+    if args.cpus < 0:
+        parser.error("--cpus must be >= 0")
+    if args.chunksize <= 0:
+        parser.error("--chunksize must be >= 1")
+
+    if args.cpus == 0:
+        ncpu = psutil.cpu_count(logical=True) or 1
+        args.cpus = ncpu
 
     return args
 
@@ -410,6 +423,19 @@ def build_parser():
 
     bayes_grp.add_argument("-f", type=float, dest="minfreq", metavar="NUM", default=0.1,
                       help="Minimum frequency for including bipartitions in computation of ASDSF [default: %(default)s]")
+
+    ####################################################################################
+
+    perf_grp = parser.add_argument_group("PERFORMANCE OPTIONS")
+
+    perf_grp.add_argument("--cpus", type=int, default=0, metavar="N",
+        help="Number of CPUs to use for parallel processing. "
+            "Default: 0 (automatic). Use 1 to run without parallel processing.")
+
+    perf_grp.add_argument("--chunksize", type=int, default=250, metavar="N",
+        help="Number of trees per work chunk sent to a process. "
+            "Larger chunks reduce overhead but use more memory per process and may reduce load balancing. "
+            "[default: %(default)s]")
 
     ####################################################################################
 
@@ -607,16 +633,17 @@ def process_trees(count_burnin_filename_list, args, output):
 
 ####################################################################################      
 
-def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed,
-                             max_chunk_size=250, n_workers=8, max_pending=None):
-    """Process trees using multiple processors. Based on concurrent.futures module"""
-                             
-    # Initialize the progress bar
-    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet)        
-    
+def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed):
+    """Process trees using multiple processors. Avoids per-task pickling of parser/args."""
+    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet)
+
+    ncpus = args.cpus
+    max_pending = 2 * ncpus
+    max_chunk_size = args.chunksize
+
+    # Global summaries (in parent only)
     treesummarylist = []
-    for i in range(len(count_burnin_filename_list)):
-        # Instantiate one Treesummary object for each file, add to list
+    for _ in range(len(count_burnin_filename_list)):
         ts_global = pt.TreeSummary(
             trackbips=args.trackbips,
             trackclades=args.trackclades,
@@ -627,8 +654,8 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
             tracktopo=args.tracktopo,
             track_subcladepairs=args.track_subcladepairs,
             store_trees=args.treeprobs,
-            trackci=args.trackci, 
-            ci_probs=args.ci_probs
+            trackci=args.trackci,
+            ci_probs=args.ci_probs,
         )
         treesummarylist.append(ts_global)
     
@@ -648,44 +675,46 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
             future = ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args)            
             pending.add(future)            
 
-        # Continuously remove finished tasks, and refill pending to capacity
+        # Harvest + refill
         while pending:
-            for future in as_completed(pending):
-                pending.remove(future)
-                tree_summary, file_idx = future.result()
+            done, pending = wait(pending, return_when=FIRST_COMPLETED)
+
+            for fut in done:
+                tree_summary, file_idx, pid = fut.result()
+                worker_pids.add(pid)
+
                 treesummarylist[file_idx].update(tree_summary)
                 progress.update(len(tree_summary))
-                while len(pending) < max_pending:
-                    try:
-                        chunk, file_idx, parser_obj = next(chunk_iterator)
-                    except StopIteration:
-                        break
-                    future = ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args)
-                    pending.add(future)
 
-    return treesummarylist
+            while len(pending) < max_pending:
+                try:
+                    chunk, file_idx = next(chunk_iterator)
+                except StopIteration:
+                    break
+                pending.add(ex.submit(worker_process_chunk, chunk, file_idx))
+
+    return treesummarylist, worker_pids
 
 ##########################################################################################
 
 def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
-    """yields (file_idx, parser_obj, chunk_of_tree_strings) 
-    for use in paralellel processing of treefiles"""
-        
+    """yields (chunk_of_tree_strings, file_idx)"""
+    
     for file_idx, (count, burnin, filename) in enumerate(count_burnin_filename_list):
         with pt.Treefile(filename) as tf:
-            parser_obj = tf.parser_obj
-            for i in range(burnin):
+            for _ in range(burnin):
                 tf.readtree(returntree=False)
+
             chunk = []
-            for i in range(burnin, count):
+            for _ in range(burnin, count):
                 treestr = tf.readtree(returntree=False)
                 chunk.append(treestr)
                 if len(chunk) == max_chunk_size:
-                    yield (chunk, file_idx, parser_obj)
+                    yield (chunk, file_idx)
                     chunk = []
             if chunk:
-                yield (chunk, file_idx, parser_obj)
-
+                yield (chunk, file_idx)
+                
 ##########################################################################################
 
 def worker_process_chunk(chunk, file_idx, parser_obj, args):
@@ -707,11 +736,11 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
         ci_probs=args.ci_probs
     )
 
-    # Parse tree-strings, add Tree objects to TreeSummary
     for treestr in chunk:
-        tree = pt.Tree._from_string_private(parser_obj, treestr)
-        ts.add_tree(tree)     
-    return (ts, file_idx)
+        tree = pt.Tree._from_string_private(parser, treestr)
+        ts.add_tree(tree)
+
+    return (ts, file_idx, os.getpid())
 
 ##########################################################################################
 
@@ -1003,7 +1032,7 @@ def memory_summary_line(peak):
     total = psutil.virtual_memory().total
     pct = (peak.peak_total_rss_bytes / total * 100.0) if total else 0.0
     return (
-        f"Peak memory used (this run): "
+        f"Peak memory used: "
         f"{fmt_mem(peak.peak_total_rss_bytes)} / {fmt_mem(total)} ({pct:.1f}%), "
         f"free at peak: {fmt_mem(peak.peak_available_bytes_at_peak)}"
     )
@@ -1011,7 +1040,7 @@ def memory_summary_line(peak):
 ##########################################################################################
 
 def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
-                         ave_std, args, output, mem_mon):
+                         ave_std, args, output, mem_mon, worker_pids=None):
 
     sumvar_tuple = compute_summary_variables(sumtree, treesummary, start, args)
     (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen, 
@@ -1086,6 +1115,14 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
 
     output.info()
     output.info(f"Done. {n_trees_analyzed:,d} trees analyzed.\n   Time spent: {h:d}:{m:02d}:{s:02d} (h:m:s)")
+    
+    # Processor count reporting
+    if worker_pids:
+        procs_used = len(worker_pids)
+        output.info(cpu_process_summary_line(procs_used))
+    else:
+        # Serial path: 1 process (this one)
+        output.info(cpu_process_summary_line(1))
         
     peakmem = mem_mon.stop()
     output.info(memory_summary_line(peakmem))
