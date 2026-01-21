@@ -139,71 +139,6 @@ def cpu_process_summary_line(processes_used):
 
 ####################################################################################    
 
-# Helpers for initialising workers
-# to avoid repeated pickling and unpickling of objects passed to worker
-
-# --- worker-side globals (set once via initializer) ---
-_WORKER_TRACK = None          # tuple of primitive config
-_WORKER_CI_PROBS = None       # tuple[float]
-_WORKER_FILE_TRANSDICTS = None  # list[dict|None], index by file_idx
-_WORKER_PARSERS = None        # dict[file_idx] -> parser_obj
-
-@dataclass(frozen=True)
-class WorkerTrackConfig:
-    trackbips: bool
-    trackclades: bool
-    trackroot: bool
-    trackblen: bool
-    trackrootblen: bool
-    trackdepth: bool
-    tracktopo: bool
-    track_subcladepairs: bool
-    store_trees: bool
-    trackci: bool
-
-def _make_track_config(args):
-    # Pack only the stuff the worker needs to instantiate TreeSummary.
-    return WorkerTrackConfig(
-        trackbips=bool(args.trackbips),
-        trackclades=bool(args.trackclades),
-        trackroot=bool(args.trackroot),
-        trackblen=bool(args.trackblen),
-        trackrootblen=bool(args.trackrootblen),
-        trackdepth=bool(args.trackdepth),
-        tracktopo=bool(args.tracktopo),
-        track_subcladepairs=bool(args.track_subcladepairs),
-        store_trees=bool(args.treeprobs),
-        trackci=bool(args.trackci),
-    )
-
-def _build_file_transdicts(count_burnin_filename_list):
-    """
-    Build per-file transdicts ONCE in the parent.
-    This is the only time we parse translate blocks in the parent.
-    Returned list is pickled once per worker (in initargs), not per task.
-    """
-    transdicts = []
-    for (_, _, filename) in count_burnin_filename_list:
-        with pt.Treefile(filename) as tf:
-            td = getattr(tf, "transdict", None)
-            # Normalize: store None or a plain dict (picklable)
-            transdicts.append(td if td else None)
-    return transdicts
-
-def _worker_init(track_cfg: WorkerTrackConfig, ci_probs, file_transdicts):
-    """
-    Runs once per worker process.
-    Stores config + per-file translation dicts in globals.
-    Parsers are created lazily per file_idx and cached.
-    """
-    global _WORKER_TRACK, _WORKER_CI_PROBS, _WORKER_FILE_TRANSDICTS, _WORKER_PARSERS
-    _WORKER_TRACK = track_cfg
-    _WORKER_CI_PROBS = tuple(ci_probs or ())
-    _WORKER_FILE_TRANSDICTS = list(file_transdicts)
-    _WORKER_PARSERS = {}
-
-####################################################################################
-
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
     # Will be "None" when run in script mode, and argparse will then automatically take values from sys.argv[1:]
@@ -717,7 +652,7 @@ def process_trees(count_burnin_filename_list, args, output):
 ####################################################################################      
 
 def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed):
-    """Process trees using multiple processors. Avoids per-task pickling of parser/args."""
+    """Process trees using multiple processors."""
     progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet)
 
     ncpus = args.cpus
@@ -742,29 +677,20 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
         )
         treesummarylist.append(ts_global)
 
-    # Build worker init payloads ONCE
-    track_cfg = _make_track_config(args)
-    file_transdicts = _build_file_transdicts(count_burnin_filename_list)
-    ci_probs = tuple(args.ci_probs or ())
-
     pending = set()
     chunk_iterator = iter(chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size))
 
     worker_pids = set()
 
-    with ProcessPoolExecutor(
-        max_workers=ncpus,
-        initializer=_worker_init,
-        initargs=(track_cfg, ci_probs, file_transdicts),
-    ) as ex:
+    with ProcessPoolExecutor(max_workers=ncpus) as ex:
 
         # Prime the pipeline
         while len(pending) < max_pending:
             try:
-                chunk, file_idx = next(chunk_iterator)
+                chunk, file_idx, parser_obj = next(chunk_iterator)
             except StopIteration:
                 break
-            pending.add(ex.submit(worker_process_chunk, chunk, file_idx))
+            pending.add(ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args))
 
         # Harvest + refill
         while pending:
@@ -779,20 +705,22 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
 
             while len(pending) < max_pending:
                 try:
-                    chunk, file_idx = next(chunk_iterator)
+                    chunk, file_idx, parser_obj = next(chunk_iterator)
                 except StopIteration:
                     break
-                pending.add(ex.submit(worker_process_chunk, chunk, file_idx))
+                pending.add(ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args))
 
     return treesummarylist, worker_pids
 
 ##########################################################################################
 
 def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
-    """yields (chunk_of_tree_strings, file_idx)"""
-    
+    """yields (chunk_of_tree_strings, file_idx, parser_obj)"""
+
     for file_idx, (count, burnin, filename) in enumerate(count_burnin_filename_list):
         with pt.Treefile(filename) as tf:
+            parser_obj = tf.parser_obj  # created in parent
+
             for _ in range(burnin):
                 tf.readtree(returntree=False)
 
@@ -801,47 +729,36 @@ def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
                 treestr = tf.readtree(returntree=False)
                 chunk.append(treestr)
                 if len(chunk) == max_chunk_size:
-                    yield (chunk, file_idx)
+                    yield (chunk, file_idx, parser_obj)
                     chunk = []
             if chunk:
-                yield (chunk, file_idx)
-                
+                yield (chunk, file_idx, parser_obj)
+                                
 ##########################################################################################
     
-def worker_process_chunk(chunk, file_idx):
-    """
-    Worker: parse a chunk of tree strings and build a local TreeSummary.
-    Uses per-worker cached parser for that file_idx.
-    Returns (ts, file_idx, pid).
-    """
-    # Lazy-create & cache a parser per file_idx in this worker
-    parser = _WORKER_PARSERS.get(file_idx)
-    if parser is None:
-        td = _WORKER_FILE_TRANSDICTS[file_idx]
-        parser = pt.NewickStringParser(td)   # td may be None; that's fine
-        _WORKER_PARSERS[file_idx] = parser
+def worker_process_chunk(chunk, file_idx, parser_obj, args):
+    """Worker: parse chunk and return (TreeSummary, file_idx, pid)."""
 
-    tc = _WORKER_TRACK
     ts = pt.TreeSummary(
-        trackbips=tc.trackbips,
-        trackclades=tc.trackclades,
-        trackroot=tc.trackroot,
-        trackblen=tc.trackblen,
-        trackrootblen=tc.trackrootblen,
-        trackdepth=tc.trackdepth,
-        tracktopo=tc.tracktopo,
-        track_subcladepairs=tc.track_subcladepairs,
-        store_trees=tc.store_trees,
-        trackci=tc.trackci,
-        ci_probs=_WORKER_CI_PROBS,
+        trackbips=args.trackbips,
+        trackclades=args.trackclades,
+        trackroot=args.trackroot,
+        trackblen=args.trackblen,
+        trackrootblen=args.trackrootblen,
+        trackdepth=args.trackdepth,
+        tracktopo=args.tracktopo,
+        track_subcladepairs=args.track_subcladepairs,
+        store_trees=args.treeprobs,
+        trackci=args.trackci,
+        ci_probs=args.ci_probs,
     )
 
     for treestr in chunk:
-        tree = pt.Tree._from_string_private(parser, treestr)
+        tree = pt.Tree._from_string_private(parser_obj, treestr)
         ts.add_tree(tree)
 
     return (ts, file_idx, os.getpid())
-
+    
 ##########################################################################################
 
 class ProgressBar:
