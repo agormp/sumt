@@ -1,17 +1,20 @@
 import phylotreelib as pt
-import argparse, os, sys, time, math, copy, psutil, statistics, configparser
+import argparse, os, sys, time, math, copy, psutil, statistics, configparser, threading
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import dataclass
 from itertools import (takewhile,repeat)
 from operator import itemgetter
 from pathlib import Path
 import gc
 gc.disable()        # Faster. Assume no cyclic references will ever be created
 
+
 ####################################################################################
 
 def main(commandlist=None):
     start=time.time()
-    pid = psutil.Process(os.getpid())
+    mem_mon = PeakMemoryMonitor(interval_s=1)
+    mem_mon.start()
     args = parse_commandline(commandlist)
 
     try:
@@ -30,12 +33,87 @@ def main(commandlist=None):
             trprobs_status_message = print_trprobs(treesummary, trproblist, args, output)            
             output.info(trprobs_status_message)
         
-        print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
-                             ave_std, args, output)
+        print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
+                             ave_std, args, output, mem_mon)
         print_sumtree(sumtree, args, output)
         
     except Exception as error:
         handle_error(error, args.verbose)
+
+####################################################################################
+
+@dataclass
+class MemPeak:
+    peak_total_rss_bytes = 0
+    peak_available_bytes_at_peak = 0  
+    sample_count = 0
+
+####################################################################################
+
+class PeakMemoryMonitor:
+    """
+    Cross-platform (Linux/macOS/Windows) peak memory monitor.
+
+    Measures:
+      - peak total RSS across this process + all descendants
+      - peak system memory used percent (overall machine pressure)
+
+    Notes:
+      - RSS sums may double-count shared pages (libraries, CoW)
+      - Sampling interval trades overhead vs accuracy.
+    """
+
+    def __init__(self, interval_s: float = 0.2):
+        self.interval_s = float(interval_s)
+        self._stop = threading.Event()
+        self._thread = None
+        self.peak = MemPeak()
+
+    def start(self):
+        if self._thread is not None:
+            return
+        self._thread = threading.Thread(target=self._run, name="PeakMemoryMonitor", daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        if self._thread is None:
+            return self.peak
+        self._stop.set()
+        self._thread.join()
+        self._thread = None
+        return self.peak
+
+    def _run(self):
+        root_pid = os.getpid()
+        while not self._stop.is_set():
+            total_rss = 0
+
+            # System-level pressure (what you ultimately care about for “crash risk”)
+            try:
+                vm = psutil.virtual_memory()
+                avail = int(vm.available)
+            except Exception:
+                avail = 0
+                
+            # Process tree RSS (parent + all descendants)
+            try:
+                root = psutil.Process(root_pid)
+                procs = [root] + root.children(recursive=True)
+            except Exception:
+                procs = []
+
+            for p in procs:
+                try:
+                    total_rss += p.memory_info().rss
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+
+            if total_rss > self.peak.peak_total_rss_bytes:
+                self.peak.peak_total_rss_bytes = total_rss
+                self.peak.peak_available_bytes_at_peak = avail 
+
+            self.peak.sample_count += 1
+            time.sleep(self.interval_s)
 
 ####################################################################################
 
@@ -475,11 +553,6 @@ def count_trees_by_parsing(filename, args):
     for tree in treefile:
         treecount += 1
     return treecount
-
-####################################################################################
-
-def track_memory_usage(pid):
-    return pid.memory_full_info().rss
   
 ####################################################################################      
 
@@ -920,12 +993,29 @@ def print_trprobs(treesummary, trproblist, args, output):
 
 ##########################################################################################
 
-def print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
-                         ave_std, args, output):
+def fmt_mem(n_bytes):
+    if n_bytes > 1E9:
+        return f"{n_bytes / 1024**3:.1f} GB"
+    else:
+        return f"{n_bytes / 1024**2:.1f} MB"
 
-    sumvar_tuple = compute_summary_variables(sumtree, treesummary, pid, start, args)
+def memory_summary_line(peak):
+    total = psutil.virtual_memory().total
+    pct = (peak.peak_total_rss_bytes / total * 100.0) if total else 0.0
+    return (
+        f"Peak memory used (this run): "
+        f"{fmt_mem(peak.peak_total_rss_bytes)} / {fmt_mem(total)} ({pct:.1f}%), "
+        f"free at peak: {fmt_mem(peak.peak_available_bytes_at_peak)}"
+    )
+    
+##########################################################################################
+
+def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
+                         ave_std, args, output, mem_mon):
+
+    sumvar_tuple = compute_summary_variables(sumtree, treesummary, start, args)
     (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen, 
-     treetype, n_internal_biparts, rootdegree, h, m, s, memorymax) = sumvar_tuple
+     treetype, n_internal_biparts, rootdegree, h, m, s) = sumvar_tuple
     
     # Information about bipartitions, clades and topologies
     output.info()
@@ -996,18 +1086,14 @@ def print_result_summary(sumtree, treesummary, start, pid, n_trees_analyzed,
 
     output.info()
     output.info(f"Done. {n_trees_analyzed:,d} trees analyzed.\n   Time spent: {h:d}:{m:02d}:{s:02d} (h:m:s)")
-
-    if memorymax > 1E9:
-        output.info("Max memory used: {:,.2f} GB.".format( memorymax  / (1024**3) ))
-    else:
-        output.info("Max memory used: {:,.2f} MB.".format( memorymax  / (1024**2) ))
-
+        
+    peakmem = mem_mon.stop()
+    output.info(memory_summary_line(peakmem))
+        
 ##########################################################################################
 
-def compute_summary_variables(sumtree, treesummary, pid, start, args):
-    
-    memorymax = track_memory_usage(pid)
-    
+def compute_summary_variables(sumtree, treesummary, start, args):
+        
     if args.treeprobs:
         if args.trackclades:
             n_topo_seen = len(treesummary.cladetoposummary)
@@ -1053,7 +1139,7 @@ def compute_summary_variables(sumtree, treesummary, pid, start, args):
     s = int(time_spent % 60)
 
     return   (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen, 
-              treetype, n_internal_biparts, rootdegree, h, m, s, memorymax)
+              treetype, n_internal_biparts, rootdegree, h, m, s)
               
 ##########################################################################################
 
