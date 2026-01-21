@@ -121,6 +121,89 @@ class PeakMemoryMonitor:
 
 ####################################################################################
 
+def _get_pid(_=None):
+    return os.getpid()
+
+####################################################################################
+
+def available_logical_cpus():
+    n = psutil.cpu_count(logical=True)
+    return n if n else 1
+
+####################################################################################
+
+def cpu_process_summary_line(processes_used):
+    total = available_logical_cpus()
+    pct = (processes_used / total * 100.0) if total else 0.0
+    return f"Number of processors used: {processes_used} / {total} ({pct:.0f}%)"
+
+####################################################################################    
+
+# Helpers for initialising workers
+# to avoid repeated pickling and unpickling of objects passed to worker
+
+# --- worker-side globals (set once via initializer) ---
+_WORKER_TRACK = None          # tuple of primitive config
+_WORKER_CI_PROBS = None       # tuple[float]
+_WORKER_FILE_TRANSDICTS = None  # list[dict|None], index by file_idx
+_WORKER_PARSERS = None        # dict[file_idx] -> parser_obj
+
+@dataclass(frozen=True)
+class WorkerTrackConfig:
+    trackbips: bool
+    trackclades: bool
+    trackroot: bool
+    trackblen: bool
+    trackrootblen: bool
+    trackdepth: bool
+    tracktopo: bool
+    track_subcladepairs: bool
+    store_trees: bool
+    trackci: bool
+
+def _make_track_config(args):
+    # Pack only the stuff the worker needs to instantiate TreeSummary.
+    return WorkerTrackConfig(
+        trackbips=bool(args.trackbips),
+        trackclades=bool(args.trackclades),
+        trackroot=bool(args.trackroot),
+        trackblen=bool(args.trackblen),
+        trackrootblen=bool(args.trackrootblen),
+        trackdepth=bool(args.trackdepth),
+        tracktopo=bool(args.tracktopo),
+        track_subcladepairs=bool(args.track_subcladepairs),
+        store_trees=bool(args.treeprobs),
+        trackci=bool(args.trackci),
+    )
+
+def _build_file_transdicts(count_burnin_filename_list):
+    """
+    Build per-file transdicts ONCE in the parent.
+    This is the only time we parse translate blocks in the parent.
+    Returned list is pickled once per worker (in initargs), not per task.
+    """
+    transdicts = []
+    for (_, _, filename) in count_burnin_filename_list:
+        with pt.Treefile(filename) as tf:
+            td = getattr(tf, "transdict", None)
+            # Normalize: store None or a plain dict (picklable)
+            transdicts.append(td if td else None)
+    return transdicts
+
+def _worker_init(track_cfg: WorkerTrackConfig, ci_probs, file_transdicts):
+    """
+    Runs once per worker process.
+    Stores config + per-file translation dicts in globals.
+    Parsers are created lazily per file_idx and cached.
+    """
+    global _WORKER_TRACK, _WORKER_CI_PROBS, _WORKER_FILE_TRANSDICTS, _WORKER_PARSERS
+    _WORKER_TRACK = track_cfg
+    _WORKER_CI_PROBS = tuple(ci_probs or ())
+    _WORKER_FILE_TRANSDICTS = list(file_transdicts)
+    _WORKER_PARSERS = {}
+
+####################################################################################
+
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
     # Will be "None" when run in script mode, and argparse will then automatically take values from sys.argv[1:]
@@ -658,22 +741,30 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
             ci_probs=args.ci_probs,
         )
         treesummarylist.append(ts_global)
-    
+
+    # Build worker init payloads ONCE
+    track_cfg = _make_track_config(args)
+    file_transdicts = _build_file_transdicts(count_burnin_filename_list)
+    ci_probs = tuple(args.ci_probs or ())
+
     pending = set()
     chunk_iterator = iter(chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size))
 
-    with ProcessPoolExecutor(max_workers=n_workers) as ex:
-        
-        # Start process by filling up set of pending tasks
-        if max_pending is None:
-            max_pending = 2 * n_workers
+    worker_pids = set()
+
+    with ProcessPoolExecutor(
+        max_workers=ncpus,
+        initializer=_worker_init,
+        initargs=(track_cfg, ci_probs, file_transdicts),
+    ) as ex:
+
+        # Prime the pipeline
         while len(pending) < max_pending:
             try:
-                chunk, file_idx, parser_obj = next(chunk_iterator)
+                chunk, file_idx = next(chunk_iterator)
             except StopIteration:
                 break
-            future = ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args)            
-            pending.add(future)            
+            pending.add(ex.submit(worker_process_chunk, chunk, file_idx))
 
         # Harvest + refill
         while pending:
@@ -716,24 +807,33 @@ def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
                 yield (chunk, file_idx)
                 
 ##########################################################################################
-
-def worker_process_chunk(chunk, file_idx, parser_obj, args):
-    """Parses all tree-strings in chunk and adds to local TreeSummary 
-    returns tuple of (TreeSummary, file_idx)"""
     
-    # Instantiate Treesummary.
+def worker_process_chunk(chunk, file_idx):
+    """
+    Worker: parse a chunk of tree strings and build a local TreeSummary.
+    Uses per-worker cached parser for that file_idx.
+    Returns (ts, file_idx, pid).
+    """
+    # Lazy-create & cache a parser per file_idx in this worker
+    parser = _WORKER_PARSERS.get(file_idx)
+    if parser is None:
+        td = _WORKER_FILE_TRANSDICTS[file_idx]
+        parser = pt.NewickStringParser(td)   # td may be None; that's fine
+        _WORKER_PARSERS[file_idx] = parser
+
+    tc = _WORKER_TRACK
     ts = pt.TreeSummary(
-        trackbips=args.trackbips,
-        trackclades=args.trackclades,
-        trackroot=args.trackroot,
-        trackblen=args.trackblen,
-        trackrootblen=args.trackrootblen,
-        trackdepth=args.trackdepth,
-        tracktopo=args.tracktopo,
-        track_subcladepairs=args.track_subcladepairs,
-        store_trees=args.treeprobs,
-        trackci=args.trackci, 
-        ci_probs=args.ci_probs
+        trackbips=tc.trackbips,
+        trackclades=tc.trackclades,
+        trackroot=tc.trackroot,
+        trackblen=tc.trackblen,
+        trackrootblen=tc.trackrootblen,
+        trackdepth=tc.trackdepth,
+        tracktopo=tc.tracktopo,
+        track_subcladepairs=tc.track_subcladepairs,
+        store_trees=tc.store_trees,
+        trackci=tc.trackci,
+        ci_probs=_WORKER_CI_PROBS,
     )
 
     for treestr in chunk:
