@@ -636,7 +636,7 @@ def process_trees(count_burnin_filename_list, args, output):
         )
 
         # Initialize the progress bar
-        progress = ProgressBar(ntot=count-burnin, output=output, quiet=args.quiet)        
+        progress = ProgressBar(ntot=count-burnin, output=output, quiet=args.quiet, text="Processing trees:")
 
         # Read post-burnin trees from file, add to treesummary, print progress bar
         for j in range(burnin, count):
@@ -653,11 +653,12 @@ def process_trees(count_burnin_filename_list, args, output):
 
     return treesummarylist
 
-####################################################################################      
+####################################################################################
 
 def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed):
     """Process trees using multiple processors."""
-    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet)
+    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet,
+                           text="Processing trees:")
 
     ncpus = args.cpus
     max_pending = 2 * ncpus
@@ -798,7 +799,8 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
 
     global_est = pt.CADepthEstimator(plan, trackci=args.trackci and bool(args.ci_probs))
 
-    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet)
+    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet,
+                           text="Finding common ancestor node-depths:")
 
     ncpus = args.cpus
     max_pending = 2 * ncpus
@@ -838,13 +840,14 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
                     break
                 pending.add(ex.submit(worker_process_ca_chunk, chunk, parser_obj))
 
+    output.info()
     global_est.write_into(sumtree)
     return sumtree, worker_pids
 
 ####################################################################################
 
 class ProgressBar:
-    def __init__(self, ntot, output, quiet=False):
+    def __init__(self, ntot, output, quiet=False, text="Processing items:"):
         self.output = output
         self.quiet = quiet
         self.progscale = "0      10      20      30      40      50      60      70      80      90     100"
@@ -854,11 +857,12 @@ class ProgressBar:
         self.finished = 0
         self.items_per_dot = self.ntot / self.ndots
         self.n_dotsprinted = 0
+        self.text = text
 
         # Print progress bar header
         if not self.quiet:
             self.output.force()
-            self.output.force("Processing trees:")
+            self.output.force(self.text)
             self.output.force(f"{self.progscale}")
             self.output.force(f"{self.progticks}")
             self.output.force("", end="")
