@@ -655,13 +655,19 @@ def process_trees(count_burnin_filename_list, args, output):
 
 def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed):
     """Process trees using multiple processors."""
+    
+    output.info()
+    filetable = file_overview_table(count_burnin_filename_list, output)
+    output.info(filetable, padding=0)
+    output.info()
+
     progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet,
                            text="Processing trees:")
 
     ncpus = args.cpus
     max_pending = 2 * ncpus
     max_chunk_size = args.chunksize
-
+    
     # Global summaries (in parent only)
     treesummarylist = []
     for _ in range(len(count_burnin_filename_list)):
@@ -716,6 +722,59 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
     output.info()
     return treesummarylist, worker_pids
 
+##########################################################################################
+
+def file_overview_table(count_burnin_filename_list, output, show_path=False, padding=3):
+    """Prints table with columns for filename, treecount, burnin-fraction, burnin, kept"""
+    
+    filename_header = "Filename"
+    treecount_header = "Treecount"
+    burnfrac_header  = "BurninFrac"
+    burnin_header    = "Burnin"
+    kept_header  = "Kept"
+    
+    rows = []
+    for count, burnin, filename in count_burnin_filename_list:
+        fn = str(filename) if show_path else Path(filename).name
+        kept = count - burnin
+        burnfrac = (burnin / count) if count else 0.0  # avoid ZeroDivisionError
+        burnfrac_str = f"{burnfrac:.2f}"
+        rows.append((fn, count, burnfrac_str, burnin, kept))
+    
+    # Widths (at least as wide as the headers)
+    fn_w = max([len(filename_header)] + [len(r[0]) for r in rows])
+    tc_w = max([len(treecount_header)] + [len(str(r[1])) for r in rows])
+    bf_w = max([len(burnfrac_header)]  + [len(r[2]) for r in rows])
+    bi_w = max([len(burnin_header)]    + [len(str(r[3])) for r in rows])
+    an_w = max([len(kept_header)]  + [len(str(r[4])) for r in rows])
+
+    header = (
+        f"{padding * ' '}{filename_header:<{fn_w}}  "
+        f"{treecount_header:>{tc_w}}  "
+        f"{burnfrac_header:>{bf_w}}  "
+        f"{burnin_header:>{bi_w}}  "
+        f"{kept_header:>{an_w}}"
+    )
+    divider = (
+        f"{padding * ' '}{'-' * fn_w}  "
+        f"{'-' * tc_w}  "
+        f"{'-' * bf_w}  "
+        f"{'-' * bi_w}  "
+        f"{'-' * an_w}"
+    )
+
+    lines = [header, divider]
+    for fn, count, burnfrac_str, burnin, kept in rows:
+        lines.append(
+            f"{padding * ' '}{fn:<{fn_w}}  "
+            f"{count:>{tc_w}d}  "
+            f"{burnfrac_str:>{bf_w}}  "
+            f"{burnin:>{bi_w}d}  "
+            f"{kept:>{an_w}d}"
+        )
+
+    return "\n".join(lines)
+    
 ##########################################################################################
 
 def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
