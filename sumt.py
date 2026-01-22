@@ -715,6 +715,7 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
                     break
                 pending.add(ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args))
 
+    output.info()
     return treesummarylist, worker_pids
 
 ##########################################################################################
@@ -998,8 +999,8 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
         og = None
 
     output.info()
-    output.force("Computing summary tree...", end="")
-    
+    output.force("Computing summary tree")
+
     if args.cadepth and args.cpus > 1:
         # 1) Build topology + root, but do NOT do CA depths inside TreeSummary
         sumtree = treesummary.compute_sumtree(
@@ -1045,9 +1046,8 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
             count_burnin_filename_list=count_burnin_filename_list
         )
 
-    output.force("done", padding=0)
     return sumtree
-    
+
 ##########################################################################################
 
 def print_sumtree(sumtree, args, output):
