@@ -8,6 +8,10 @@ from pathlib import Path
 import gc
 gc.disable()        # Faster. Assume no cyclic references will ever be created
 
+# CA-depth worker globals (set by _ca_worker_init)
+_CA_PLAN = None
+_CA_TRACKCI = False
+
 ####################################################################################
 
 def main(commandlist=None):
@@ -30,7 +34,7 @@ def main(commandlist=None):
 
         ave_std = compute_converge_stats(treesummarylist, args) if args.std else None
         treesummary = merge_treesummaries(treesummarylist)
-        sumtree = compute_sumtree(treesummary, args, count_burnin_filename_list, output)
+        sumtree = compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_trees_analyzed, worker_pids=None)
 
         if args.treeprobs:
             trproblist = compute_trprobs(treesummary, args)
@@ -761,6 +765,84 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
     
 ##########################################################################################
 
+def _ca_worker_init(plan, trackci):
+    global _CA_PLAN, _CA_TRACKCI
+    _CA_PLAN = plan
+    _CA_TRACKCI = bool(trackci)
+
+####################################################################################
+
+def worker_process_ca_chunk(chunk, parser_obj):
+    """
+    Worker: parse chunk -> update local CADepthEstimator -> return it.
+    """
+    est = pt.CADepthEstimator(_CA_PLAN, trackci=_CA_TRACKCI)
+    for treestr in chunk:
+        tree = pt.Tree._from_string_private(parser_obj, treestr)
+        est.add_tree(tree)
+    return (est, len(chunk), os.getpid())
+
+####################################################################################
+
+def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, n_trees_analyzed):
+    """
+    Second pass over the tree samples, parallelized.
+    Returns sumtree with CA depths written into nodes.
+    """
+    # Build plan once in parent
+    plan = pt.CADepthEstimator.build_plan(
+        sumtree,
+        trackci=args.trackci and bool(args.ci_probs),
+        ci_probs=args.ci_probs,
+    )
+
+    global_est = pt.CADepthEstimator(plan, trackci=args.trackci and bool(args.ci_probs))
+
+    progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet)
+
+    ncpus = args.cpus
+    max_pending = 2 * ncpus
+    max_chunk_size = args.chunksize
+
+    pending = set()
+    chunk_iterator = iter(chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size))
+    worker_pids = set()
+
+    with ProcessPoolExecutor(
+        max_workers=ncpus,
+        initializer=_ca_worker_init,
+        initargs=(plan, args.trackci and bool(args.ci_probs)),
+    ) as ex:
+
+        # Prime
+        while len(pending) < max_pending:
+            try:
+                chunk, _file_idx, parser_obj = next(chunk_iterator)
+            except StopIteration:
+                break
+            pending.add(ex.submit(worker_process_ca_chunk, chunk, parser_obj))
+
+        # Harvest + refill
+        while pending:
+            done, pending = wait(pending, return_when=FIRST_COMPLETED)
+            for fut in done:
+                est_part, ntrees, pid = fut.result()
+                worker_pids.add(pid)
+                global_est.merge(est_part)
+                progress.update(ntrees)
+
+            while len(pending) < max_pending:
+                try:
+                    chunk, _file_idx, parser_obj = next(chunk_iterator)
+                except StopIteration:
+                    break
+                pending.add(ex.submit(worker_process_ca_chunk, chunk, parser_obj))
+
+    global_est.write_into(sumtree)
+    return sumtree, worker_pids
+
+####################################################################################
+
 class ProgressBar:
     def __init__(self, ntot, output, quiet=False):
         self.output = output
@@ -892,7 +974,7 @@ def  merge_treesummaries(treesummarylist):
 
 ##########################################################################################
 
-def compute_sumtree(treesummary, args, count_burnin_filename_list, output):
+def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_trees_analyzed, worker_pids=None):
     """Controls computation of summary tree, setting of node depths and branch lengths,
        and annotation of summary tree with relevant attributes.
        """    
@@ -911,31 +993,55 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output):
         rooting = None
         og = None
 
-    # Branch-length method
-    if args.noblen:
-        blen = "none"    
-    elif args.biplen:
-        blen = "biplen"
-    elif args.meandepth:
-        blen = "meandepth"
-    elif args.cadepth:
-        blen = "cadepth"
-    else:
-        raise pt.TreeError("Internal error: no blen mode selected")
-
     output.info()
     output.force("Computing summary tree...", end="")
+    
+    if args.cadepth and args.cpus > 1:
+        # 1) Build topology + root, but do NOT do CA depths inside TreeSummary
+        sumtree = treesummary.compute_sumtree(
+            treetype=args.treetype,
+            rooting=rooting,
+            blen="none",  # important
+            og=og,
+            count_burnin_filename_list=None,
+        )
 
-    sumtree = treesummary.compute_sumtree(
-        treetype=args.treetype,
-        rooting=rooting,
-        blen=blen,
-        og=og,
-        count_burnin_filename_list=count_burnin_filename_list
-    )
+        # 2) Parallel CA depths (second pass)
+        sumtree, ca_pids = set_ca_depths_concurrent(
+            sumtree, count_burnin_filename_list, args, output, n_trees_analyzed
+        )
+        if worker_pids is not None:
+            worker_pids |= ca_pids
+
+        # 3) Branch lengths from depths
+        sumtree.set_blens_from_depths()
+
+        # 4) Re-annotate (support/rootcred etc). Safe in cadepth mode.
+        sumtree = treesummary.annotate_sumtree(sumtree)
+
+        # 5) Ensure printing includes depth fields (until you fully switch to PrintSpec)
+        node_attrs = set(getattr(sumtree, "_print_node_attributes", ()) or ())
+        branch_attrs = set(getattr(sumtree, "_print_branch_attributes", ()) or ())
+        node_attrs.update({"depth", "depth_sd"})
+        branch_attrs.add("length")
+        if args.trackci and args.ci_probs:
+            node_attrs.update({"ci", "depth_median"})
+            sumtree._ci_labels = treesummary.ci_labels
+        sumtree._print_node_attributes = tuple(sorted(node_attrs))
+        sumtree._print_branch_attributes = tuple(sorted(branch_attrs))
+
+    else:
+        # existing behavior (serial CA if cadepth)
+        blen = "cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))
+        sumtree = treesummary.compute_sumtree(
+            treetype=args.treetype,
+            rooting=rooting,
+            blen=blen,
+            og=og,
+            count_burnin_filename_list=count_burnin_filename_list
+        )
 
     output.force("done", padding=0)
-
     return sumtree
     
 ##########################################################################################
