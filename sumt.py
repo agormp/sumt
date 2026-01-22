@@ -515,9 +515,7 @@ def count_trees(args, output):
     n_trees_analyzed = 0
     for i,filename in enumerate(args.infilelist):
         treelist = []
-        output.force(f"Counting trees in file {str(filename):<40}", end="")
         n_tot = fast_treecount(filename, args)
-        output.force(f"{n_tot:>15,d}")
         burnin = int(args.burninfrac[i] * n_tot)
         count_burnin_filename_list.append((n_tot, burnin, filename))
         n_trees_analyzed += (n_tot - burnin)
