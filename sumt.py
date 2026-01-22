@@ -22,8 +22,8 @@ def main(commandlist=None):
 
     try:
         output = OutputManager(args)
-        setup_output_directory(args.outbase)        
-        n_trees_analyzed, count_burnin_filename_list = count_trees(args, output)        
+        setup_output_directory(args.outbase)
+        n_trees_analyzed, count_burnin_filename_list = count_trees(args, output)
 
         if args.cpus == 1:
             treesummarylist = process_trees(count_burnin_filename_list, args, output)
@@ -38,13 +38,13 @@ def main(commandlist=None):
 
         if args.treeprobs:
             trproblist = compute_trprobs(treesummary, args)
-            trprobs_status_message = print_trprobs(treesummary, trproblist, args, output)            
+            trprobs_status_message = print_trprobs(treesummary, trproblist, args, output)
             output.info(trprobs_status_message)
-        
+
         print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
                              ave_std, args, output, mem_mon, worker_pids)
         print_sumtree(sumtree, args, output)
-        
+
     except Exception as error:
         handle_error(error, args.verbose)
 
@@ -53,7 +53,7 @@ def main(commandlist=None):
 @dataclass
 class MemPeak:
     peak_total_rss_bytes = 0
-    peak_available_bytes_at_peak = 0  
+    peak_available_bytes_at_peak = 0
     sample_count = 0
 
 ####################################################################################
@@ -102,7 +102,7 @@ class PeakMemoryMonitor:
                 avail = int(vm.available)
             except Exception:
                 avail = 0
-                
+
             # Process tree RSS (parent + all descendants)
             try:
                 root = psutil.Process(root_pid)
@@ -118,7 +118,7 @@ class PeakMemoryMonitor:
 
             if total_rss > self.peak.peak_total_rss_bytes:
                 self.peak.peak_total_rss_bytes = total_rss
-                self.peak.peak_available_bytes_at_peak = avail 
+                self.peak.peak_available_bytes_at_peak = avail
 
             self.peak.sample_count += 1
             time.sleep(self.interval_s)
@@ -141,7 +141,7 @@ def cpu_process_summary_line(processes_used):
     pct = (processes_used / total * 100.0) if total else 0.0
     return f"Number of processors used: {processes_used} / {total} ({pct:.0f}%)"
 
-####################################################################################    
+####################################################################################
 
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
@@ -177,7 +177,7 @@ def parse_commandline(commandlist):
 
     if any(x < 0 or x > 1 for x in args.burninfrac):
         parser.error("option -b: NUM must be between 0.0 and 1.0")
-        
+
     if args.ci is None:
         args.ci_probs = None
     else:
@@ -195,8 +195,8 @@ def parse_commandline(commandlist):
             args.ci_probs.append(p)
         if not args.ci_probs:
             raise ValueError("--ci: no probabilities provided")
-        args.ci_probs = sorted(set(args.ci_probs))             # de-duplicate + sort for stable output   
-                    
+        args.ci_probs = sorted(set(args.ci_probs))             # de-duplicate + sort for stable output
+
     if args.treeprobs and (args.treeprobs > 1 or args.treeprobs < 0):
         parser.error(f"option -t: NUM must be between 0.0 and 1.0 (provided value: {args.treeprobs})")
 
@@ -206,7 +206,7 @@ def parse_commandline(commandlist):
 
     if args.quiet:
         args.nowarn = True
-        
+
     if args.ogfile:
         args.outgroup = read_outgroup(args.ogfile)
 
@@ -214,7 +214,7 @@ def parse_commandline(commandlist):
         args.actively_rooted = True
     else:
         args.actively_rooted = False
-        
+
     if (args.treetype in ["mcc", "hip", "mrhip"]) and args.actively_rooted:
         parser.error(f"Rooting method should not be specified for {args.treetype} trees (input trees are already assumed to be rooted)")
 
@@ -236,7 +236,7 @@ def parse_commandline(commandlist):
         args.rootcred
         or (args.biplen and (args.treetype == "mcc"))
     )
-    
+
     # Branch lengths need to be tracked if biplen==True
     args.trackblen = args.biplen
 
@@ -248,19 +248,19 @@ def parse_commandline(commandlist):
 
     # Node depths need to be tracked if meandepth==True
     args.trackdepth = args.meandepth
-        
+
     # Subclade-pairs need to be tracked if using HIPSTR or MrHIPSTR
     args.track_subcladepairs = args.treetype in ("hip", "mrhip")
-    
+
     # Topologies need to be tracked if we want to compute MCC or MBC trees, or if we want to estimate tree probabilities
     args.tracktopo = (
         args.treetype in ("mcc", "mbc")
         or args.treeprobs
     )
-    
+
     # Quantiles need to be tracked if requested computation of one or more credible intervals
     args.trackci = bool(args.ci_probs)
-    
+
     if args.cpus < 0:
         parser.error("--cpus must be >= 0")
     if args.chunksize <= 0:
@@ -293,7 +293,7 @@ def build_parser():
     inout_grp.add_argument("--outformat", action="store", metavar="FORMAT",
                       choices=["newick", "nexus"], default="nexus",
                       help="format of output tree file: %(choices)s [default: %(default)s]")
-                      
+
     inout_grp.add_argument("--nometa", action="store_true",
                            help="Do not include node/branch annotations as Nexus metacomments in the output tree.")
 
@@ -319,7 +319,7 @@ def build_parser():
     sumtype_excl = sumtype_grp.add_mutually_exclusive_group(required=True)
 
     sumtype_excl.add_argument("--con", dest="treetype", action="store_const", const="con",
-                              help="majority rule consensus tree")    
+                              help="majority rule consensus tree")
 
     sumtype_excl.add_argument("--all", dest="treetype", action="store_const", const="all",
                               help="majority rule consensus tree with all compatible bipartitions added")
@@ -354,7 +354,7 @@ def build_parser():
     sumtype_excl.add_argument("--mrhip", dest="treetype", action="store_const", const="mrhip",
                               help="MrHIPSTR summary tree (majority rule HIPSTR tree). "
                                    "Like HIPSTR, but only including clades with >= 50%% support")
-                                   
+
     ####################################################################################
 
     blen_grp = parser.add_argument_group(title= "ESTIMATION OF BRANCH LENGTHS (pick one option)")
@@ -400,21 +400,21 @@ def build_parser():
     ####################################################################################
 
     root_grp = parser.add_argument_group("ROOTING OF SUMMARY TREE")
-    
+
     root_excl = root_grp.add_mutually_exclusive_group()
-    
+
     root_excl.add_argument("--rootmid", action="store_true",
                       help="perform midpoint rooting of summary tree")
-                      
+
     root_excl.add_argument("--rootminvar", action="store_true",
                       help="perform minimum variance rooting of summary tree")
 
     root_excl.add_argument("--rootog", dest="outgroup", metavar="TAX", nargs="+", default=None,
                       help="root summary tree on outgroup; specify outgroup taxon/taxa on command-line")
-                          
+
     root_excl.add_argument('--rootogfile', dest="ogfile", action="store", metavar="FILE", default=None,
                       help="root summary tree on outgroup; specify outgroup taxon/taxa in file (one name per line)")
-                      
+
     root_grp.add_argument("--rootcred", action="store_true",
                           help=("compute root credibility for all possible rooting locations and add a 'rootcred' "
                                 "attribute to branches in the summary tree. If an outgroup is specified: track which "
@@ -422,7 +422,7 @@ def build_parser():
                                 "frequency of rooting there. If no outgroup is specified: assume input trees are "
                                 "rooted and track root frequencies on branches. The cumulated root credibility may be "
                                 "less than 100%% if some root locations are not present in the summary tree."))
-                         
+
     ####################################################################################
 
     bayes_grp = parser.add_argument_group("BAYESIAN PHYLOGENY OPTIONS")
@@ -430,12 +430,12 @@ def build_parser():
     bayes_grp.add_argument("-b", dest="burninfrac", metavar="FRAC", type=float, default=[0], nargs='+',
                            help="Burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
                            + "Either a single value (applied to all input files), or one value per input file.")
-                           
+
     bayes_grp.add_argument("--ci", metavar="PROB[,PROB,PROB,...]", type=str,
                       help="Compute one or more Bayesian credible intervals for branch lengths or node depths "
                            "(when available). PROB is the central CI probability in (0,1), e.g. "
                            "0.8,0.9 to get both 80%% and 90%% credible intervals.")
-    
+
     bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="PROB",
                       help="Compute tree probabilities; report PROB percent credible interval [0 - 1]")
 
@@ -501,12 +501,12 @@ class OutputManager:
     def warning(self, message):
         if not self.quiet and self.verbose:
             print(f"{self.padding * ' '}[WARNING] {message}")
-            
+
 ####################################################################################
 
 def setup_output_directory(outbase):
     outbase.parent.mkdir(parents=True, exist_ok=True)
-    
+
 ####################################################################################
 
 def count_trees(args, output):
@@ -601,8 +601,8 @@ def count_trees_by_parsing(filename, args):
     for tree in treefile:
         treecount += 1
     return treecount
-  
-####################################################################################      
+
+####################################################################################
 
 def process_trees(count_burnin_filename_list, args, output):
 
@@ -631,7 +631,7 @@ def process_trees(count_burnin_filename_list, args, output):
             tracktopo=args.tracktopo,
             track_subcladepairs=args.track_subcladepairs,
             store_trees=args.treeprobs,
-            trackci=args.trackci, 
+            trackci=args.trackci,
             ci_probs=args.ci_probs
         )
 
@@ -737,9 +737,9 @@ def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
                     chunk = []
             if chunk:
                 yield (chunk, file_idx, parser_obj)
-                                
+
 ##########################################################################################
-    
+
 def worker_process_chunk(chunk, file_idx, parser_obj, args):
     """Worker: parse chunk and return (TreeSummary, file_idx, pid)."""
 
@@ -762,7 +762,7 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
         ts.add_tree(tree)
 
     return (ts, file_idx, os.getpid())
-    
+
 ##########################################################################################
 
 def _ca_worker_init(plan, trackci):
@@ -977,7 +977,7 @@ def  merge_treesummaries(treesummarylist):
 def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_trees_analyzed, worker_pids=None):
     """Controls computation of summary tree, setting of node depths and branch lengths,
        and annotation of summary tree with relevant attributes.
-       """    
+       """
 
     # Rooting: only do something if user asked for it; otherwise keep "input"
     if args.outgroup:
@@ -1051,17 +1051,17 @@ def print_sumtree(sumtree, args, output):
     printdist = not args.noblen   # Python note: or always True if we set lengths to 0.0 for noblen
     printlabels = not args.nolabel
     precision=7
-            
+
     confilename = args.outbase.parent / (args.outbase.name + f".{args.treetype}")
 
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "newick":
-            tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels, 
-                                     labelfield="label", precision=precision, print_meta=not args.nometa)            
+            tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels,
+                                     labelfield="label", precision=precision, print_meta=not args.nometa)
         elif args.outformat == "nexus":
-            tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels, 
-                                     labelfield="label", precision=precision,  print_meta=not args.nometa)            
-            
+            tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels,
+                                     labelfield="label", precision=precision,  print_meta=not args.nometa)
+
         confile.write(tree_str)
         confile.write("\n")
 
@@ -1076,7 +1076,7 @@ def print_sumtree(sumtree, args, output):
         output.info(f"Majority rule HIPSTR (mrHIPSTR) tree written to {confilename}")
     else:
         output.info(f"Consensus tree written to {confilename}")
-        
+
 ##########################################################################################
 
 def open_file_with_warning(filename, nowarn, output):
@@ -1094,8 +1094,8 @@ def open_file_with_warning(filename, nowarn, output):
             return open(filename, "a")  # Append
     else:
         return open(filename, "w")
-  
-##########################################################################################      
+
+##########################################################################################
 
 def compute_trprobs(treesummary, args):
     """Returns sorted list of [freq, tree] lists (highest freq first)"""
@@ -1140,7 +1140,7 @@ def print_trprobs(treesummary, trproblist, args, output):
             if cum > args.treeprobs:
                 break
         topofile.write("end;\n")
-        
+
     return f"Tree probabilities written to {topofilename}"
 
 ##########################################################################################
@@ -1159,16 +1159,16 @@ def memory_summary_line(peak):
         f"{fmt_mem(peak.peak_total_rss_bytes)} / {fmt_mem(total)} ({pct:.1f}%), "
         f"free at peak: {fmt_mem(peak.peak_available_bytes_at_peak)}"
     )
-    
+
 ##########################################################################################
 
 def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
                          ave_std, args, output, mem_mon, worker_pids=None):
 
     sumvar_tuple = compute_summary_variables(sumtree, treesummary, start, args)
-    (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen, 
+    (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen,
      treetype, n_internal_biparts, rootdegree, h, m, s) = sumvar_tuple
-    
+
     # Information about bipartitions, clades and topologies
     output.info()
     output.info(f"Number of leaves on input trees: {n_leaves:>7,d}")
@@ -1205,7 +1205,7 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
         if args.treetype == "mcc":
             output.info(f"{treetype} tree rooted at original root of tree sample having highest clade credibility")
         elif args.treetype in ("hip", "mrhip"):
-            output.info(f"{treetype} tree rooted at most frequently observed root bipartition")            
+            output.info(f"{treetype} tree rooted at most frequently observed root bipartition")
         else:
             output.info(f"{treetype} tree has not been explicitly rooted")
             output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")
@@ -1223,7 +1223,7 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
         if sumtree.rootcred:
             output.info(f"Root credibility (frequency of root bipartition in input trees):       {sumtree.rootcred * 100:.1f}%")
         output.info(f"Cumulated root credibility (sum of rootcred for all branches in tree): {sumtree.cumulated_rootcred * 100:.1f}%")
-        
+
 
     # Information about log credibility
     if args.treetype == "mbc" or (args.treetype == "mcc" and not args.actively_rooted):
@@ -1238,7 +1238,7 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
 
     output.info()
     output.info(f"Done. {n_trees_analyzed:,d} trees analyzed.\n   Time spent: {h:d}:{m:02d}:{s:02d} (h:m:s)")
-    
+
     # Processor count reporting
     if worker_pids:
         procs_used = len(worker_pids)
@@ -1246,14 +1246,14 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
     else:
         # Serial path: 1 process (this one)
         output.info(cpu_process_summary_line(1))
-        
+
     peakmem = mem_mon.stop()
     output.info(memory_summary_line(peakmem))
-        
+
 ##########################################################################################
 
 def compute_summary_variables(sumtree, treesummary, start, args):
-        
+
     if args.treeprobs:
         if args.trackclades:
             n_topo_seen = len(treesummary.cladetoposummary)
@@ -1298,9 +1298,9 @@ def compute_summary_variables(sumtree, treesummary, start, args):
     m = int((time_spent % 3600)/60)
     s = int(time_spent % 60)
 
-    return   (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen, 
+    return   (n_leaves, grouptype, space, n_uniq_groupings, theo_max_groups, theo_max_biparts, n_topo_seen,
               treetype, n_internal_biparts, rootdegree, h, m, s)
-              
+
 ##########################################################################################
 
 def handle_error(error, verbose):
@@ -1311,7 +1311,7 @@ def handle_error(error, verbose):
     else:
         print(error)
     sys.exit()
-    
+
 ##########################################################################################
 
 if __name__ == "__main__":
