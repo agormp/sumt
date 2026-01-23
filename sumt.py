@@ -781,8 +781,8 @@ def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
     """yields (chunk_of_tree_strings, file_idx, parser_obj)"""
 
     for file_idx, (count, burnin, filename) in enumerate(count_burnin_filename_list):
-        with pt.Treefile(filename) as tf:
-            parser_obj = tf.parser_obj  # created in parent
+        with pt.Treefile(filename, strip_comments=False) as tf: 
+            parser_obj = tf.parser_obj
 
             for _ in range(burnin):
                 tf.readtree(returntree=False)
@@ -817,6 +817,7 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
     )
 
     for treestr in chunk:
+        treestr = pt.remove_comments(treestr)                
         tree = pt.Tree._from_string_private(parser_obj, treestr)
         ts.add_tree(tree)
 
@@ -837,6 +838,7 @@ def worker_process_ca_chunk(chunk, parser_obj):
     """
     est = pt.CADepthEstimator(_CA_PLAN, trackci=_CA_TRACKCI)
     for treestr in chunk:
+        treestr = pt.remove_comments(treestr)                
         tree = pt.Tree._from_string_private(parser_obj, treestr)
         est.add_tree(tree)
     return (est, len(chunk), os.getpid())
