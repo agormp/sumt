@@ -690,7 +690,7 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
     chunk_iterator = iter(chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size))
 
     worker_pids = set()
-
+            
     with ProcessPoolExecutor(max_workers=ncpus) as ex:
 
         # Prime the pipeline
@@ -1379,5 +1379,3 @@ def handle_error(error, verbose):
 
 if __name__ == "__main__":
     main()
-    # import cProfile
-    # cProfile.run('main()', 'tmp/profile.pstats')
