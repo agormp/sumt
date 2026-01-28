@@ -687,7 +687,7 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
         treesummarylist.append(ts_global)
 
     pending = set()
-    chunk_iterator = iter(chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size))
+    chunk_iterator = chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size)
 
     worker_pids = set()
             
@@ -867,7 +867,7 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
     max_chunk_size = args.chunksize
 
     pending = set()
-    chunk_iterator = iter(chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size))
+    chunk_iterator = chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size)
     worker_pids = set()
 
     with ProcessPoolExecutor(
