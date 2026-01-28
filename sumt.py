@@ -2,7 +2,7 @@ import phylotreelib as pt
 import argparse, os, sys, time, math, copy, psutil, statistics, configparser, threading
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 from dataclasses import dataclass
-from itertools import (takewhile,repeat)
+from itertools import (takewhile,repeat,islice)
 from operator import itemgetter
 from pathlib import Path
 import gc
@@ -686,37 +686,28 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
         )
         treesummarylist.append(ts_global)
 
-    pending = set()
     chunk_iterator = chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size)
-
     worker_pids = set()
             
     with ProcessPoolExecutor(max_workers=ncpus) as ex:
-
         # Prime the pipeline
-        while len(pending) < max_pending:
-            try:
-                chunk, file_idx, parser_obj = next(chunk_iterator)
-            except StopIteration:
-                break
-            pending.add(ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args))
+        pending = {
+            ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args)
+            for chunk, file_idx, parser_obj in islice(chunk_iterator, max_pending)
+        }
 
         # Harvest + refill
         while pending:
             done, pending = wait(pending, return_when=FIRST_COMPLETED)
-
             for fut in done:
                 tree_summary, file_idx, pid = fut.result()
                 worker_pids.add(pid)
-
                 treesummarylist[file_idx].update(tree_summary)
                 progress.update(len(tree_summary))
-
-            while len(pending) < max_pending:
-                try:
-                    chunk, file_idx, parser_obj = next(chunk_iterator)
-                except StopIteration:
-                    break
+            
+            # top up to max_pending (if input remains)
+            n_to_submit = max_pending - len(pending)
+            for chunk, file_idx, parser_obj in islice(chunk_iterator, n_to_submit):
                 pending.add(ex.submit(worker_process_chunk, chunk, file_idx, parser_obj, args))
 
     output.info()
@@ -866,7 +857,6 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
     max_pending = 2 * ncpus
     max_chunk_size = args.chunksize
 
-    pending = set()
     chunk_iterator = chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size)
     worker_pids = set()
 
@@ -877,12 +867,10 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
     ) as ex:
 
         # Prime
-        while len(pending) < max_pending:
-            try:
-                chunk, _file_idx, parser_obj = next(chunk_iterator)
-            except StopIteration:
-                break
-            pending.add(ex.submit(worker_process_ca_chunk, chunk, parser_obj))
+        pending = {
+            ex.submit(worker_process_ca_chunk, chunk, parser_obj)
+            for chunk, file_idx, parser_obj in islice(chunk_iterator, max_pending)
+        }
 
         # Harvest + refill
         while pending:
@@ -892,12 +880,10 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
                 worker_pids.add(pid)
                 global_est.merge(est_part)
                 progress.update(ntrees)
-
-            while len(pending) < max_pending:
-                try:
-                    chunk, _file_idx, parser_obj = next(chunk_iterator)
-                except StopIteration:
-                    break
+                
+            # top up to max_pending (if input remains)
+            n_to_submit = max_pending - len(pending)
+            for chunk, file_idx, parser_obj in islice(chunk_iterator, n_to_submit):
                 pending.add(ex.submit(worker_process_ca_chunk, chunk, parser_obj))
 
     output.info()
