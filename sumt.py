@@ -298,7 +298,6 @@ def build_parser():
     ####################################################################################
 
     inout_grp = parser.add_argument_group("INPUT AND OUTPUT")
-    infile_excl = inout_grp.add_mutually_exclusive_group()
 
     inout_grp.add_argument("--informat", action="store", metavar="FORMAT",
                       choices=["newick", "nexus"], default="nexus",
@@ -326,6 +325,8 @@ def build_parser():
     inout_grp.add_argument("-q", action="store_true", dest="quiet",
                       help="quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
 
+    inout_grp.add_argument("infilelist", nargs="+", metavar="FILE", type=Path,
+        help="Input phylogenetic tree file(s)")
 
     ####################################################################################
 
