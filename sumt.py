@@ -170,26 +170,14 @@ def parse_comma_separated_strings(parser, value, optname):
 
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
-    # Will be "None" when run in script mode, and argparse will then automatically take values from sys.argv[1:]
+    # Will be "None" when run in script mode, and argparse will then automatically
+    # take values from sys.argv[1:]
     # https://jugmac00.github.io/blog/testing-argparse-applications-the-better-way/
 
     parser = build_parser()
     args = parser.parse_args(commandlist)
 
-    if args.version:
-        config = configparser.ConfigParser()
-        config.read('setup.cfg')
-        try:
-            print(config['metadata']['version'])
-            exit()
-        except KeyError:
-            print("Unknown")
-            exit()
-
-    if not args.infilelist:
-        parser.error("Please list one or more tree files.")
-
-    # If output basename is not set: use stem of infilenames minus all suffixes
+    # If output basename is not set: use stem of first input filename minus all suffixes
     if not args.outbase:
         infilepath = args.infilelist[0]
         args.outbase = Path(infilepath.stem.split(".")[0])
@@ -245,14 +233,14 @@ def parse_commandline(commandlist):
         or args.biplen
     )
 
-    # Clades need to be tracked in these situations:
+    # Clades need to be tracked in these situations
     args.trackclades = (
         args.treetype in ["mcc", "hip", "mrhip"]
         or args.meandepth
         or args.cadepth
     )
 
-    # Root needs to be tracked if rootcred==True, OR if using biplen with MCC, HIPSTR, or MrHIPSTR:
+    # Root needs to be tracked if rootcred==True, OR if using biplen with MCC
     args.trackroot = (
         args.rootcred
         or (args.biplen and (args.treetype == "mcc"))
@@ -273,13 +261,13 @@ def parse_commandline(commandlist):
     # Subclade-pairs need to be tracked if using HIPSTR or MrHIPSTR
     args.track_subcladepairs = args.treetype in ("hip", "mrhip")
 
-    # Topologies need to be tracked if we want to compute MCC or MBC trees, or if we want to estimate tree probabilities
+    # Topologies need to be tracked if computing MCC or MBC trees, or tree probabilities
     args.tracktopo = (
         args.treetype in ("mcc", "mbc")
         or args.treeprobs
     )
 
-    # Quantiles need to be tracked if requested computation of one or more credible intervals
+    # Quantiles need to be tracked if one or more credible intervals are requested
     args.trackci = bool(args.ci_probs)
 
     if args.cpus < 0:
