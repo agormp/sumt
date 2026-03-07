@@ -144,6 +144,30 @@ def cpu_process_summary_line(processes_used):
 
 ####################################################################################
 
+def parse_comma_separated_floats(parser, value, optname):
+    vals = []
+    for part in value.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            vals.append(float(part))
+        except ValueError:
+            parser.error(f"{optname}: not a float: {part}")
+    if not vals:
+        parser.error(f"{optname}: no values provided")
+    return vals
+
+####################################################################################
+
+def parse_comma_separated_strings(parser, value, optname):
+    vals = [part.strip() for part in value.split(",") if part.strip()]
+    if not vals:
+        parser.error(f"{optname}: no values provided")
+    return vals
+
+####################################################################################
+
 def parse_commandline(commandlist):
     # Python note: "commandlist" is to enable unit testing of argparse code
     # Will be "None" when run in script mode, and argparse will then automatically take values from sys.argv[1:]
@@ -168,7 +192,10 @@ def parse_commandline(commandlist):
     # If output basename is not set: use stem of infilenames minus all suffixes
     if not args.outbase:
         infilepath = args.infilelist[0]
-        args.outbase = Path(infilepath.stem.split('.')[0])
+        args.outbase = Path(infilepath.stem.split(".")[0])
+
+    # Parse burnin fractions from comma-separated string
+    args.burninfrac = parse_comma_separated_floats(parser, args.burninfrac, "-b")
 
     if len(args.burninfrac) == 1:
         burnin_value = args.burninfrac[0]
@@ -179,30 +206,21 @@ def parse_commandline(commandlist):
     if any(x < 0 or x > 1 for x in args.burninfrac):
         parser.error("option -b: NUM must be between 0.0 and 1.0")
 
+    # Parse CI probabilities from comma-separated string
     if args.ci is None:
         args.ci_probs = None
     else:
-        args.ci_probs = []
-        for part in args.ci.split(","):
-            part = part.strip()
-            if not part:
-                continue
-            try:
-                p = float(part)
-            except ValueError:
-                parser.error(f"--ci: not a float: {part}")
+        args.ci_probs = parse_comma_separated_floats(parser, args.ci, "--ci")
+        for p in args.ci_probs:
             if not (0.0 < p < 1.0):
                 parser.error(f"--ci: prob must be in (0,1): {p}")
-            args.ci_probs.append(p)
-        if not args.ci_probs:
-            raise ValueError("--ci: no probabilities provided")
-        args.ci_probs = sorted(set(args.ci_probs))             # de-duplicate + sort for stable output
+        args.ci_probs = sorted(set(args.ci_probs))   # deduplicate + sort for stable output
 
     if args.treeprobs and (args.treeprobs > 1 or args.treeprobs < 0):
         parser.error(f"option -t: NUM must be between 0.0 and 1.0 (provided value: {args.treeprobs})")
 
     nfiles = len(args.infilelist)
-    if args.std and nfiles==1:
+    if args.std and nfiles == 1:
         parser.error("cannot compute standard deviation (option -s) from one tree file")
 
     if args.quiet:
@@ -210,6 +228,8 @@ def parse_commandline(commandlist):
 
     if args.ogfile:
         args.outgroup = read_outgroup(args.ogfile)
+    elif args.outgroup:
+        args.outgroup = parse_comma_separated_strings(parser, args.outgroup, "--rootog")
 
     if (args.outgroup or args.rootmid or args.rootminvar):
         args.actively_rooted = True
@@ -415,8 +435,8 @@ def build_parser():
     root_excl.add_argument("--rootminvar", action="store_true",
                       help="perform minimum variance rooting of summary tree")
 
-    root_excl.add_argument("--rootog", dest="outgroup", metavar="TAX", nargs="+", default=None,
-                      help="root summary tree on outgroup; specify outgroup taxon/taxa on command-line")
+    root_excl.add_argument("--rootog", dest="outgroup", metavar="TAX[,TAX,...]", type=str, default=None,
+        help="Root summary tree on outgroup; specify one taxon (or comma-separated list of taxa) on command-line")
 
     root_excl.add_argument('--rootogfile', dest="ogfile", action="store", metavar="FILE", default=None,
                       help="root summary tree on outgroup; specify outgroup taxon/taxa in file (one name per line)")
@@ -433,14 +453,14 @@ def build_parser():
 
     bayes_grp = parser.add_argument_group("BAYESIAN PHYLOGENY OPTIONS")
 
-    bayes_grp.add_argument("-b", dest="burninfrac", metavar="FRAC", type=float, default=[0], nargs='+',
-                           help="Burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
-                           + "Either a single value (applied to all input files), or one value per input file.")
+    bayes_grp.add_argument("-b", dest="burninfrac", metavar="FRAC[,FRAC,...]", type=str, default="0",
+        help="Burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
+             "Either a single value (applied to all input files), or one comma-separated value per input file.")
 
-    bayes_grp.add_argument("--ci", metavar="PROB[,PROB,PROB,...]", type=str,
-                      help="Compute one or more Bayesian credible intervals for branch lengths or node depths "
-                           "(when available). PROB is the central CI probability in (0,1), e.g. "
-                           "0.8,0.9 to get both 80%% and 90%% credible intervals.")
+    bayes_grp.add_argument("--ci", metavar="PROB[,PROB,...]", type=str,
+        help="Compute one or more Bayesian credible intervals for branch lengths or node depths "
+           "(when available). PROB is the central CI probability. For instance --ci 0.8,0.95 "
+           "computes both 80%% and 95%% credible intervals.")
 
     bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="PROB",
                       help="Compute tree probabilities; report PROB percent credible interval [0 - 1]")
