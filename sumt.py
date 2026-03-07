@@ -219,13 +219,13 @@ def parse_commandline(commandlist):
     elif args.outgroup:
         args.outgroup = parse_comma_separated_strings(parser, args.outgroup, "--rootog")
 
-    if (args.outgroup or args.rootmid or args.rootminvar):
-        args.actively_rooted = True
-    else:
-        args.actively_rooted = False
+    args.actively_rooted = (args.outgroup or args.rootmid or args.rootminvar)
 
     if (args.treetype in ["mcc", "hip", "mrhip"]) and args.actively_rooted:
-        parser.error(f"Rooting method should not be specified for {args.treetype} trees (input trees are already assumed to be rooted)")
+        parser.error(
+            f"Rooting method should not be specified for {args.treetype} trees "
+            "(input trees are already assumed to be rooted)"
+        )
 
     # Bipartitions need to be tracked in these situations
     args.trackbips = (
