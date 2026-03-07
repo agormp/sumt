@@ -1,5 +1,6 @@
 import phylotreelib as pt
 import argparse, os, sys, time, math, copy, psutil, statistics, configparser, threading
+from importlib.metadata import version, PackageNotFoundError
 from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
 from dataclasses import dataclass
 from itertools import (takewhile,repeat,islice)
@@ -276,10 +277,15 @@ def parse_commandline(commandlist):
 
 def build_parser():
 
+    try:
+        sumt_version = version("sumt")
+    except PackageNotFoundError:
+        sumt_version = "Unknown"
+
     parser = argparse.ArgumentParser(description = "Computes summary tree and statistics from set of phylogenetic trees")
 
-    parser.add_argument('--version', action='store_true', dest="version",
-                        help="show the program's version number and exit")
+    parser.add_argument( "--version", action="version", version=f"%(prog)s {sumt_version}",
+        help="Show program's version number and exit")
 
     ####################################################################################
 
