@@ -299,13 +299,13 @@ def build_parser():
 
     inout_grp = parser.add_argument_group("INPUT AND OUTPUT")
 
-    inout_grp.add_argument("--informat", action="store", metavar="FORMAT",
-                      choices=["newick", "nexus"], default="nexus",
-                      help="format of input tree files: %(choices)s [default: %(default)s]")
+    inout_grp.add_argument("--in", dest="informat", action="store", metavar="FORMAT",
+        choices=["newick", "nexus"], default="nexus",
+        help="Format of input tree files: %(choices)s [default: %(default)s]")
 
-    inout_grp.add_argument("--outformat", action="store", metavar="FORMAT",
-                      choices=["newick", "nexus"], default="nexus",
-                      help="format of output tree file: %(choices)s [default: %(default)s]")
+    inout_grp.add_argument("--out", dest="outformat", action="store", metavar="FORMAT",
+        choices=["newick", "nexus"], default="nexus",
+        help="Format of output tree file: %(choices)s [default: %(default)s]")
 
     inout_grp.add_argument("--nometa", action="store_true",
                            help="Do not include node/branch annotations as Nexus metacomments in the output tree.")
