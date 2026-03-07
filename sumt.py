@@ -1113,14 +1113,15 @@ def print_sumtree(sumtree, args, output):
     precision=7
 
     confilename = args.outbase.parent / (args.outbase.name + f".{args.treetype}")
-
+    
+    labelfield = "bipartition_cred" if args.treetype in ("con", "all", "mbc") else "label"
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "newick":
             tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels,
-                                     labelfield="label", precision=precision, print_meta=not args.nometa)
+                                     labelfield=labelfield, precision=precision, print_meta=not args.nometa)
         elif args.outformat == "nexus":
             tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels,
-                                     labelfield="label", precision=precision,  print_meta=not args.nometa)
+                                     labelfield=labelfield, precision=precision,  print_meta=not args.nometa)
 
         confile.write(tree_str)
         confile.write("\n")
