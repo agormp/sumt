@@ -44,7 +44,7 @@ def main(commandlist=None):
 
         print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
                              ave_std, args, output, mem_mon, worker_pids)
-        print_sumtree(sumtree, args, output)
+        print_sumtree(sumtree, treesummary, args, output)
 
     except Exception as error:
         handle_error(error, args.verbose)
@@ -1080,17 +1080,6 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
         # 4) Re-annotate (support/rootcred etc). Safe in cadepth mode.
         sumtree = treesummary.annotate_sumtree(sumtree)
 
-        # 5) Ensure printing includes depth fields (until you fully switch to PrintSpec)
-        node_attrs = set(getattr(sumtree, "_print_node_attributes", ()) or ())
-        branch_attrs = set(getattr(sumtree, "_print_branch_attributes", ()) or ())
-        node_attrs.update({"depth", "depth_sd"})
-        branch_attrs.add("length")
-        if args.trackci and args.ci_probs:
-            node_attrs.update({"ci", "depth_median"})
-            sumtree._ci_labels = treesummary.ci_labels
-        sumtree._print_node_attributes = tuple(sorted(node_attrs))
-        sumtree._print_branch_attributes = tuple(sorted(branch_attrs))
-
     else:
         # existing behavior (serial CA if cadepth)
         blen = "cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))
@@ -1106,23 +1095,24 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
 
 ##########################################################################################
 
-def print_sumtree(sumtree, args, output):
-
-    printdist = not args.noblen   # Python note: or always True if we set lengths to 0.0 for noblen
-    printlabels = not args.nolabel
-    precision=7
+def print_sumtree(sumtree, treesummary, args, output):
 
     confilename = args.outbase.parent / (args.outbase.name + f".{args.treetype}")
-    
-    labelfield = "bipartition_cred" if args.treetype in ("con", "all", "mbc") else "label"
-    with open_file_with_warning(confilename, args.nowarn, output) as confile:
-        if args.outformat == "newick":
-            tree_str = sumtree.newick(printdist=printdist, printlabels=printlabels,
-                                     labelfield=labelfield, precision=precision, print_meta=not args.nometa)
-        elif args.outformat == "nexus":
-            tree_str = sumtree.nexus(printdist=printdist, printlabels=printlabels,
-                                     labelfield=labelfield, precision=precision,  print_meta=not args.nometa)
 
+    pt.configure_sumtree_printing(
+        sumtree, 
+        treetype=args.treetype,
+        blen=("cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))),
+        trackci=args.trackci,
+        ci_labels=(treesummary.ci_labels if args.trackci else None),
+        precision=7,
+        print_meta=not args.nometa,
+        printlabels=not args.nolabel,
+        printdist=not args.noblen,
+    )
+    
+    with open_file_with_warning(confilename, args.nowarn, output) as confile:
+        tree_str = sumtree.nexus() if args.outformat == "nexus" else sumtree.newick()
         confile.write(tree_str)
         confile.write("\n")
 
