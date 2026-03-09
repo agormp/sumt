@@ -1058,14 +1058,9 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
     output.force("Computing summary tree")
 
     if args.cadepth and args.cpus > 1:
-        # 1) Build topology + root, but do NOT do CA depths inside TreeSummary
-        sumtree = treesummary.compute_sumtree(
-            treetype=args.treetype,
-            rooting=rooting,
-            blen="none",  # important
-            og=og,
-            count_burnin_filename_list=None,
-        )
+        # 1) Build topology + root, but do NOT compute depths/blen
+        sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting, 
+                                   blen="none", og=og, count_burnin_filename_list=None)
 
         # 2) Parallel CA depths (second pass)
         sumtree, ca_pids = set_ca_depths_concurrent(
@@ -1078,18 +1073,14 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
         sumtree.set_blens_from_depths()
 
         # 4) Re-annotate (support/rootcred etc). Safe in cadepth mode.
-        sumtree = treesummary.annotate_sumtree(sumtree)
+        tpp = pt.TreePostProcessor(treesummary)
+        sumtree = tpp.annotate_sumtree(sumtree)
 
     else:
         # existing behavior (serial CA if cadepth)
         blen = "cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))
-        sumtree = treesummary.compute_sumtree(
-            treetype=args.treetype,
-            rooting=rooting,
-            blen=blen,
-            og=og,
-            count_burnin_filename_list=count_burnin_filename_list
-        )
+        sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting, 
+                                   blen=blen, og=og, count_burnin_filename_list=count_burnin_filename_list)
 
     return sumtree
 
