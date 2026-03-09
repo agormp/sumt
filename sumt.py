@@ -293,182 +293,164 @@ def build_parser():
     parser = argparse.ArgumentParser(description = "Computes summary tree and statistics from set of phylogenetic trees")
 
     parser.add_argument( "--version", action="version", version=f"%(prog)s {sumt_version}",
-        help="Show program's version number and exit")
+        help="show program version and exit")
 
     ####################################################################################
 
-    inout_grp = parser.add_argument_group("INPUT AND OUTPUT")
+    inout_grp = parser.add_argument_group("INPUT / OUTPUT")
 
-    inout_grp.add_argument("--in", dest="informat", action="store", metavar="FORMAT",
+    inout_grp.add_argument("--informat", dest="informat", action="store", metavar="FORMAT",
         choices=["newick", "nexus"], default="nexus",
-        help="Format of input tree files: %(choices)s [default: %(default)s]")
+        help="input tree format: %(choices)s [default: %(default)s]")
 
-    inout_grp.add_argument("--out", dest="outformat", action="store", metavar="FORMAT",
+    inout_grp.add_argument("--outformat", dest="outformat", action="store", metavar="FORMAT",
         choices=["newick", "nexus"], default="nexus",
-        help="Format of output tree file: %(choices)s [default: %(default)s]")
+        help="output tree format: %(choices)s [default: %(default)s]")
 
     inout_grp.add_argument("--nometa", action="store_true",
-        help="Do not include node/branch annotations as Nexus metacomments in the output tree.")
+        help="omit Nexus metacomments with node and branch annotations in output")
 
     inout_grp.add_argument("--basename", action="store", type=Path, dest="outbase", metavar="NAME",
-        help="Base name of output files (default: derived from input file)")
+        help="base name for output files [default: derived from first input file]")
 
     inout_grp.add_argument("-n", action="store_true", dest="nowarn",
-        help="No warning when overwriting files")
+        help="no warning: overwrite existing output files without prompting")
 
     inout_grp.add_argument("-v", action="store_true", dest="verbose",
-        help="Verbose: show full traceback in the event of failed python execution")
+        help="verbose: show full Python traceback on error")
 
     inout_grp.add_argument("-q", action="store_true", dest="quiet",
-        help="Quiet: don't print progress indication to terminal window. NOTE: also turns on the -n option")
+        help="quiet: suppress progress output; also implies -n")
 
     inout_grp.add_argument("infilelist", nargs="+", metavar="FILE", type=Path,
-        help="Input phylogenetic tree file(s)")
+        help="input phylogenetic tree file(s)")
 
     ####################################################################################
 
-    sumtype_grp = parser.add_argument_group("TYPE OF SUMMARY TREE (pick one option)")
+    sumtype_grp = parser.add_argument_group("SUMMARY TREE TYPE (choose one)")
     sumtype_excl = sumtype_grp.add_mutually_exclusive_group(required=True)
 
     sumtype_excl.add_argument("--con", dest="treetype", action="store_const", const="con",
-        help="Majority rule consensus tree")
+        help="majority rule consensus tree")
 
     sumtype_excl.add_argument("--all", dest="treetype", action="store_const", const="all",
-        help="Majority rule consensus tree with all compatible bipartitions added")
+        help="majority rule consensus tree with all compatible bipartitions")
 
     sumtype_excl.add_argument("--mcc", dest="treetype", action="store_const", const="mcc",
-        help="Maximum Clade Credibility (MCC) tree. "
-             "The MCC tree is determined by inspecting tree samples and selecting the "
-             "tree that has the highest product of clade frequencies (= highest sum of "
-             "log of clade frequencies). The MCC tree is therefore a tree that has been "
-             "observed in the pool of tree samples, differing from the consensus tree "
-             "which typically does not match any individual sample. "
-             "NOTE 1: only meaningful if input trees are estimated using clock model "
-             "or otherwise rooted. "
-             "NOTE 2: by default, the MCC tree uses the rooting of the specific tree sample. "
-             "This will often (but not always) correspond to the "
-             "bipartition where the root is most commonly found in the input trees.")
+        help= "maximum clade credibility (MCC) tree. "
+              "The MCC tree is determined by inspecting tree samples and selecting the "
+              "tree that has the highest product of clade frequencies (= highest sum of "
+              "log of clade frequencies). The MCC tree is therefore a tree that has been "
+              "observed in the pool of tree samples, differing from the consensus tree "
+              "which typically does not match any individual sample. "
+              "Meaningful mainly for rooted input trees, for "
+              "example from clock-based analyses. By default, the rooting of the chosen "
+              "sample tree is retained.")
 
     sumtype_excl.add_argument("--mbc", dest="treetype", action="store_const", const="mbc",
-        help="Maximum Bipartition Credibility (MBC) tree. "
-             "The MBC tree is similar to the MCC tree "
-             "but counting bipartitions instead of clades, i.e. ignoring rooting "
+        help="maximum bipartition credibility (MBC) tree. "
+             "Similar to the MCC tree, but uses bipartitions rather than clades and "
+             "therefore ignores rooting. "
              "(two input trees can have the same set of bipartitions, but be rooted "
              "in different locations).")
 
     sumtype_excl.add_argument("--hip", dest="treetype", action="store_const", const="hip",
-        help="HIPSTR summary tree (Highest Independent Posterior SubTree). "
-             "(see Baele et al., Bioinformatics, 2025, 41(10), btaf488) "
-             "The tree is built by choosing, at each internal node, the child clade "
-             "pair with the highest combined posterior support, producing a fully resolved "
-             "summary tree not necessarily observed among the input trees.")
+        help="HIPSTR summary tree (Highest Independent Posterior SubTree; "
+             "Baele et al., Bioinformatics, 2025, 41(10)). "
+             "Builds a fully resolved summary tree by choosing, at each internal node, "
+             "the child-clade pair with the highest combined posterior support. "
+             "Like a consensus tree, a HIPSTR tree has not necessarily been observed "
+             "among the input trees.")
 
     sumtype_excl.add_argument("--mrhip", dest="treetype", action="store_const", const="mrhip",
-        help="MrHIPSTR summary tree (majority rule HIPSTR tree). "
-             "Like HIPSTR, but only including clades with >= 50%% support")
+        help="MrHIPSTR (majority-rule HIPSTR) summary tree. Like --hip, but includes only clades with "
+                 "at least 50%% support.")
 
     ####################################################################################
 
-    blen_grp = parser.add_argument_group(title= "ESTIMATION OF BRANCH LENGTHS (pick one option)")
+    blen_grp = parser.add_argument_group(title= "BRANCH-LENGTH ESTIMATION (choose one)")
     blen_excl = blen_grp.add_mutually_exclusive_group(required=True)
     blen_excl.add_argument("--noblen", action="store_true",
-        help="Do not set branch lengths (only the topology and branch- or clade-"
-             "support of the summary tree are estimated). ")
+        help="do not estimate branch lengths; compute topology and branch- or clade-support only")
 
     blen_excl.add_argument("--biplen", action="store_true",
-        help="Set branch lengths in summary tree based on average for corresponding "
-             "leaf bipartitions: each branch in tree corresponds to a bipartition of the leaves "
+        help="set branch lengths to the mean length of the corresponding leaf "
+             "bipartition across input trees: "
+             "each branch in tree corresponds to a bipartition of the leaves "
              "into two groups. Branch lenghts are set to the mean of the length of the "
              "corresponding bipartition across all input trees.")
 
     blen_excl.add_argument("--meandepth", action="store_true",
-        help="Set node depth for each clade to mean node depth observed for that "
-              "clade among input trees "
-              "(and branch lengths are then based on these depths). "
-              "Warning: option is intended "
-              "for input trees estimated using a clock model. "
-              "It requires that all clades in the summary tree have "
-              "been observed in the input trees, and may fail "
-              "for some rootings. "
-              "NOTE: mean is computed across trees where the specific, monophyletic clade "
-              "is present, and may therefore be based on very few (down to one) values. "
-              "NOTE 2: may result in negative branch lengths. ")
+        help="set node depths to the mean depth of each observed clade, then derive "
+                 "branch lengths from those depths. Intended for rooted, clock-like trees. "
+                 "Requires all clades in the summary tree to have been observed in the input "
+                 "trees and may fail for some rootings. "
+                 "Mean is computed across trees where the specific, monophyletic clade "
+                 "is present, and may therefore be based on very few (down to one) values. "
+                 "May produce negative branch lengths.")
 
     blen_excl.add_argument("--cadepth", action="store_true",
-        help="'Common Ancestor depth'. Same as option '--height ca' in treeannotator. "
-             "Uses all trees in input set when determining node-depths. "
-             "For a given clade: (1) Find the most recent "
-             "common ancestor of the leaves in that clade in each of the input trees. "
-             "(2) Compute node-depth of clade as the mean of the depths of these MRCAs. "
-             "This is different from --meandepth where only "
-             "trees with that exact clade are included when computing the mean. "
-             "Warning: option is intended "
-             "for input trees estimated using a clock model. "
-             "It requires that all clades in the summary tree have "
-             "been observed in the input trees, and may fail "
-             "for some rootings.")
+        help="'common ancestor depth'; equivalent to TreeAnnotator --height ca."
+             "Set node depths by mean MRCA depth across all trees, then derive branch "
+             "lengths from those depths. Intended for rooted, clock-like trees.")
 
     ####################################################################################
 
-    root_grp = parser.add_argument_group("ROOTING OF SUMMARY TREE")
+    root_grp = parser.add_argument_group("ROOTING")
 
     root_excl = root_grp.add_mutually_exclusive_group()
 
     root_excl.add_argument("--rootmid", action="store_true",
-        help="Perform midpoint rooting of summary tree")
+        help="midpoint-root the summary tree")
 
     root_excl.add_argument("--rootminvar", action="store_true",
-        help="Perform minimum variance rooting of summary tree")
+        help="root the summary tree by minimum-variance rooting")
 
     root_excl.add_argument("--rootog", dest="outgroup", metavar="TAX[,TAX,...]", type=str, default=None,
-        help="Root summary tree on outgroup; specify one taxon (or comma-separated list of taxa) on command-line")
+        help="root the summary tree on the specified outgroup taxon or taxa")
 
     root_excl.add_argument('--rootogfile', dest="ogfile", action="store", metavar="FILE", default=None,
-        help="Root summary tree on outgroup; specify outgroup taxon/taxa in file (one name per line)")
+        help="root the summary tree on outgroup taxa listed in FILE, one per line")
 
     root_grp.add_argument("--rootcred", action="store_true",
-        help=("Compute root credibility for all possible rooting locations and add a 'rootcred' "
-            "attribute to branches in the summary tree. If an outgroup is specified: track which "
-            "branch (bipartition) the outgroup attaches to in each input tree and report the "
-            "frequency of rooting there. If no outgroup is specified: assume input trees are "
-            "rooted and track root frequencies on branches. The cumulated root credibility may be "
-            "less than 100%% if some root locations are not present in the summary tree."))
+        help="compute root credibility for branches in the summary tree. "
+             "With an outgroup, track the branch to which the outgroup attaches in each "
+             "input tree. Otherwise assume rooted input trees and track observed root "
+             "locations directly.")
 
     ####################################################################################
 
-    bayes_grp = parser.add_argument_group("BAYESIAN PHYLOGENY OPTIONS")
+    bayes_grp = parser.add_argument_group("BAYESIAN OPTIONS")
 
     bayes_grp.add_argument("-b", dest="burninfrac", metavar="FRAC[,FRAC,...]", type=str, default="0",
-        help="Burnin: fraction of trees to discard [0 - 1; default: %(default)s]. "
-             "Either a single value (applied to all input files), or one comma-separated value per input file.")
+        help="burn-in fraction(s) to discard [0,1]. Supply one value for all files, "
+              "or one comma-separated value per input file [default: %(default)s]")
 
     bayes_grp.add_argument("--ci", metavar="PROB[,PROB,...]", type=str,
-        help="Compute one or more Bayesian credible intervals for branch lengths or node depths "
-           "(when available). PROB is the central CI probability. For instance --ci 0.8,0.95 "
-           "computes both 80%% and 95%% credible intervals.")
+        help="compute one or more central credible intervals for branch lengths or "
+             "node depths; for example, --ci 0.8,0.95")
 
     bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="PROB",
-        help="Compute tree probabilities; report PROB percent credible interval [0 - 1]")
+        help="compute tree probabilities and report the PROB credible set [0,1]")
 
     bayes_grp.add_argument("-s", action="store_true", dest="std",
-        help="Compute average standard deviation of split frequencies (ASDSF) between "
-           "individual tree-files.")
+        help="compute average standard deviation of split frequencies (ASDSF) across "
+             "input tree files")
 
     bayes_grp.add_argument("-f", type=float, dest="minfreq", metavar="NUM", default=0.1,
-        help="Minimum frequency for including bipartitions in computation of ASDSF [default: %(default)s]")
+        help="minimum split frequency included in ASDSF computation [default: %(default)s]")
 
     ####################################################################################
 
-    perf_grp = parser.add_argument_group("PERFORMANCE OPTIONS")
+    perf_grp = parser.add_argument_group("PERFORMANCE")
 
     perf_grp.add_argument("--cpus", type=int, default=0, metavar="N",
-        help="Number of CPUs to use for parallel processing. "
-            "Default: 0 (automatic). Use 1 to run without parallel processing.")
+        help="number of CPUs to use for parallel processing. "
+            "[default: 0 = automatic; 1 = run without parallel processing]")
 
     perf_grp.add_argument("--chunksize", type=int, default=250, metavar="N",
-        help="Number of trees per work chunk sent to a process. "
-            "Larger chunks reduce overhead but use more memory per process and may reduce load balancing. "
-            "[default: %(default)s]")
+        help="number of trees per work chunk [default: %(default)s]. "
+             "Larger values reduce overhead but use more memory and may reduce load balancing.")
 
     ####################################################################################
 
