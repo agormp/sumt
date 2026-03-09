@@ -1046,20 +1046,19 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
 
         # 2) Parallel CA depths (second pass)
         sumtree, ca_pids = set_ca_depths_concurrent(
-            sumtree, count_burnin_filename_list, args, output, n_trees_analyzed
-        )
+            sumtree, count_burnin_filename_list, args, output, n_trees_analyzed)
         if worker_pids is not None:
             worker_pids |= ca_pids
 
         # 3) Branch lengths from depths
         sumtree.set_blens_from_depths()
 
-        # 4) Re-annotate (support/rootcred etc). Safe in cadepth mode.
+        # 4) Annotate (support/rootcred etc)
         tpp = pt.TreePostProcessor(treesummary)
         sumtree = tpp.annotate_sumtree(sumtree)
 
     else:
-        # existing behavior (serial CA if cadepth)
+        # Serial (non-parallel) processing
         blen = "cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))
         sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting, 
                                    blen=blen, og=og, count_burnin_filename_list=count_burnin_filename_list)
