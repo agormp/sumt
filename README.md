@@ -116,12 +116,16 @@ sumt --con --biplen --ci 0.95 --cpus 0 primate-mtDNA.trees
 This demonstrates:
 
 - multiple input files
-- per-file burn-in fractions via `-b frac,frac,...`
+- burn-in via -b (one value for all files; optional comma-separated per-file values)
 - optional ASDSF (average standard deviation of split frequencies) computation (`-s`) as a convergence diagnostic
 - optional parallel processing (`--cpus`)
 
 ```bash
-# Majority-rule consensus + mean bipartition lengths, midpoint rooted
+# Typical: same burn-in for both independent runs
+sumt --con --biplen --rootmid -b 0.25 -s --cpus 0 \
+  mrbayes.1.t mrbayes.2.t
+
+# If you really need different burn-in per file, use comma-separated values:
 sumt --con --biplen --rootmid -b 0.25,0.4 -s --cpus 0 \
   mrbayes.1.t mrbayes.2.t
 
