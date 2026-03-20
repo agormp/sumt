@@ -69,16 +69,18 @@ curl -L -o primate-mtDNA.trees \
   https://raw.githubusercontent.com/agormp/sumt/main/examples/data/primate-mtDNA.trees
 
 # MrBayes example (two runs; .t tree files)
-curl -L -o contest.postburnin.1.t \
-  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/contest.postburnin.1.t
-curl -L -o contest.postburnin.2.t \
-  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/contest.postburnin.2.t
+curl -L -o mrbayes.1.t \
+  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.1.t
+curl -L -o mrbayes.2.t \
+  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.2.t
 ```
 
-### Option B: Python one-liner (fallback)
+### Option B: Python (fallback)
 
 ```bash
 python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercontent.com/agormp/sumt/main/examples/data/primate-mtDNA.trees','primate-mtDNA.trees')"
+python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.1.t','mrbayes.1.t')"
+python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.2.t','mrbayes.2.t')"
 ```
 
 ---
@@ -119,11 +121,11 @@ This demonstrates:
 ```bash
 # Majority-rule consensus + mean bipartition lengths, midpoint rooted
 sumt --con --biplen --rootmid -b 0.25,0.4 -s --cpus 0 \
-  contest.postburnin.1.t contest.postburnin.2.t
+  mrbayes.1.t mrbayes.2.t
 
 # Add 80% and 95% credible intervals on branch lengths
 sumt --con --biplen --rootmid -b 0.25,0.4 --ci 0.8,0.95 \
-  contest.postburnin.1.t contest.postburnin.2.t
+  mrbayes.1.t mrbayes.2.t
 ```
 
 Output files are written with suffixes matching the summary-tree type (`.con`, `.mcc`, `.mbc`, `.hip`, `.mrhip`).
@@ -395,13 +397,13 @@ sumt --con --biplen --rootmid --rootcred primate-mtDNA.trees
 sumt --con --biplen -b 0.25 primate-mtDNA.trees
 
 # Burn-in (one value per file, comma-separated; could be different per file)
-sumt --con --biplen -b 0.25,0.25 contest.postburnin.1.t contest.postburnin.2.t
+sumt --con --biplen -b 0.25,0.25 mrbayes.1.t mrbayes.2.t
 
 # Tree probabilities and credible set of topologies
 sumt --con --biplen -t 0.95 primate-mtDNA.trees
 
 # ASDSF across files (+ minimum frequency threshold)
-sumt --con --biplen -s -f 0.1 contest.postburnin.1.t contest.postburnin.2.t
+sumt --con --biplen -s -f 0.1 mrbayes.1.t mrbayes.2.t
 ```
 
 Notes on `-t PROB` (`.trprobs` output):
