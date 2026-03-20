@@ -35,6 +35,7 @@ Rooting options:
 
 Version 4 is a **major** release (breaking CLI changes, plus new capabilities).
 
+- Now with multi-processing and computation of credible intervals
 - For a high-level overview, see **[What changed (4.0.0)](#what-changed-400)**.
 - For migration help, see **[Upgrading from 3.x → 4.x](#upgrading-from-3x--4x)**.
 
