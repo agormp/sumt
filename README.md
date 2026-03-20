@@ -59,7 +59,7 @@ python3 -m pip install --upgrade sumt
 
 This README uses small example files that live in the repository under `examples/data/`.
 
-### Option A: curl (recommended)
+### Option A: curl
 
 macOS and most Linux distributions include `curl`. Windows 10/11 typically includes `curl` as well.
 
@@ -75,7 +75,7 @@ curl -L -o mrbayes.2.t \
   https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.2.t
 ```
 
-### Option B: Python (fallback)
+### Option B: Python
 
 ```bash
 python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercontent.com/agormp/sumt/main/examples/data/primate-mtDNA.trees','primate-mtDNA.trees')"
@@ -88,6 +88,8 @@ python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercont
 ## Quick start
 
 For additional short copy/paste patterns (including at least one example for every option), jump to **[Examples covering all main options](#examples-covering-all-main-options)**.
+
+For full option documentation, run `sumt -h` (or `sumt --help`).
 
 ### 1) Consensus tree from a BEAST posterior tree file
 
