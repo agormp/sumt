@@ -12,6 +12,7 @@ gc.disable()        # Faster. Assume no cyclic references will ever be created
 # CA-depth worker globals (set by _ca_worker_init)
 _CA_PLAN = None
 _CA_TRACKCI = False
+_CA_QUANTILE_K = 7
 
 ####################################################################################
 
@@ -270,6 +271,10 @@ def parse_commandline(commandlist):
     # Quantiles need to be tracked if one or more credible intervals are requested
     args.trackci = bool(args.ci_probs)
 
+    # Check that quantile accumulator bin resolution is in reasonable range
+    if not (1 <= args.ci_k <= 20):
+        parser.error("--cik must be in range [1,20] (there will be 2^k bins in quantile estimator!)")
+
     if args.cpus < 0:
         parser.error("--cpus must be >= 0")
     if args.chunksize <= 0:
@@ -429,6 +434,10 @@ def build_parser():
     bayes_grp.add_argument("--ci", metavar="PROB[,PROB,...]", type=str,
         help="compute one or more central credible intervals for branch lengths or "
              "node depths; for example, --ci 0.8,0.95")
+
+    bayes_grp.add_argument("--cik", dest="ci_k", type=int, default=7, metavar="K",
+        help="precision parameter for --ci quantiles. "
+             "Higher = finer bins (more memory/CPU) [default: %(default)s]")
 
     bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="PROB",
         help="compute tree probabilities and report the PROB credible set [0,1]")
@@ -623,7 +632,8 @@ def process_trees(count_burnin_filename_list, args, output):
             track_subcladepairs=args.track_subcladepairs,
             store_trees=args.treeprobs,
             trackci=args.trackci,
-            ci_probs=args.ci_probs
+            ci_probs=args.ci_probs,
+            quantile_k=args.ci_k
         )
 
         # Initialize the progress bar
@@ -648,7 +658,7 @@ def process_trees(count_burnin_filename_list, args, output):
 
 def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_analyzed):
     """Process trees using multiple processors."""
-    
+
     output.info()
     filetable = file_overview_table(count_burnin_filename_list, output)
     output.info(filetable, padding=0)
@@ -660,7 +670,7 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
     ncpus = args.cpus
     max_pending = 2 * ncpus
     max_chunk_size = args.chunksize
-    
+
     # Global summaries (in parent only)
     treesummarylist = []
     for _ in range(len(count_burnin_filename_list)):
@@ -676,12 +686,13 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
             store_trees=args.treeprobs,
             trackci=args.trackci,
             ci_probs=args.ci_probs,
+            quantile_k=args.ci_k
         )
         treesummarylist.append(ts_global)
 
     chunk_iterator = chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size)
     worker_pids = set()
-            
+
     with ProcessPoolExecutor(max_workers=ncpus) as ex:
         # Prime the pipeline
         pending = {
@@ -697,7 +708,7 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
                 worker_pids.add(pid)
                 treesummarylist[file_idx].update(tree_summary)
                 progress.update(len(tree_summary))
-            
+
             # top up to max_pending (if input remains)
             n_to_submit = max_pending - len(pending)
             for chunk, file_idx, parser_obj in islice(chunk_iterator, n_to_submit):
@@ -710,13 +721,13 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
 
 def file_overview_table(count_burnin_filename_list, output, show_path=False, padding=3):
     """Prints table with columns for filename, treecount, burnin-fraction, burnin, kept"""
-    
+
     filename_header = "Filename"
     treecount_header = "Treecount"
     burnfrac_header  = "BurninFrac"
     burnin_header    = "Burnin"
     kept_header  = "Kept"
-    
+
     rows = []
     for count, burnin, filename in count_burnin_filename_list:
         fn = str(filename) if show_path else Path(filename).name
@@ -724,7 +735,7 @@ def file_overview_table(count_burnin_filename_list, output, show_path=False, pad
         burnfrac = (burnin / count) if count else 0.0  # avoid ZeroDivisionError
         burnfrac_str = f"{burnfrac:.2f}"
         rows.append((fn, count, burnfrac_str, burnin, kept))
-    
+
     # Widths (at least as wide as the headers)
     fn_w = max([len(filename_header)] + [len(r[0]) for r in rows])
     tc_w = max([len(treecount_header)] + [len(str(r[1])) for r in rows])
@@ -758,14 +769,14 @@ def file_overview_table(count_burnin_filename_list, output, show_path=False, pad
         )
 
     return "\n".join(lines)
-    
+
 ##########################################################################################
 
 def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
     """yields (chunk_of_tree_strings, file_idx, parser_obj)"""
 
     for file_idx, (count, burnin, filename) in enumerate(count_burnin_filename_list):
-        with pt.Treefile(filename, strip_comments=False) as tf: 
+        with pt.Treefile(filename, strip_comments=False) as tf:
             parser_obj = tf.parser_obj
 
             for _ in range(burnin):
@@ -798,10 +809,11 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
         store_trees=args.treeprobs,
         trackci=args.trackci,
         ci_probs=args.ci_probs,
+        quantile_k=args.ci_k
     )
 
     for treestr in chunk:
-        treestr = pt.remove_comments(treestr)                
+        treestr = pt.remove_comments(treestr)
         tree = pt.Tree._from_string_private(parser_obj, treestr)
         ts.add_tree(tree)
 
@@ -809,10 +821,11 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
 
 ##########################################################################################
 
-def _ca_worker_init(plan, trackci):
-    global _CA_PLAN, _CA_TRACKCI
+def _ca_worker_init(plan, trackci, quantile_k):
+    global _CA_PLAN, _CA_TRACKCI, _CA_QUANTILE_K
     _CA_PLAN = plan
     _CA_TRACKCI = bool(trackci)
+    _CA_QUANTILE_K = int(quantile_k)
 
 ####################################################################################
 
@@ -820,9 +833,9 @@ def worker_process_ca_chunk(chunk, parser_obj):
     """
     Worker: parse chunk -> update local CADepthEstimator -> return it.
     """
-    est = pt.CADepthEstimator(_CA_PLAN, trackci=_CA_TRACKCI)
+    est = pt.CADepthEstimator(_CA_PLAN, trackci=_CA_TRACKCI, quantile_k=_CA_QUANTILE_K)
     for treestr in chunk:
-        treestr = pt.remove_comments(treestr)                
+        treestr = pt.remove_comments(treestr)
         tree = pt.Tree._from_string_private(parser_obj, treestr)
         est.add_tree(tree)
     return (est, len(chunk), os.getpid())
@@ -841,7 +854,11 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
         ci_probs=args.ci_probs,
     )
 
-    global_est = pt.CADepthEstimator(plan, trackci=args.trackci and bool(args.ci_probs))
+    global_est = pt.CADepthEstimator(
+        plan,
+        trackci=args.trackci and bool(args.ci_probs),
+        quantile_k=args.ci_k,
+    )
 
     progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet,
                            text="Finding common ancestor node-depths:")
@@ -856,7 +873,7 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
     with ProcessPoolExecutor(
         max_workers=ncpus,
         initializer=_ca_worker_init,
-        initargs=(plan, args.trackci and bool(args.ci_probs)),
+        initargs=(plan, args.trackci and bool(args.ci_probs), args.ci_k),
     ) as ex:
 
         # Prime
@@ -873,7 +890,7 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
                 worker_pids.add(pid)
                 global_est.merge(est_part)
                 progress.update(ntrees)
-                
+
             # top up to max_pending (if input remains)
             n_to_submit = max_pending - len(pending)
             for chunk, file_idx, parser_obj in islice(chunk_iterator, n_to_submit):
@@ -1041,7 +1058,7 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
 
     if args.cadepth and args.cpus > 1:
         # 1) Build topology + root, but do NOT compute depths/blen
-        sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting, 
+        sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting,
                                    blen="none", og=og, count_burnin_filename_list=None)
 
         # 2) Parallel CA depths (second pass)
@@ -1060,7 +1077,7 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
     else:
         # Serial (non-parallel) processing
         blen = "cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))
-        sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting, 
+        sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting,
                                    blen=blen, og=og, count_burnin_filename_list=count_burnin_filename_list)
 
     return sumtree
@@ -1072,7 +1089,7 @@ def print_sumtree(sumtree, treesummary, args, output):
     confilename = args.outbase.parent / (args.outbase.name + f".{args.treetype}")
 
     pt.configure_sumtree_printing(
-        sumtree, 
+        sumtree,
         treetype=args.treetype,
         blen=("cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))),
         trackci=args.trackci,
@@ -1082,7 +1099,7 @@ def print_sumtree(sumtree, treesummary, args, output):
         printlabels=not args.nolabel,
         printdist=not args.noblen,
     )
-    
+
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         tree_str = sumtree.nexus() if args.outformat == "nexus" else sumtree.newick()
         confile.write(tree_str)
