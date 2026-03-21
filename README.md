@@ -109,6 +109,7 @@ sumt --con --biplen --ci 0.95 --cpus 0 primate-mtDNA.trees
 ```
 
 - `--ci 0.95` computes a central 95% credible interval for each estimated branch length (or node depth)
+- Optional: --cik K adjusts quantile-approximation precision (details below)
 - `--cpus 0` chooses a default number of worker processes (use `--cpus 1` to force single-process, or specify an exact number of processes)
 
 ### 3) Multi-file workflow (MrBayes example: two independent runs)
@@ -306,18 +307,24 @@ When you request `--ci`, `sumt` estimates **central credible intervals** for eit
 
 Implementation note (approximate quantiles)
 
-- Internally, `sumt` uses a mergeable “log-bucket histogram” (see `QuantileAccumulator` in `phylotreelib`) to approximate quantiles in one pass.
-- Default precision corresponds to **k = 7** mantissa sub-bins per exponent bucket. This yields a worst-case relative quantile error bound on positive values of approximately `2^-(k+1)` (about **0.39%**).
-
+- Credible intervals are based on **estimated** quantiles (not exact order statistics).
+- Internally, `sumt` uses a mergeable **log-bucket histogram** (see `QuantileAccumulator` in `phylotreelib`) to approximate quantiles in one pass.
+- The approximation precision is controlled by `--cik K`, which sets the histogram resolution (2^K mantissa sub-bins per exponent bucket):
+  - higher K ⇒ finer resolution but more memory/CPU
+  - worst-case relative bucket midpoint error bound is about `2^-(K+1)` (e.g. K=7 ≈ 0.39%, K=8 ≈ 0.20%, K=9 ≈ 0.10%)
+- Default is `--cik 7`.
 
 Examples:
 
 ```bash
-# One CI:
+# One CI (default precision, --cik 7):
 sumt --con --biplen --ci 0.95 primate-mtDNA.trees
 
 # Several CIs:
 sumt --con --biplen --ci 0.5,0.8,0.95 primate-mtDNA.trees
+
+# Increase precision of the quantile approximation:
+sumt --con --biplen --ci 0.95 --cik 9 primate-mtDNA.trees
 ```
 
 ---
@@ -410,6 +417,9 @@ sumt --con --biplen -t 0.95 primate-mtDNA.trees
 
 # ASDSF across files (+ minimum frequency threshold)
 sumt --con --biplen -s -f 0.1 mrbayes.1.t mrbayes.2.t
+
+# Credible intervals with higher quantile-precision
+sumt --con --biplen --ci 0.8,0.95 --cik 9 primate-mtDNA.trees
 ```
 
 Notes on `-t PROB` (`.trprobs` output):
