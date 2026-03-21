@@ -432,12 +432,15 @@ def build_parser():
               "or one comma-separated value per input file [default: %(default)s]")
 
     bayes_grp.add_argument("--ci", metavar="PROB[,PROB,...]", type=str,
-        help="compute one or more central credible intervals for branch lengths or "
-             "node depths; for example, --ci 0.8,0.95")
+        help="compute one or more central credible intervals for branch lengths or node depths; "
+             "for example, --ci 0.8,0.95. Credible interval endpoints are approximate quantiles "
+             "(mergeable log-bucket histogram); use --cik to control precision.")
 
     bayes_grp.add_argument("--cik", dest="ci_k", type=int, default=7, metavar="K",
-        help="precision parameter for --ci quantiles. "
-             "Higher = finer bins (more memory/CPU) [default: %(default)s]")
+        help="set precision for --ci quantile estimation using a mergeable log-bucket histogram. "
+             "Uses 2^K sub-bins per exponent bucket: higher K gives finer resolution but uses more "
+             "memory/CPU. Worst-case relative bucket error is about 2^-(K+1): "
+             "K=7 ~0.39%%, K=8 ~0.20%%, K=9 ~0.10%%. [default: %(default)s]")
 
     bayes_grp.add_argument("-t", type=float, dest="treeprobs", metavar="PROB",
         help="compute tree probabilities and report the PROB credible set [0,1]")
