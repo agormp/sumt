@@ -5,23 +5,22 @@
 
 `sumt` computes summary trees and associated statistics from one or more files of phylogenetic trees.
 
-Input trees are typically posterior samples from Bayesian MCMC analyses (BEAST / MrBayes) or bootstrap replicates. `sumt` is also useful for any collection of plausible trees, e.g. equally parsimonious trees, near-optimal ML trees, or trees from heuristic searches. In these cases, support values should be interpreted as frequencies within the provided tree set (what structure is “in common”), rather than posterior probabilities.
+Input trees are typically posterior samples from Bayesian MCMC analyses (BEAST / MrBayes), but could be any collection of plausible trees (e.g. equally parsimonious trees, or bootstrap replicates).
 
-Supported summary trees:
+Supported summary tree types:
 
 - Majority-rule consensus (`--con`)
 - Majority-rule consensus + all compatible bipartitions (`--all`)
 - Maximum clade credibility (`--mcc`)
 - Maximum bipartition credibility (`--mbc`)
 - HIPSTR (`--hip`) and majority-rule HIPSTR (`--mrhip`)
-- Works with any set of trees (posterior samples, bootstrap replicates, equally parsimonious trees, near-optimal trees). Support values are computed as frequencies across the input trees.
 
 Branch-length / node-depth options:
 
 - `--noblen` (topology + support only)
 - `--biplen` (mean bipartition lengths)
 - `--meandepth` (mean clade depths, then derive branch lengths)
-- `--cadepth` (TreeAnnotator-style “--height ca”: mean MRCA depths, then derive branch lengths)
+- `--cadepth` (mean MRCA depths, then derive branch lengths - like TreeAnnotator “--height ca”: )
 
 Rooting options:
 
@@ -35,7 +34,7 @@ Rooting options:
 
 Version 4 is a **major** release (breaking CLI changes, plus new capabilities).
 
-- Now with multi-processing and computation of credible intervals
+- Now with multi-processing and computation of median + credible intervals
 - For a high-level overview, see **[What changed (4.0.0)](#what-changed-400)**.
 - For migration help, see **[Upgrading from 3.x → 4.x](#upgrading-from-3x--4x)**.
 
@@ -131,7 +130,7 @@ sumt --con --biplen --rootmid -b 0.25,0.4 -s --cpus 0 \
   mrbayes.1.t mrbayes.2.t
 
 # Add 80% and 95% credible intervals on branch lengths
-sumt --con --biplen --rootmid -b 0.25,0.4 --ci 0.8,0.95 \
+sumt --con --biplen --rootmid -b 0.25 --ci 0.8,0.95 \
   mrbayes.1.t mrbayes.2.t
 ```
 
@@ -147,8 +146,7 @@ Accordingly, the code and output use:
 
 - **node depth** = distance from the **tips (leaves)** back to a node (i.e., “time before the most recent leaf”)
 
-In many programming libraries, the same quantity is called **node height** (because the root is drawn at the top).
-When you see “height” in other tools (or in BEAST/TreeAnnotator options), it usually corresponds to what `sumt` calls “depth”. I am in the process of changing terminology to match that standard.
+In other phylogeny software, the same quantity is often called **node height** (because the root is drawn at the top). I am in the process of changing terminology to match that standard.
 
 ---
 
@@ -175,12 +173,13 @@ Selects an **observed input tree** (not a newly constructed consensus topology) 
 ### `--mbc` Maximum bipartition credibility tree
 
 Like MCC, but uses bipartitions instead of clades, and therefore **ignores rooting**. Two trees can share the same bipartitions
-but differ in root position; MBC treats them as equivalent with respect to credibility.
+but differ in root position; MBC treats them as equivalent.
 
 ### `--hip` HIPSTR and `--mrhip` majority-rule HIPSTR
 
-[HIPSTR (Highest Independent Posterior SubTree reconstruction)](https://academic.oup.com/bioinformatics/article/41/10/btaf488/8250098) builds a fully resolved summary tree by choosing, at each internal node,
+HIPSTR (Highest Independent Posterior SubTree reconstruction) builds a fully resolved summary tree by choosing, at each internal node,
 the child-clade pair with the highest combined posterior support. A HIPSTR tree is typically **not** an observed input tree.
+(See: [HIPSTR: highest independent posterior subtree reconstruction in TreeAnnotator X. Baele et al., Bioinformatics, 41(10), 2025](https://academic.oup.com/bioinformatics/article/41/10/btaf488/8250098))
 
 - `--hip`: includes clades even if < 50% (yields a fully resolved tree under the HIPSTR heuristic)
 - `--mrhip`: includes only clades with ≥ 50% support (majority rule)
@@ -256,11 +255,11 @@ Often useful as a quick heuristic when no outgroup is available.
 ### `--rootminvar` (minimum-variance rooting)
 
 Chooses a root location that minimizes the variance in root-to-tip distances (aiming for the most “clock-like” rooting).
-This follows [Mai, Sayyari & Mirarab (2017), *PLOS ONE* 12(8)](https://doi.org/10.1371/journal.pone.0182238).
+See: [Minimum variance rooting of phylogenetic trees and implications for species tree reconstruction. Mai, Sayyari & Mirarab (2017), *PLOS ONE* 12(8)](https://doi.org/10.1371/journal.pone.0182238).
 
 ### `--rootog TAX[,TAX,...]` and `--rootogfile FILE` (outgroup rooting)
 
-Roots the summary tree on an outgroup.
+Roots the summary tree using an outgroup. The root is placed at the midpoint of the branch separating outgroup and ingroup.
 
 - `--rootog` takes a comma-separated list of taxa on the command line.
 - `--rootogfile` takes a file with one taxon name per line.
@@ -300,19 +299,33 @@ sumt --con --biplen --rootmid --rootcred primate-mtDNA.trees
 
 ## Credible intervals (`--ci`)
 
-When you request `--ci`, `sumt` estimates **central credible intervals** for either:
+When you request `--ci`, `sumt` estimates **central credible intervals** and the **median** for either:
 
 - branch lengths (when using `--biplen`), or
 - node depths (when using `--meandepth` or `--cadepth`)
 
-Implementation note (approximate quantiles)
+Implementation note (approximate quantiles):
 
 - Credible intervals are based on **estimated** quantiles (not exact order statistics).
-- Internally, `sumt` uses a mergeable **log-bucket histogram** (see `QuantileAccumulator` in `phylotreelib`) to approximate quantiles in one pass.
-- The approximation precision is controlled by `--cik K`, which sets the histogram resolution (2^K mantissa sub-bins per exponent bucket):
-  - higher K ⇒ finer resolution but more memory/CPU
-  - worst-case relative bucket midpoint error bound is about `2^-(K+1)` (e.g. K=7 ≈ 0.39%, K=8 ≈ 0.20%, K=9 ≈ 0.10%)
+- To compute exact quantiles you would, in principle, have to store *all* branch-length (or depth) values across *all* input trees.
+  That can require large amounts of memory for large analyses.
+- Instead, `sumt` uses a mergeable **log-bucket histogram** (see `QuantileAccumulator` in `phylotreelib`):
+  it does **one pass** through the trees and only stores **counts per bin**, not every individual value.
+- “Log-bucket” means the bins are spaced by **order of magnitude**:
+  values around 0.01, 0.1, 1, 10, 100 fall into different magnitude ranges, and within each range `sumt` subdivides more finely.
+  As a result, bins are **narrower for small values** and **wider for large values** (roughly constant *relative* precision).
+- Quantiles are found by walking through bins in numeric order until the cumulative count reaches (for example) 2.5%, 50% (median),
+  or 97.5% of the samples. The quantile is reported as the **midpoint** of the bin where that cutoff falls.
+  This means the resolution is limited by the bin width.
+- The precision is controlled by `--cik K`, which sets the within-magnitude resolution (2^K sub-bins per magnitude range):
+  - higher K results in finer bins (more precision), but more memory/CPU
+  - a worst-case **relative** midpoint error bound is about `2^-(K+1)`
+    (e.g. K=7 ≈ 0.39%, K=8 ≈ 0.20%, K=9 ≈ 0.10%)
+  - example: with K=7, a reported depth of 1.0 could be off by up to ~0.004 in the worst case from binning alone
+    (and a depth of 10.0 by up to ~0.04, because the bound is relative)
 - Default is `--cik 7`.
+- By default, `sumt` writes branch/node annotations (support, branch lengths, depth summaries, credible intervals, etc.) as **NEXUS metacomments** on the corresponding branches/nodes in the output tree file. Many tree viewers can display these annotations, and you can also see them directly in the file as bracketed comments.
+- Use `--nometa` to suppress these metacomments if you want a “plain” NEXUS/Newick tree without embedded annotations.
 
 Examples:
 
@@ -437,18 +450,18 @@ Notes on `-t PROB` (`.trprobs` output):
 `sumt` can process large tree files faster by splitting work across multiple processes (`--cpus`).
 Internally, each worker processes trees in **chunks** (`--chunksize`, default: 250 trees per chunk).
 A larger chunk size reduces scheduling/serialization overhead, but can increase peak memory usage and sometimes
-reduce load balancing across CPUs (especially if trees vary in processing cost).
+reduce load balancing across CPUs.
 
 
 ```bash
 # Parallel processing
-sumt --con --biplen --cpus 8 primate-mtDNA.trees
+sumt --con --biplen --cpus 8 -b 0.2 mrbayes.1.t mrbayes.2.t
 
 # Force single-process
-sumt --con --biplen --cpus 1 primate-mtDNA.trees
+sumt --con --biplen --cpus 1 -b 0.2 mrbayes.1.t mrbayes.2.t
 
 # Chunk size: larger reduces overhead, may increase memory usage
-sumt --con --biplen --cpus 8 --chunksize 500 primate-mtDNA.trees
+sumt --con --biplen --cpus 8 --chunksize 500 -b 0.2 mrbayes.1.t mrbayes.2.t
 ```
 
 ---
@@ -464,7 +477,7 @@ This is a **major** release because it includes intentional breaking CLI changes
 - **Added multiprocessing** via `--cpus` and `--chunksize`.
 - **Simplified output formats**: `--outformat` is now `newick` or `nexus`; use `--nometa` to suppress metacomments.
 
-### Upgrading from 3.x → 4.x
+### Upgrading from 3.x to 4.x
 
 #### Input files
 
