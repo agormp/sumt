@@ -486,7 +486,7 @@ Old (3.x):
 ```bash
 sumt ... -i file1.t -i file2.t
 # or
-sumt ... -w 0.5 file1.t -w 1.0 file2.t --autow
+sumt ... -w 0.5 file1.t -w 1.0 file2.t
 ```
 
 New (4.x):
