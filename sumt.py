@@ -9,7 +9,7 @@ from pathlib import Path
 import gc
 gc.disable()        # Faster. Assume no cyclic references will ever be created
 
-# CA-depth worker globals (set by _ca_worker_init)
+# CA-height worker globals (set by _ca_worker_init)
 _CA_PLAN = None
 _CA_TRACKCI = False
 _CA_QUANTILE_K = 7
@@ -178,11 +178,11 @@ def parse_commandline(commandlist):
     parser = build_parser()
     args = parser.parse_args(commandlist)
 
-    # Check for deprecated command --meandepth (now --cladedepth)
+    # Check for deprecated command --meandepth (now --cladeheight)
     if commandlist is None:
         commandlist = sys.argv
     if "--meandepth" in commandlist:
-        print("WARNING: --meandepth is deprecated; use --cladedepth instead.", file=sys.stderr)
+        print("WARNING: --meandepth is deprecated; use --cladeheight instead.", file=sys.stderr)
 
     # If output basename is not set: use stem of first input filename minus all suffixes
     if not args.outbase:
@@ -243,8 +243,8 @@ def parse_commandline(commandlist):
     # Clades need to be tracked in these situations
     args.trackclades = (
         args.treetype in ["mcc", "hip", "mrhip"]
-        or args.cladedepth
-        or args.cadepth
+        or args.cladeheight
+        or args.caheight
     )
 
     # Root needs to be tracked if rootcred==True, OR if using biplen with MCC
@@ -262,8 +262,8 @@ def parse_commandline(commandlist):
         and args.biplen
     )
 
-    # Node depths need to be tracked if cladedepth==True
-    args.trackdepth = args.cladedepth
+    # Node heights need to be tracked if cladeheight==True
+    args.trackheight = args.cladeheight
 
     # Subclade-pairs need to be tracked if using HIPSTR or MrHIPSTR
     args.track_subcladepairs = args.treetype in ("hip", "mrhip")
@@ -338,7 +338,7 @@ def build_parser():
 
     ####################################################################################
 
-    sumtype_grp = parser.add_argument_group("SUMMARY TREE TYPE (choose one)")
+    sumtype_grp = parser.add_argument_group("SUMMARY TREE TYPE")
     sumtype_excl = sumtype_grp.add_mutually_exclusive_group(required=True)
 
     sumtype_excl.add_argument("--con", dest="treetype", action="store_const", const="con",
@@ -379,7 +379,7 @@ def build_parser():
 
     ####################################################################################
 
-    blen_grp = parser.add_argument_group(title= "BRANCH-LENGTH ESTIMATION (choose one)")
+    blen_grp = parser.add_argument_group(title= "BRANCH-LENGTH ESTIMATION")
     blen_excl = blen_grp.add_mutually_exclusive_group(required=True)
     blen_excl.add_argument("--noblen", action="store_true",
         help="do not estimate branch lengths; compute topology and branch- or clade-support only")
@@ -391,9 +391,9 @@ def build_parser():
              "into two groups. Branch lenghts are set to the mean or median of the length of the "
              "corresponding bipartition across all input trees.")
 
-    blen_excl.add_argument("--cladedepth", action="store_true",
-        help="set node depths based on the depth of each observed clade, then derive "
-                 "branch lengths from those depths. Intended for rooted, clock-like trees. "
+    blen_excl.add_argument("--cladeheight", action="store_true",
+        help="set node heights based on the height of each observed clade, then derive "
+                 "branch lengths from those heights. Intended for rooted, clock-like trees. "
                  "Requires all clades in the summary tree to have been observed in the input "
                  "trees and may fail for some rootings. "
                  "Mean or median is computed across trees where the specific, monophyletic clade "
@@ -401,16 +401,16 @@ def build_parser():
                  "May produce negative branch lengths.")
 
     # This is deprecated now
-    blen_excl.add_argument("--meandepth", dest="cladedepth", action="store_true", help=argparse.SUPPRESS)
+    blen_excl.add_argument("--meandepth", dest="cladeheight", action="store_true", help=argparse.SUPPRESS)
 
-    blen_excl.add_argument("--cadepth", action="store_true",
-        help="'common ancestor depth'; equivalent to TreeAnnotator --height ca."
-             "Set node depths based on MRCA depth across all trees, then derive branch "
-             "lengths from those depths. Intended for rooted, clock-like trees.")
+    blen_excl.add_argument("--caheight", action="store_true",
+        help="'common ancestor height'; equivalent to TreeAnnotator --height ca. "
+             "Set node heights based on MRCA height across all trees, then derive branch "
+             "lengths from those heights. Intended for rooted, clock-like trees.")
 
     blen_grp.add_argument(
         "--usemedian", action="store_true",
-        help="use the posterior median as the point estimate for branch lengths/node depths "
+        help="use the posterior median as the point estimate for branch lengths/node heights "
              "(mean is still computed; both mean and median are written as metacomments when median is tracked)")
 
     ####################################################################################
@@ -446,7 +446,7 @@ def build_parser():
               "or one comma-separated value per input file [default: %(default)s]")
 
     bayes_grp.add_argument("--ci", metavar="PROB[,PROB,...]", type=str,
-        help="compute one or more central credible intervals for branch lengths or node depths; "
+        help="compute one or more central credible intervals for branch lengths or node heights; "
              "for example, --ci 0.8,0.95. Credible interval endpoints are approximate quantiles "
              "(mergeable log-bucket histogram); use --cik to control precision.")
 
@@ -644,7 +644,7 @@ def process_trees(count_burnin_filename_list, args, output):
             trackroot=args.trackroot,
             trackblen=args.trackblen,
             trackrootblen=args.trackrootblen,
-            trackdepth=args.trackdepth,
+            trackheight=args.trackheight,
             tracktopo=args.tracktopo,
             track_subcladepairs=args.track_subcladepairs,
             store_trees=args.treeprobs,
@@ -697,7 +697,7 @@ def process_trees_concurrent(count_burnin_filename_list, args, output, n_trees_a
             trackroot=args.trackroot,
             trackblen=args.trackblen,
             trackrootblen=args.trackrootblen,
-            trackdepth=args.trackdepth,
+            trackheight=args.trackheight,
             tracktopo=args.tracktopo,
             track_subcladepairs=args.track_subcladepairs,
             store_trees=args.treeprobs,
@@ -820,7 +820,7 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
         trackroot=args.trackroot,
         trackblen=args.trackblen,
         trackrootblen=args.trackrootblen,
-        trackdepth=args.trackdepth,
+        trackheight=args.trackheight,
         tracktopo=args.tracktopo,
         track_subcladepairs=args.track_subcladepairs,
         store_trees=args.treeprobs,
@@ -859,10 +859,10 @@ def worker_process_ca_chunk(chunk, parser_obj):
 
 ####################################################################################
 
-def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, n_trees_analyzed):
+def set_ca_heights_concurrent(sumtree, count_burnin_filename_list, args, output, n_trees_analyzed):
     """
     Second pass over the tree samples, parallelized.
-    Returns sumtree with CA depths written into nodes.
+    Returns sumtree with CA heights written into nodes.
     """
     # Build plan once in parent
     plan = pt.CADepthEstimator.build_plan(
@@ -878,7 +878,7 @@ def set_ca_depths_concurrent(sumtree, count_burnin_filename_list, args, output, 
     )
 
     progress = ProgressBar(ntot=n_trees_analyzed, output=output, quiet=args.quiet,
-                           text="Finding common ancestor node-depths:")
+                           text="Finding common ancestor node-heights:")
 
     ncpus = args.cpus
     max_pending = 2 * ncpus
@@ -1052,7 +1052,7 @@ def  merge_treesummaries(treesummarylist):
 ##########################################################################################
 
 def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_trees_analyzed, worker_pids=None):
-    """Controls computation of summary tree, setting of node depths and branch lengths,
+    """Controls computation of summary tree, setting of node heights and branch lengths,
        and annotation of summary tree with relevant attributes.
        """
 
@@ -1073,19 +1073,19 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
     output.info()
     output.force("Computing summary tree")
 
-    if args.cadepth and args.cpus > 1:
-        # 1) Build topology + root, but do NOT compute depths/blen
+    if args.caheight and args.cpus > 1:
+        # 1) Build topology + root, but do NOT compute heights/blen
         sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting,
                                    blen="none", og=og, count_burnin_filename_list=None)
 
-        # 2) Parallel CA depths (second pass)
-        sumtree, ca_pids = set_ca_depths_concurrent(
+        # 2) Parallel CA heights (second pass)
+        sumtree, ca_pids = set_ca_heights_concurrent(
             sumtree, count_burnin_filename_list, args, output, n_trees_analyzed)
         if worker_pids is not None:
             worker_pids |= ca_pids
 
-        # 3) Branch lengths from depths
-        sumtree.set_blens_from_depths()
+        # 3) Branch lengths from heights
+        sumtree.set_blens_from_heights()
 
         # 4) Annotate (support/rootcred etc)
         tpp = pt.TreePostProcessor(treesummary)
@@ -1093,7 +1093,7 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
 
     else:
         # Serial (non-parallel) processing
-        blen = "cadepth" if args.cadepth else ("cladedepth" if args.cladedepth else ("biplen" if args.biplen else "none"))
+        blen = "caheight" if args.caheight else ("cladeheight" if args.cladeheight else ("biplen" if args.biplen else "none"))
         sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting,
                                    blen=blen, og=og, count_burnin_filename_list=count_burnin_filename_list)
 
@@ -1108,7 +1108,7 @@ def print_sumtree(sumtree, treesummary, args, output):
     pt.configure_sumtree_printing(
         sumtree,
         treetype=args.treetype,
-        blen=("cadepth" if args.cadepth else ("cladedepth" if args.cladedepth else ("biplen" if args.biplen else "none"))),
+        blen=("caheight" if args.caheight else ("cladeheight" if args.cladeheight else ("biplen" if args.biplen else "none"))),
         trackci=args.trackci,
         ci_labels=(treesummary.ci_labels if args.trackci else None),
         precision=7,
@@ -1243,15 +1243,16 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
         output.info("(tree is fully resolved - no polytomies)", padding=44)
 
     # Information about branch lengths
-    if args.cladedepth:
+    pointestimate = "median" if args.usemedian else "mean"
+    if args.cladeheight:
         output.info()
-        output.info(f"Branch lengths set based on mean node depths in input trees")
-    if args.cadepth:
+        output.info(f"Branch lengths set based on {pointestimate} node heights in input trees")
+    if args.caheight:
         output.info()
-        output.info(f"Branch lengths set based on common ancestor depths in input trees")
+        output.info(f"Branch lengths set based on {pointestimate} common ancestor heights in input trees")
     elif args.biplen:
         output.info()
-        output.info(f"Branch lengths set based on mean branch lengths for corresponding bipartitions")
+        output.info(f"Branch lengths set based on {pointestimate} branch lengths for corresponding bipartitions")
     elif args.noblen:
         output.info()
         output.info(f"Branch lengths have not been tracked")
