@@ -408,6 +408,11 @@ def build_parser():
              "Set node depths based on MRCA depth across all trees, then derive branch "
              "lengths from those depths. Intended for rooted, clock-like trees.")
 
+    blen_grp.add_argument(
+        "--usemedian", action="store_true",
+        help="use the posterior median as the point estimate for branch lengths/node depths "
+             "(mean is still computed; both mean and median are written as metacomments when median is tracked)")
+
     ####################################################################################
 
     root_grp = parser.add_argument_group("ROOTING")
