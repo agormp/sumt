@@ -385,10 +385,10 @@ def build_parser():
         help="do not estimate branch lengths; compute topology and branch- or clade-support only")
 
     blen_excl.add_argument("--biplen", action="store_true",
-        help="set branch lengths to the mean length of the corresponding leaf "
+        help="set branch lengths based on length of the corresponding leaf "
              "bipartition across input trees: "
              "each branch in tree corresponds to a bipartition of the leaves "
-             "into two groups. Branch lenghts are set to the mean of the length of the "
+             "into two groups. Branch lenghts are set to the mean or median of the length of the "
              "corresponding bipartition across all input trees.")
 
     blen_excl.add_argument("--cladedepth", action="store_true",
@@ -396,7 +396,7 @@ def build_parser():
                  "branch lengths from those depths. Intended for rooted, clock-like trees. "
                  "Requires all clades in the summary tree to have been observed in the input "
                  "trees and may fail for some rootings. "
-                 "Mean is computed across trees where the specific, monophyletic clade "
+                 "Mean or median is computed across trees where the specific, monophyletic clade "
                  "is present, and may therefore be based on very few (down to one) values. "
                  "May produce negative branch lengths.")
 
@@ -405,7 +405,7 @@ def build_parser():
 
     blen_excl.add_argument("--cadepth", action="store_true",
         help="'common ancestor depth'; equivalent to TreeAnnotator --height ca."
-             "Set node depths by mean MRCA depth across all trees, then derive branch "
+             "Set node depths based on MRCA depth across all trees, then derive branch "
              "lengths from those depths. Intended for rooted, clock-like trees.")
 
     ####################################################################################
