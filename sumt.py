@@ -178,6 +178,12 @@ def parse_commandline(commandlist):
     parser = build_parser()
     args = parser.parse_args(commandlist)
 
+    # Check for deprecated command --meandepth (now --cladedepth)
+    if commandlist is None:
+        commandlist = sys.argv
+    if "--meandepth" in commandlist:
+        print("WARNING: --meandepth is deprecated; use --cladedepth instead.", file=sys.stderr)
+
     # If output basename is not set: use stem of first input filename minus all suffixes
     if not args.outbase:
         infilepath = args.infilelist[0]
@@ -237,7 +243,7 @@ def parse_commandline(commandlist):
     # Clades need to be tracked in these situations
     args.trackclades = (
         args.treetype in ["mcc", "hip", "mrhip"]
-        or args.meandepth
+        or args.cladedepth
         or args.cadepth
     )
 
@@ -256,8 +262,8 @@ def parse_commandline(commandlist):
         and args.biplen
     )
 
-    # Node depths need to be tracked if meandepth==True
-    args.trackdepth = args.meandepth
+    # Node depths need to be tracked if cladedepth==True
+    args.trackdepth = args.cladedepth
 
     # Subclade-pairs need to be tracked if using HIPSTR or MrHIPSTR
     args.track_subcladepairs = args.treetype in ("hip", "mrhip")
@@ -385,14 +391,17 @@ def build_parser():
              "into two groups. Branch lenghts are set to the mean of the length of the "
              "corresponding bipartition across all input trees.")
 
-    blen_excl.add_argument("--meandepth", action="store_true",
-        help="set node depths to the mean depth of each observed clade, then derive "
+    blen_excl.add_argument("--cladedepth", action="store_true",
+        help="set node depths based on the depth of each observed clade, then derive "
                  "branch lengths from those depths. Intended for rooted, clock-like trees. "
                  "Requires all clades in the summary tree to have been observed in the input "
                  "trees and may fail for some rootings. "
                  "Mean is computed across trees where the specific, monophyletic clade "
                  "is present, and may therefore be based on very few (down to one) values. "
                  "May produce negative branch lengths.")
+
+    # This is deprecated now
+    blen_excl.add_argument("--meandepth", dest="cladedepth", action="store_true", help=argparse.SUPPRESS)
 
     blen_excl.add_argument("--cadepth", action="store_true",
         help="'common ancestor depth'; equivalent to TreeAnnotator --height ca."
@@ -1079,7 +1088,7 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
 
     else:
         # Serial (non-parallel) processing
-        blen = "cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))
+        blen = "cadepth" if args.cadepth else ("cladedepth" if args.cladedepth else ("biplen" if args.biplen else "none"))
         sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting,
                                    blen=blen, og=og, count_burnin_filename_list=count_burnin_filename_list)
 
@@ -1094,7 +1103,7 @@ def print_sumtree(sumtree, treesummary, args, output):
     pt.configure_sumtree_printing(
         sumtree,
         treetype=args.treetype,
-        blen=("cadepth" if args.cadepth else ("meandepth" if args.meandepth else ("biplen" if args.biplen else "none"))),
+        blen=("cadepth" if args.cadepth else ("cladedepth" if args.cladedepth else ("biplen" if args.biplen else "none"))),
         trackci=args.trackci,
         ci_labels=(treesummary.ci_labels if args.trackci else None),
         precision=7,
@@ -1229,7 +1238,7 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
         output.info("(tree is fully resolved - no polytomies)", padding=44)
 
     # Information about branch lengths
-    if args.meandepth:
+    if args.cladedepth:
         output.info()
         output.info(f"Branch lengths set based on mean node depths in input trees")
     if args.cadepth:
