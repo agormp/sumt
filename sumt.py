@@ -410,8 +410,9 @@ def build_parser():
 
     blen_grp.add_argument(
         "--usemedian", action="store_true",
-        help="use the posterior median as the point estimate for branch lengths/node heights "
-             "(mean is still computed; both mean and median are written as metacomments when median is tracked)")
+        , help=argparse.SUPPRESS)
+        # help="use the posterior median as the point estimate for branch lengths/node heights "
+        #      "(mean is still computed; both mean and median are written as metacomments when median is tracked)")
 
     ####################################################################################
 
