@@ -11,11 +11,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 #### Added
 - Added option --usemedian: specifies the use of median as pointestimate for branch length / node-height options (default is to use mean).
 
+---
+
+### [4.1.1] - 2026 March 29
+
 #### Changed
 - Changed terminology from "depth" to "height" in help text and option names, to describe difference between date of most recent leaf to given other node (trees now perceived as being rooted at top, with leaves below, as in computer science).
 
 ### Deprecated
-- Deprecated --meandepth option. Use --cladeheight instead; --meandepth will continue working for now, with deprecation warning. (First: terminology changed from depth to height. Secondly: user can now choose whether to use mean or median as point estimate when estimating branch lengths using any of the options in the BRANCHLENGTH group).
+- Deprecated --meandepth option. Use --cladeheight instead; --meandepth will continue working for now, with deprecation warning. (First: terminology changed from depth to height. Secondly: user can in an upcoming version choose whether to use mean or median as point estimate when estimating branch lengths using any of the options in the BRANCHLENGTH group).
 
 
 ---
