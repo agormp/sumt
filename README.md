@@ -1,6 +1,6 @@
 # sumt
 
-[![PyPI version](https://img.shields.io/pypi/v/sumt?cacheBust=1)](https://pypi.org/project/sumt/)
+[![PyPI version](https://img.shields.io/pypi/v/sumt)](https://pypi.org/project/sumt/)
 [![PyPI downloads](https://static.pepy.tech/personalized-badge/sumt?period=total&units=none&left_color=black&right_color=blue&left_text=PyPI%20downloads&service=github)](https://pepy.tech/project/sumt)
 
 `sumt` computes summary trees and associated statistics from one or more files of phylogenetic trees.

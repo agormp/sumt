@@ -6,10 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
-### Unreleased (on GitHub, not yet in PyPi version)
+### Unreleased (on GitHub or being developed; not yet in PyPi version)
 
 #### Added
 - Added option --usemedian: specifies the use of median as pointestimate for branch length / node-height options (default is to use mean).
+
+---
+
+### [4.1.3] - 2026 March 30
+
+#### Fixed
+- Fixed argparse bug introduced in 4.1.1 that caused sumt to crash.
+
+---
+
+### [4.1.2] - 2026 March 30
+
+#### Changed
+- Updated internal calls to use the renamed `CAHeightEstimator` class from phylotreelib 2.1.2 (no change to CLI behaviour; requires phylotreelib ≥ 2.1.2).
 
 ---
 
@@ -18,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 #### Changed
 - Changed terminology from "depth" to "height" in help text and option names, to describe difference between date of most recent leaf to given other node (trees now perceived as being rooted at top, with leaves below, as in computer science).
 
-### Deprecated
+#### Deprecated
 - Deprecated --meandepth option. Use --cladeheight instead; --meandepth will continue working for now, with deprecation warning. (First: terminology changed from depth to height. Secondly: user can in an upcoming version choose whether to use mean or median as point estimate when estimating branch lengths using any of the options in the BRANCHLENGTH group).
 
 
