@@ -849,9 +849,9 @@ def _ca_worker_init(plan, trackci, quantile_k):
 
 def worker_process_ca_chunk(chunk, parser_obj):
     """
-    Worker: parse chunk -> update local CADepthEstimator -> return it.
+    Worker: parse chunk -> update local CAHeightEstimator -> return it.
     """
-    est = pt.CADepthEstimator(_CA_PLAN, trackci=_CA_TRACKCI, quantile_k=_CA_QUANTILE_K)
+    est = pt.CAHeightEstimator(_CA_PLAN, trackci=_CA_TRACKCI, quantile_k=_CA_QUANTILE_K)
     for treestr in chunk:
         treestr = pt.remove_comments(treestr)
         tree = pt.Tree._from_string_private(parser_obj, treestr)
@@ -866,13 +866,13 @@ def set_ca_heights_concurrent(sumtree, count_burnin_filename_list, args, output,
     Returns sumtree with CA heights written into nodes.
     """
     # Build plan once in parent
-    plan = pt.CADepthEstimator.build_plan(
+    plan = pt.CAHeightEstimator.build_plan(
         sumtree,
         trackci=args.trackci and bool(args.ci_probs),
         ci_probs=args.ci_probs,
     )
 
-    global_est = pt.CADepthEstimator(
+    global_est = pt.CAHeightEstimator(
         plan,
         trackci=args.trackci and bool(args.ci_probs),
         quantile_k=args.ci_k,
