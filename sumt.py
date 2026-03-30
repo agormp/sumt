@@ -409,8 +409,7 @@ def build_parser():
              "lengths from those heights. Intended for rooted, clock-like trees.")
 
     blen_grp.add_argument(
-        "--usemedian", action="store_true",
-        , help=argparse.SUPPRESS)
+        "--usemedian", action="store_true", help=argparse.SUPPRESS)
         # help="use the posterior median as the point estimate for branch lengths/node heights "
         #      "(mean is still computed; both mean and median are written as metacomments when median is tracked)")
 
