@@ -13,6 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+### [4.1.4] - 2026 September 22
+
+#### Fixed
+- Restored `--cadepth` as a hidden, deprecated compatibility alias for `--caheight`; using it now emits a deprecation warning.
+- Updated the phylotreelib requirement to version 2.3.1 or later so effectively constant node-height samples use the exact observed height for the median and credible-interval endpoints, rather than the midpoint of a log bucket.
+
+---
+
 ### [4.1.3] - 2026 March 30
 
 #### Fixed
@@ -30,7 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### [4.1.1] - 2026 March 29
 
 #### Changed
-- Changed terminology from "depth" to "height" in help text and option names, to describe difference between date of most recent leaf to given other node (trees now perceived as being rooted at top, with leaves below, as in computer science).
+- Changed terminology from "depth" to "height" in help text and option names, to describe difference between date of most recent leaf to given other node (trees now perceived as being rooted at top, with leaves below, as in computer science). The canonical options became `--cladeheight` (formerly `--meandepth`) and `--caheight` (formerly `--cadepth`).
 
 #### Deprecated
 - Deprecated --meandepth option. Use --cladeheight instead; --meandepth will continue working for now, with deprecation warning. (First: terminology changed from depth to height. Secondly: user can in an upcoming version choose whether to use mean or median as point estimate when estimating branch lengths using any of the options in the BRANCHLENGTH group).
