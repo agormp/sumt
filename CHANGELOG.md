@@ -13,11 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+### [4.1.5] - 2026 September 22
+
+#### Fixed
+- Added the option `--cadepth` as a hidden, deprecated compatibility alias for `--caheight`; using it now emits a deprecation warning.
+
+---
+
 ### [4.1.4] - 2026 September 22
 
 #### Fixed
-- Restored `--cadepth` as a hidden, deprecated compatibility alias for `--caheight`; using it now emits a deprecation warning.
-- Updated the phylotreelib requirement to version 2.3.1 or later so effectively constant node-height samples use the exact observed height for the median and credible-interval endpoints, rather than the midpoint of a log bucket.
+- Updated the phylotreelib requirement to >= version 2.3.1. This fixes handling of situations where some nodes (typically leaves) have effectively constant node-height samples. These will now use the exact observed height for the median and credible-interval endpoints, rather than the midpoint of a log bucket.
 
 ---
 
