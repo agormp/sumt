@@ -15,12 +15,12 @@ Supported summary tree types:
 - Maximum bipartition credibility (`--mbc`)
 - HIPSTR (`--hip`) and majority-rule HIPSTR (`--mrhip`)
 
-Branch-length / node-depth options:
+Branch-length / node-height options:
 
 - `--noblen` (topology + support only)
 - `--biplen` (mean bipartition lengths)
-- `--meandepth` (mean clade depths, then derive branch lengths)
-- `--cadepth` (mean MRCA depths, then derive branch lengths - like TreeAnnotator “--height ca”: )
+- `--cladeheight` (mean clade heights, then derive branch lengths)
+- `--caheight` (mean MRCA heights, then derive branch lengths, like TreeAnnotator `--height ca`)
 
 Rooting options:
 
@@ -30,13 +30,14 @@ Rooting options:
 
 ---
 
-## Version 4.0.0
+## Version 4
 
-Version 4 is a **major** release (breaking CLI changes, plus new capabilities).
+Version 4.0.0 was a **major** release (breaking CLI changes, plus new capabilities).
 
 - Now with multi-processing and computation of median + credible intervals
 - For a high-level overview, see **[What changed (4.0.0)](#what-changed-400)**.
 - For migration help, see **[Upgrading from 3.x → 4.x](#upgrading-from-3x--4x)**.
+- Version 4.1.1 renamed the node-height options; see **[Node-height terminology (4.1.1)](#node-height-terminology-411)**.
 
 ---
 
@@ -107,7 +108,7 @@ Use `--outformat newick` if you prefer Newick output.
 sumt --con --biplen --ci 0.95 --cpus 0 primate-mtDNA.trees
 ```
 
-- `--ci 0.95` computes a central 95% credible interval for each estimated branch length (or node depth)
+- `--ci 0.95` computes a central 95% credible interval for each estimated branch length (or node height)
 - Optional: --cik K adjusts quantile-approximation precision (details below)
 - `--cpus 0` chooses a default number of worker processes (use `--cpus 1` to force single-process, or specify an exact number of processes)
 
@@ -139,20 +140,9 @@ Use `--basename NAME` to control the output prefix; otherwise it uses the stem o
 
 ---
 
-## Terminology note: “node depth” vs “node height” (tree orientation)
-
-In `sumt` (and the underlying `phylotreelib`), trees are typically treated as **rooted at the bottom with tips at the top**.
-Accordingly, the code and output use:
-
-- **node depth** = distance from the **tips (leaves)** back to a node (i.e., “time before the most recent leaf”)
-
-In other phylogeny software, the same quantity is often called **node height** (because the root is drawn at the top). I am in the process of changing terminology to match that standard.
-
----
-
 ## What the different summary trees mean
 
-All summary trees represent a single “best” topology derived from a set of input trees, with support values (and optionally branch-length / node-depth summaries). If your input trees are not posterior samples (e.g., equally parsimonious trees), the reported supports are empirical frequencies in your set (how often a split/clade occurs), not Bayesian posterior probabilities.
+All summary trees represent a single “best” topology derived from a set of input trees, with support values (and optionally branch-length / node-height summaries). If your input trees are not posterior samples (e.g., equally parsimonious trees), the reported supports are empirical frequencies in your set (how often a split/clade occurs), not Bayesian posterior probabilities.
 
 ### `--con` Majority-rule consensus tree
 
@@ -186,9 +176,11 @@ the child-clade pair with the highest combined posterior support. A HIPSTR tree 
 
 ---
 
-## What the branch-length / node-depth modes mean
+## What the branch-length / node-height modes mean
 
-You always pick exactly one of: `--noblen`, `--biplen`, `--meandepth`, `--cadepth`.
+You always pick exactly one of: `--noblen`, `--biplen`, `--cladeheight`, `--caheight`.
+
+Here, **node height** means the distance from the most recent leaf to a node.
 
 ### `--noblen` (no branch lengths)
 
@@ -208,32 +200,32 @@ This works for unrooted summaries (e.g., `--con`, `--all`, `--mbc`) and does not
 
 With `--ci`, credible intervals (and median) are computed for **branch lengths**.
 
-### `--meandepth` (mean clade depths, then derive branch lengths)
+### `--cladeheight` (mean clade heights, then derive branch lengths)
 
 Intended for **rooted clock-like trees** (e.g., time trees).
 
-For each clade in the *summary* tree, `sumt` sets the node depth to the **mean node depth observed for that exact monophyletic clade**,
+For each clade in the *summary* tree, `sumt` sets the node height to the **mean node height observed for that exact monophyletic clade**,
 computed only across those input trees where the clade occurs as a monophyletic group.
 
-Then branch lengths are derived from depths (`blen = depth(parent) - depth(child)`).
+Then branch lengths are derived from heights (`blen = height(parent) - height(child)`).
 
 Notes:
 
 - This can be based on very few observations for rare clades.
-- It may produce **negative branch lengths** in some cases (a known issue with mean-depth approaches).
+- It may produce **negative branch lengths** in some cases (a known issue with mean-height approaches).
 
-With `--ci`, credible intervals (and median) are computed for **node depths**.
+With `--ci`, credible intervals (and median) are computed for **node heights**.
 
-### `--cadepth` (common-ancestor depths; TreeAnnotator-style “heights ca”)
+### `--caheight` (common-ancestor heights; TreeAnnotator-style `--height ca`)
 
 Also intended for **rooted clock-like trees**.
 
-For each clade in the summary tree, `sumt` computes, in **every** post-burnin input tree, the depth of the MRCA of that clade’s tip set,
-and then takes the mean of those MRCA depths across all trees.
+For each clade in the summary tree, `sumt` computes, in **every** post-burnin input tree, the height of the MRCA of that clade’s tip set,
+and then takes the mean of those MRCA heights across all trees.
 
 This corresponds to TreeAnnotator’s “heights ca” approach.
 
-With `--ci`, credible intervals (and median) are computed for **node depths**.
+With `--ci`, credible intervals (and median) are computed for **node heights**.
 
 ---
 
@@ -302,29 +294,31 @@ sumt --con --biplen --rootmid --rootcred primate-mtDNA.trees
 When you request `--ci`, `sumt` estimates **central credible intervals** and the **median** for either:
 
 - branch lengths (when using `--biplen`), or
-- node depths (when using `--meandepth` or `--cadepth`)
+- node heights (when using `--cladeheight` or `--caheight`)
 
 Implementation note (approximate quantiles):
 
 - Credible intervals are based on **estimated** quantiles (not exact order statistics).
-- To compute exact quantiles you would, in principle, have to store *all* branch-length (or depth) values across *all* input trees.
+- To compute exact quantiles you would, in principle, have to store *all* branch-length (or height) values across *all* input trees.
   That can require large amounts of memory for large analyses.
 - Instead, `sumt` uses a mergeable **log-bucket histogram** (see `QuantileAccumulator` in `phylotreelib`):
   it does **one pass** through the trees and only stores **counts per bin**, not every individual value.
 - “Log-bucket” means the bins are spaced by **order of magnitude**:
   values around 0.01, 0.1, 1, 10, 100 fall into different magnitude ranges, and within each range `sumt` subdivides more finely.
   As a result, bins are **narrower for small values** and **wider for large values** (roughly constant *relative* precision).
-- Quantiles are found by walking through bins in numeric order until the cumulative count reaches (for example) 2.5%, 50% (median),
-  or 97.5% of the samples. The quantile is reported as the **midpoint** of the bin where that cutoff falls.
+- For distributions with variation, quantiles are found by walking through bins in numeric order until the cumulative count reaches
+  (for example) 2.5%, 50% (median), or 97.5% of the samples. The quantile is reported as the **midpoint** of the bin where that cutoff falls.
   This means the resolution is limited by the bin width.
+- If all observed values are effectively identical, `sumt` reports that observed value directly for the median and credible-interval
+  endpoints instead of using a bucket midpoint.
 - The precision is controlled by `--cik K`, which sets the within-magnitude resolution (2^K sub-bins per magnitude range):
   - higher K results in finer bins (more precision), but more memory/CPU
   - a worst-case **relative** midpoint error bound is about `2^-(K+1)`
     (e.g. K=7 ≈ 0.39%, K=8 ≈ 0.20%, K=9 ≈ 0.10%)
-  - example: with K=7, a reported depth of 1.0 could be off by up to ~0.004 in the worst case from binning alone
-    (and a depth of 10.0 by up to ~0.04, because the bound is relative)
+  - example: with K=7, a reported height of 1.0 could be off by up to ~0.004 in the worst case from binning alone
+    (and a height of 10.0 by up to ~0.04, because the bound is relative)
 - Default is `--cik 7`.
-- By default, `sumt` writes branch/node annotations (support, branch lengths, depth summaries, credible intervals, etc.) as **NEXUS metacomments** on the corresponding branches/nodes in the output tree file. Many tree viewers can display these annotations, and you can also see them directly in the file as bracketed comments.
+- By default, `sumt` writes branch/node annotations (support, branch lengths, height summaries, credible intervals, etc.) as **NEXUS metacomments** on the corresponding branches/nodes in the output tree file. Many tree viewers can display these annotations, and you can also see them directly in the file as bracketed comments.
 - Use `--nometa` to suppress these metacomments if you want a “plain” NEXUS/Newick tree without embedded annotations.
 
 Examples:
@@ -376,13 +370,13 @@ sumt -v --con --biplen primate-mtDNA.trees
 ```bash
 sumt --con   --biplen primate-mtDNA.trees
 sumt --all   --biplen primate-mtDNA.trees
-sumt --mcc   --meandepth primate-mtDNA.trees
+sumt --mcc   --cladeheight primate-mtDNA.trees
 sumt --mbc   --biplen primate-mtDNA.trees
 sumt --hip   --biplen primate-mtDNA.trees
 sumt --mrhip --biplen primate-mtDNA.trees
 ```
 
-### Branch-length / node-depth settings
+### Branch-length / node-height settings
 
 ```bash
 # Topology + support only
@@ -391,11 +385,11 @@ sumt --con --noblen primate-mtDNA.trees
 # Mean bipartition lengths
 sumt --con --biplen primate-mtDNA.trees
 
-# Mean clade depths (clock-like rooted trees)
-sumt --mcc --meandepth primate-mtDNA.trees
+# Mean clade heights (clock-like rooted trees)
+sumt --mcc --cladeheight primate-mtDNA.trees
 
-# Common-ancestor depths (TreeAnnotator-style --height ca)
-sumt --mcc --cadepth primate-mtDNA.trees
+# Common-ancestor heights (TreeAnnotator-style --height ca)
+sumt --mcc --caheight primate-mtDNA.trees
 ```
 
 ### Rooting and root credibility
@@ -466,7 +460,33 @@ sumt --con --biplen --cpus 8 --chunksize 500 -b 0.2 mrbayes.1.t mrbayes.2.t
 
 ---
 
-## Version 4.0.0 notes
+## Version 4 migration notes
+
+### Node-height terminology (4.1.1)
+
+Version 4.1.1 changed the terminology and option names from node depth to node height:
+
+| Earlier option (4.0.0–4.1.0) | Current option |
+|---|---|
+| `--meandepth` | `--cladeheight` |
+| `--cadepth` | `--caheight` |
+
+The earlier names remain available as hidden compatibility aliases, but emit deprecation warnings.
+New commands and scripts should use the current names.
+
+Earlier (4.0.0–4.1.0):
+
+```bash
+sumt --mcc --meandepth primate-mtDNA.trees
+sumt --mcc --cadepth primate-mtDNA.trees
+```
+
+Current:
+
+```bash
+sumt --mcc --cladeheight primate-mtDNA.trees
+sumt --mcc --caheight primate-mtDNA.trees
+```
 
 ### What changed (4.0.0)
 
@@ -536,5 +556,5 @@ If you use `sumt` in academic work, the simplest option is to cite the GitHub re
 
 ## Notes
 
-- Some combinations (especially `--meandepth` / `--cadepth`) assume clock-like, rooted trees.
+- Some combinations (especially `--cladeheight` / `--caheight`) assume clock-like, rooted trees.
 - Large tree files can be processed efficiently, but for best performance you may want to tune `--chunksize` and `--cpus`.
