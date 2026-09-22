@@ -178,11 +178,13 @@ def parse_commandline(commandlist):
     parser = build_parser()
     args = parser.parse_args(commandlist)
 
-    # Check for deprecated command --meandepth (now --cladeheight)
+    # Check for deprecated branch-length options
     if commandlist is None:
         commandlist = sys.argv
     if "--meandepth" in commandlist:
         print("WARNING: --meandepth is deprecated; use --cladeheight instead.", file=sys.stderr)
+    if "--cadepth" in commandlist:
+        print("WARNING: --cadepth is deprecated; use --caheight instead.", file=sys.stderr)
 
     # If output basename is not set: use stem of first input filename minus all suffixes
     if not args.outbase:
@@ -407,6 +409,9 @@ def build_parser():
         help="'common ancestor height'; equivalent to TreeAnnotator --height ca. "
              "Set node heights based on MRCA height across all trees, then derive branch "
              "lengths from those heights. Intended for rooted, clock-like trees.")
+
+    # This is deprecated now
+    blen_excl.add_argument("--cadepth", dest="caheight", action="store_true", help=argparse.SUPPRESS)
 
     blen_grp.add_argument(
         "--usemedian", action="store_true", help=argparse.SUPPRESS)
