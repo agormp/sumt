@@ -6,7 +6,7 @@ Updated: 2026-10-22. Read alongside the [phylotreelib handoff](../../phylotreeli
 
 - No pushing, publishing, or version changes are authorized. `setup.cfg` remains at version 4.1.5 and requires phylotreelib >= 2.3.1.
 - The completed printing changes and initial handoff were fast-forwarded into local `main` at `2bc0614`. The completed `codex/explicit-tree-printing` branch was deleted; older experimental branches were left alone.
-- Nexus rootedness output is implemented and tested on `codex/nexus-rootedness`, not merged automatically. The matching source branches pass 123 sumt tests and 270 phylotreelib tests. See the [rootedness decision](../../phylotreelib/docs/decisions/nexus-rootedness.md).
+- Nexus rootedness changes through `14ee4d8` were merged into local `main` at Anders's request, and the completed `codex/nexus-rootedness` branch was deleted. The checkout is on `main`. After merging, the matching local main checkouts passed 123 sumt tests and 270 phylotreelib tests. Nothing was pushed or released. See the [rootedness decision](../../phylotreelib/docs/decisions/nexus-rootedness.md).
 - The full Nexus metacomment parser and the proposed `--date` feature are deferred. A new chat must not treat their plans as authorization to implement them.
 
 ## Completed changes
@@ -18,7 +18,7 @@ Updated: 2026-10-22. Read alongside the [phylotreelib handoff](../../phylotreeli
 
 Before rootedness output, these calls also work with phylotreelib 2.3.1. CLI checks showed unchanged output for serial/parallel HIPSTR CA heights, MCC clade heights, and consensus branch lengths. Serial and parallel CA output matched exactly.
 
-## Rootedness output policy on the testing branch
+## Rootedness output policy on local main
 
 phylotreelib has an implementation root on every Tree but no authoritative biological-rootedness flag. Its Nexus-only explicit `rooted` export argument is chosen here from workflow semantics:
 
@@ -34,7 +34,7 @@ The new keyword is not supported by the published phylotreelib 2.3.1 wheel. If i
 
 Recommended future requirement policy: a tested minimum plus an upper bound at the next major, e.g. `>=2.3.1,<3` for the old API or `>=3.0.0,<4` for the forthcoming API. Keep public compatibility within each library major series and test the minimum/latest supported releases. See [the dependency decision](decisions/dependency-compatibility.md). This is advice only; current requirement metadata is unchanged.
 
-Additional verification: eleven actual CLI workflows were compared against local main, including all summary types, serial/parallel CA heights, each explicit rooting method, `--nometa`, and Newick output. The only differences were the new Nexus declarations; Biopython accepted each Nexus output and reported the intended rootedness. The documentation's CI examples were rerun successfully.
+Additional verification: eleven actual CLI workflows were compared against the pre-rootedness main baseline, including all summary types, serial/parallel CA heights, each explicit rooting method, `--nometa`, and Newick output. The only differences were the new Nexus declarations; Biopython accepted each Nexus output and reported the intended rootedness. The documentation's CI examples were rerun successfully.
 
 ## Running tests against local phylotreelib
 
