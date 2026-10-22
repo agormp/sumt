@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 #### Changed
 - Summary-tree output now passes printing options directly to `Tree.newick()` and `Tree.nexus()`, replacing the call to `configure_sumtree_printing()`. This supports phylotreelib's forthcoming removal of stored printing settings while preserving sumt's command-line options and output. The existing phylotreelib >= 2.3.1 requirement remains sufficient for these explicit calls.
+- Empty metadata selections are passed as empty tuples so sumt continues to print only its chosen summary fields when phylotreelib's automatic metadata output is enabled.
 
 ---
 

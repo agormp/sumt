@@ -1135,9 +1135,9 @@ def print_sumtree(sumtree, treesummary, args, output):
             branch_attributes.update({"ci", "length_median"})
 
     print_options = {
-        "node_attributes": tuple(sorted(node_attributes)) or None,
-        "branch_attributes": tuple(sorted(branch_attributes)) or None,
-        "ci_labels": tuple(ci_labels) if ci_labels else None,
+        "node_attributes": tuple(sorted(node_attributes)),
+        "branch_attributes": tuple(sorted(branch_attributes)),
+        "ci_labels": tuple(ci_labels) if ci_labels else (),
         "labelfield": labelfield,
         "precision": 7,
         "print_meta": not args.nometa,

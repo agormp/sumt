@@ -17,6 +17,7 @@ def annotated_sumtree():
     for children in tree.child_dict.values():
         for branch in children.values():
             branch.label = "0.9"
+            branch.posterior = 0.95
             branch.bipartition_cred = 0.8
             branch.length_sd = 0.25
             branch.length_median = 2.5
@@ -59,11 +60,14 @@ class TestPrintSumtree:
         sumt.print_sumtree(tree, summary, args, silent_output)
 
         result = args.outbase.with_suffix("." + treetype).read_text()
+        assert "posterior=" not in result
+        assert "label=" not in result
         if treetype in ("mcc", "hip", "mrhip"):
             assert "clade_cred=0.9" in result
             assert ")0.9" in result
         else:
             assert "bipartition_cred=0.8" in result
+            assert "clade_cred=" not in result
             assert ")0.8" in result
         if mode in ("cladeheight", "caheight"):
             assert "height=1.234568" in result
