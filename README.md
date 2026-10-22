@@ -239,6 +239,10 @@ If you do not specify a rooting option:
 - For `--con`, `--all`, and `--mbc`, the output should be treated as *unrooted* unless you root it explicitly (e.g. with `--rootmid`, `--rootminvar`, or an outgroup).
 - For `--hip` and `--mrhip`, the output is **rooted by construction** (HIPSTR is defined on clades / child-clade pairs, i.e. rooted structure). In practice this means the output root reflects the rooted structure present in the input trees; if your input trees are not meaningfully rooted, HIPSTR-style summaries are usually not appropriate.
 
+Nexus summary output now declares this interpretation explicitly: `[&R]` for MCC, HIPSTR, mrHIPSTR, and explicitly rooted consensus/MBC trees; `[&U]` for consensus/MBC trees without explicit rooting. The declaration does not reroot the result and is retained with `--nometa`. Plain Newick output is unchanged. A declaration cannot prevent subsequent manual rerooting in a viewer, which can make previously computed height annotations inconsistent with the displayed branch geometry.
+
+This is an unreleased feature: development checkouts using the new declaration require the matching phylotreelib source with `nexus(rooted=...)`, not the published 2.3.1 wheel. The minimum dependency must be updated before release; package version numbers have deliberately not been changed yet.
+
 ### `--rootmid` (midpoint rooting)
 
 Places the root at the midpoint of the tree’s diameter (the longest tip-to-tip path).
@@ -319,7 +323,7 @@ Implementation note (approximate quantiles):
     (and a height of 10.0 by up to ~0.04, because the bound is relative)
 - Default is `--cik 7`.
 - By default, `sumt` writes branch/node annotations (support, branch lengths, height summaries, credible intervals, etc.) as **NEXUS metacomments** on the corresponding branches/nodes in the output tree file. Many tree viewers can display these annotations, and you can also see them directly in the file as bracketed comments.
-- Use `--nometa` to suppress these metacomments if you want a “plain” NEXUS/Newick tree without embedded annotations.
+- Use `--nometa` to suppress these node/branch annotations. Nexus output retains its `[&R]` or `[&U]` declaration because that specifies rootedness rather than a summary statistic.
 
 Examples:
 
@@ -354,7 +358,7 @@ sumt --outformat nexus  --con --biplen primate-mtDNA.trees
 # Basename controls output stem
 sumt --basename primates_summary --con --biplen primate-mtDNA.trees
 
-# Suppress metacomments in NEXUS output
+# Suppress statistical annotations; retain the Nexus rootedness declaration
 sumt --con --biplen --nometa primate-mtDNA.trees
 
 # Overwrite without prompting; quiet mode implies -n
