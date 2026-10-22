@@ -30,7 +30,7 @@ def printing_args(tmp_path):
     return SimpleNamespace(
         treetype="hip", caheight=True, cladeheight=False, biplen=False, noblen=False,
         trackci=True, nometa=False, nolabel=False, outformat="nexus",
-        outbase=tmp_path / "summary", nowarn=True,
+        outbase=tmp_path / "summary", nowarn=True, actively_rooted=False,
     )
 
 
@@ -60,6 +60,11 @@ class TestPrintSumtree:
         sumt.print_sumtree(tree, summary, args, silent_output)
 
         result = args.outbase.with_suffix("." + treetype).read_text()
+        if outformat == "nexus":
+            declaration = "[&R] " if treetype in ("mcc", "hip", "mrhip") else "[&U] "
+            assert "tree nexus_tree = " + declaration in result
+        else:
+            assert "[&R]" not in result and "[&U]" not in result
         assert "posterior=" not in result
         assert "label=" not in result
         if treetype in ("mcc", "hip", "mrhip"):
@@ -98,9 +103,28 @@ class TestPrintSumtree:
         sumt.print_sumtree(annotated_sumtree, SimpleNamespace(ci_labels=("95%_CI",)),
                           args, silent_output)
         result = args.outbase.with_suffix(".hip").read_text()
-        assert "[&" not in result
+        if outformat == "nexus":
+            assert "tree nexus_tree = [&R] " in result
+        assert "[&" not in result.replace("[&R]", "")
         assert ")0.9" not in result
         assert ":0.1234568" in result
+
+    @pytest.mark.parametrize("treetype", ["con", "all", "mbc"])
+    @pytest.mark.parametrize("actively_rooted", [False, True, ["A"], []])
+    @pytest.mark.parametrize("nometa", [False, True])
+    def test_explicit_rooting_declaration(self, annotated_sumtree, printing_args, silent_output,
+                                         treetype, actively_rooted, nometa):
+        args = printing_args
+        args.treetype = treetype
+        args.actively_rooted = actively_rooted
+        args.nometa = nometa
+        sumt.print_sumtree(annotated_sumtree, SimpleNamespace(ci_labels=("95%_CI",)),
+                          args, silent_output)
+        result = args.outbase.with_suffix("." + treetype).read_text()
+        declaration = "[&R]" if actively_rooted else "[&U]"
+        assert "tree nexus_tree = " + declaration + " " in result
+        if nometa:
+            assert "[&" not in result.replace(declaration, "")
 
     def test_no_interval_labels(self, annotated_sumtree, printing_args, silent_output):
         sumt.print_sumtree(annotated_sumtree, SimpleNamespace(ci_labels=()),
