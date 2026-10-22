@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 #### Added
 - Added option --usemedian: specifies the use of median as pointestimate for branch length / node-height options (default is to use mean).
+- Added pytest coverage for summary-tree printing across tree types, branch-length methods, output formats, credible intervals, and metadata/label suppression.
+
+#### Changed
+- Summary-tree output now passes printing options directly to `Tree.newick()` and `Tree.nexus()`, replacing the call to `configure_sumtree_printing()`. This supports phylotreelib's forthcoming removal of stored printing settings while preserving sumt's command-line options and output. The existing phylotreelib >= 2.3.1 requirement remains sufficient for these explicit calls.
 
 ---
 
