@@ -1110,20 +1110,44 @@ def print_sumtree(sumtree, treesummary, args, output):
 
     confilename = args.outbase.parent / (args.outbase.name + f".{args.treetype}")
 
-    pt.configure_sumtree_printing(
-        sumtree,
-        treetype=args.treetype,
-        blen=("caheight" if args.caheight else ("cladeheight" if args.cladeheight else ("biplen" if args.biplen else "none"))),
-        trackci=args.trackci,
-        ci_labels=(treesummary.ci_labels if args.trackci else None),
-        precision=7,
-        print_meta=not args.nometa,
-        printlabels=not args.nolabel,
-        printdist=not args.noblen,
-    )
+    node_attributes = set()
+    branch_attributes = set()
+    if args.treetype in ("mcc", "hip", "mrhip"):
+        node_attributes.add("clade_cred")
+        labelfield = "label"
+    else:
+        branch_attributes.add("bipartition_cred")
+        labelfield = "bipartition_cred"
+
+    if args.caheight or args.cladeheight:
+        node_attributes.update({"height", "height_sd"})
+        branch_attributes.add("length")
+    elif args.biplen:
+        branch_attributes.update({"length", "length_sd"})
+    else:
+        branch_attributes.add("length")
+
+    ci_labels = treesummary.ci_labels if args.trackci else None
+    if args.trackci and ci_labels:
+        if args.caheight or args.cladeheight:
+            node_attributes.update({"ci", "height_median"})
+        elif args.biplen:
+            branch_attributes.update({"ci", "length_median"})
+
+    print_options = {
+        "node_attributes": tuple(sorted(node_attributes)) or None,
+        "branch_attributes": tuple(sorted(branch_attributes)) or None,
+        "ci_labels": tuple(ci_labels) if ci_labels else None,
+        "labelfield": labelfield,
+        "precision": 7,
+        "print_meta": not args.nometa,
+        "printlabels": not args.nolabel,
+        "printdist": not args.noblen,
+    }
 
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
-        tree_str = sumtree.nexus() if args.outformat == "nexus" else sumtree.newick()
+        tree_str = (sumtree.nexus(**print_options) if args.outformat == "nexus"
+                    else sumtree.newick(**print_options))
         confile.write(tree_str)
         confile.write("\n")
 

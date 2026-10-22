@@ -1,6 +1,7 @@
 tmp/
 .DS_store
-tests/
+tests/*
+!tests/test_*.py
 notes/
 __pycache__
 sumt.egg-info
