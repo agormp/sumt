@@ -1102,6 +1102,8 @@ def compute_sumtree(treesummary, args, count_burnin_filename_list, output, n_tre
         sumtree = pt.build_sumtree(treesummary, treetype=args.treetype, rooting=rooting,
                                    blen=blen, og=og, count_burnin_filename_list=count_burnin_filename_list)
 
+    sumtree.rooted = args.treetype in ("mcc", "hip", "mrhip") or bool(args.actively_rooted)
+
     return sumtree
 
 ##########################################################################################
@@ -1149,7 +1151,6 @@ def print_sumtree(sumtree, treesummary, args, output):
         "printdist": not args.noblen,
     }
 
-    sumtree.rooted = args.treetype in ("mcc", "hip", "mrhip") or bool(args.actively_rooted)
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "nexus":
             tree_str = sumtree.nexus(print_rootedness=True, **print_options)
