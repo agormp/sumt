@@ -157,8 +157,8 @@ fully resolved or no more compatible bipartitions remain.
 
 ### `--mcc` Maximum clade credibility tree
 
-Selects an **observed input tree** (not a newly constructed consensus topology) that maximizes the product of clade frequencies
-(equivalently: maximizes the sum of log clade frequencies). This is mainly meaningful for **rooted** (often clock-like) trees.
+Selects an **observed rooted topology** that maximizes the product of clade frequencies
+(equivalently: the sum of log clade frequencies), then reconstructs it from clades and summary records. It does not return or edit a retained input representative. This is mainly meaningful for **rooted** (often clock-like) trees.
 
 ### `--mbc` Maximum bipartition credibility tree
 
@@ -167,12 +167,11 @@ but differ in root position; MBC treats them as equivalent.
 
 ### `--hip` HIPSTR and `--mrhip` majority-rule HIPSTR
 
-HIPSTR (Highest Independent Posterior SubTree reconstruction) builds a fully resolved summary tree by choosing, at each internal node,
-the child-clade pair with the highest combined posterior support. A HIPSTR tree is typically **not** an observed input tree.
+HIPSTR (Highest Independent Posterior SubTree reconstruction) builds a fully resolved rooted summary by combining observed child-clade pairs with recursively accumulated clade scores. Its topology need not be an observed input topology. The root comes from this oriented clade reconstruction, rather than a separate root-frequency placement step.
 (See: [HIPSTR: highest independent posterior subtree reconstruction in TreeAnnotator X. Baele et al., Bioinformatics, 41(10), 2025](https://academic.oup.com/bioinformatics/article/41/10/btaf488/8250098))
 
-- `--hip`: includes clades even if < 50% (yields a fully resolved tree under the HIPSTR heuristic)
-- `--mrhip`: includes only clades with ≥ 50% support (majority rule)
+- `--hip`: chooses the HIPSTR reconstruction, which can include clades below 50% support.
+- `--mrhip`: favors majority clades with support above 50% while resolving the remaining structure; it can also include lower-support clades. It is not a filter that removes every clade below 50%.
 
 ---
 
@@ -235,11 +234,11 @@ You can choose at most one of: `--rootmid`, `--rootminvar`, `--rootog`, `--rooto
 
 If you do not specify a rooting option:
 
-- For `--mcc`, the chosen sample tree’s root is retained.
+- For `--mcc`, reconstruction retains the orientation of the selected observed clade topology.
 - For `--con`, `--all`, and `--mbc`, the output should be treated as *unrooted* unless you root it explicitly (e.g. with `--rootmid`, `--rootminvar`, or an outgroup).
 - For `--hip` and `--mrhip`, the output is **rooted by construction** (HIPSTR is defined on clades / child-clade pairs, i.e. rooted structure). In practice this means the output root reflects the rooted structure present in the input trees; if your input trees are not meaningfully rooted, HIPSTR-style summaries are usually not appropriate.
 
-Nexus summary output now declares this interpretation explicitly: `[&R]` for MCC, HIPSTR, mrHIPSTR, and explicitly rooted consensus/MBC trees; `[&U]` for consensus/MBC trees without explicit rooting. The declaration does not reroot the result and is retained with `--nometa`. Plain Newick output is unchanged. A declaration cannot prevent subsequent manual rerooting in a viewer, which can make previously computed height annotations inconsistent with the displayed branch geometry.
+The main summary Nexus output declares this interpretation explicitly: `[&R]` for MCC, HIPSTR, mrHIPSTR, and explicitly rooted consensus/MBC trees; `[&U]` for consensus/MBC trees without explicit rooting. The declaration does not reroot the result and is retained with `--nometa`. Plain Newick output is unchanged. A declaration cannot prevent subsequent manual rerooting in a viewer, which can make previously computed height annotations inconsistent with the displayed branch geometry.
 
 This is an unreleased feature: development checkouts require the matching phylotreelib source with the `Tree.rooted` state, `nexus(print_rootedness=...)` and exact metadata-key output APIs. sumt assigns the interpretation from its summary/rooting workflow before export. The published phylotreelib 2.3.1 wheel lacks these APIs. The minimum dependency must be updated before release; package version numbers have deliberately not been changed yet.
 
@@ -569,4 +568,4 @@ The matched phylotreelib source checkout stores all non-native annotations, incl
 
 sumt retains explicit `precision=7`, even though the library now defaults to full stored precision. It does not copy unrelated sample annotations into output. `--noblen` also suppresses branch metacomments to preserve annotation ownership, while `--nolabel` independently controls support labels. `--nometa` suppresses optional annotations while preserving Nexus rootedness declarations.
 
-The annotation-aware input parser and automatic library operation-state transitions are subsequent stages; sumt currently assigns output rootedness from its workflow. Test the matching source checkouts together. Package version and requirement metadata remain unchanged until release authorization.
+Library constructors and editing operations now maintain rootedness, and sumt establishes its output interpretation during summary construction/rooting. Printing emits that state without changing it. Annotation-aware input readers, TREE/UTREE command context, raw/count/skip/worker integration and the separate `.trprobs` declaration migration remain later work. Nexus does not define a rooted/unrooted default when declarations are absent. Test the matching source checkouts together; package versions and requirements remain unchanged until release authorization.
