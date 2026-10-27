@@ -11,7 +11,7 @@ def annotated_sumtree():
     for node in tree.nodes:
         for attribute, value in {
             "height": 1.23456789, "height_sd": 0.15, "height_median": 1.2,
-            "clade_cred": 0.9, "ci": {"95%_CI": (0.5, 2.0)},
+            "clade_cred": 0.9, "extra_meta": {"height_95%_CI": (0.5, 2.0), "unrequested": 99},
         }.items():
             tree.set_node_attribute(node, attribute, value)
     for children in tree.child_dict.values():
@@ -21,7 +21,7 @@ def annotated_sumtree():
             branch.bipartition_cred = 0.8
             branch.length_sd = 0.25
             branch.length_median = 2.5
-            branch.ci = {"95%_CI": (0.5, 4.0)}
+            branch.extra_meta = {"length_95%_CI": (0.5, 4.0), "unrequested": 99}
     return tree
 
 
@@ -67,11 +67,12 @@ class TestPrintSumtree:
             assert "[&R]" not in result and "[&U]" not in result
         assert "posterior=" not in result
         assert "label=" not in result
+        assert "unrequested=" not in result
         if treetype in ("mcc", "hip", "mrhip"):
             assert "clade_cred=0.9" in result
             assert ")0.9" in result
         else:
-            assert "bipartition_cred=0.8" in result
+            assert ("bipartition_cred=0.8" in result) == (mode != "noblen")
             assert "clade_cred=" not in result
             assert ")0.8" in result
         if mode in ("cladeheight", "caheight"):
@@ -79,12 +80,12 @@ class TestPrintSumtree:
             assert "height_sd=0.15" in result
             assert ("height_median=1.2" in result) == trackci
             if trackci:
-                assert "height_95%_CI={0.5,2}" in result
+                assert "height_95%_CI={0.5,2.0}" in result
         elif mode == "biplen":
             assert "length_sd=0.25" in result
             assert ("length_median=2.5" in result) == trackci
             if trackci:
-                assert "length_95%_CI={0.5,4}" in result
+                assert "length_95%_CI={0.5,4.0}" in result
         else:
             assert ":" not in result
         if not trackci:

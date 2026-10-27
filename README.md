@@ -562,3 +562,7 @@ If you use `sumt` in academic work, the simplest option is to cite the GitHub re
 
 - Some combinations (especially `--cladeheight` / `--caheight`) assume clock-like, rooted trees.
 - Large tree files can be processed efficiently, but for best performance you may want to tune `--chunksize` and `--cpus`.
+
+### Unreleased annotation storage migration
+
+The matched phylotreelib source checkout now stores intervals under complete keys in `extra_meta`. sumt explicitly selects the intervals requested through its existing CI options and retains seven significant digits; it does not copy unrelated sample annotations into output. Suppressing branch lengths also suppresses branch metacomments, while support labels remain controlled separately. Test the matching source checkouts together; package version and requirement metadata remain unchanged until release authorization.

@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added pytest coverage for summary-tree printing across tree types, branch-length methods, output formats, credible intervals, and metadata/label suppression.
 
 #### Changed
+- Printing selects exact complete height/length interval keys from phylotreelib's `extra_meta` storage, retaining explicit precision seven and excluding unrelated annotations. With `--noblen`, branch metadata is omitted because its attachment requires a printed length; internal support labels retain their separate control.
 - Summary-tree output now passes printing options directly to `Tree.newick()` and `Tree.nexus()`, replacing the call to `configure_sumtree_printing()`. This supports phylotreelib's forthcoming removal of stored printing settings while preserving sumt's command-line options and statistical annotations. The printing refactor alone supports phylotreelib >= 2.3.1; the new rootedness argument requires the matching unreleased library.
 - Empty metadata selections are passed as empty tuples so sumt continues to print only its chosen summary fields when phylotreelib's automatic metadata output is enabled.
 

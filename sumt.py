@@ -1130,14 +1130,18 @@ def print_sumtree(sumtree, treesummary, args, output):
     ci_labels = treesummary.ci_labels if args.trackci else None
     if args.trackci and ci_labels:
         if args.caheight or args.cladeheight:
-            node_attributes.update({"ci", "height_median"})
+            node_attributes.add("height_median")
+            node_attributes.update("height_" + label for label in ci_labels)
         elif args.biplen:
-            branch_attributes.update({"ci", "length_median"})
+            branch_attributes.add("length_median")
+            branch_attributes.update("length_" + label for label in ci_labels)
+
+    if args.noblen:
+        branch_attributes.clear()
 
     print_options = {
         "node_attributes": tuple(sorted(node_attributes)),
         "branch_attributes": tuple(sorted(branch_attributes)),
-        "ci_labels": tuple(ci_labels) if ci_labels else (),
         "labelfield": labelfield,
         "precision": 7,
         "print_meta": not args.nometa,
