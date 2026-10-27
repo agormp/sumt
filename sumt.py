@@ -549,43 +549,10 @@ def count_trees(args, output):
 ####################################################################################
 
 def fast_treecount(filename, args):
-    """Heuristic: count patterns ([;=\n] etc) to infer number of trees"""
+    """Count descriptions with the library's shared lexical scanner."""
+    return pt.fast_treecount(filename, fileformat=args.informat)
 
-    # Empirically: if ); is in file, then this == number of trees
-    n_terminators = count_bytestring(filename, b");")
-    if n_terminators > 0:
-        return n_terminators
-
-    # Count semicolon: if == 1 (possibly after nexus correction): 1 tree
-    n_semicolons = count_bytestring(filename, b";")
-    if n_semicolons == 1:
-        return 1
-    if args.informat == "nexus":
-        n_other_semicolon_patterns  = count_bytestring(filename, b"egin taxa;")
-        n_other_semicolon_patterns += count_bytestring(filename, b"egin trees;")
-        n_other_semicolon_patterns += count_bytestring(filename, b"nd;")
-        n_other_semicolon_patterns += count_bytestring(filename, b"imensions ntax")
-        n_other_semicolon_patterns += count_bytestring(filename, b"axlabels")
-        n_other_semicolon_patterns += count_bytestring(filename, b"ranslate")
-        n_semicolons -= n_other_semicolon_patterns
-    if n_semicolons == 1:
-        return 1
-
-    # If we got this far, and filetype is newick then bail out and use precise counting
-    if args.informat == "newick":
-        return count_trees_by_parsing(filename, args)
-
-    # Final attempt to infer ntrees for nexus files:
-    # count "= (",  and "tree "
-    # Add the values that are not 0 to list, choose minimum as count
-    # Should be robust to most variations, but should check at end of sumt...
-    n_eqparen = count_bytestring(filename, b"= (")
-    n_treestr = count_bytestring(filename, b"tree ")
-    countlist = [n_semicolons, n_eqparen, n_treestr]
-    notzero = [val for val in countlist if val>0]
-    return min(notzero)
-
-####################################################################################
+##########################################################################################
 
 def count_bytestring(filename, bytestring):
     """Fast counting of specific pattern. Bytestring argument must be given
@@ -614,17 +581,10 @@ def count_bytestring(filename, bytestring):
 ####################################################################################
 
 def count_trees_by_parsing(filename, args):
-    # Open treefile. Discard (i.e., silently pass by) the requested number of trees
-    if args.informat == "nexus":
-        treefile = pt.Nexustreefile(filename)
-    else:
-        treefile = pt.Newicktreefile(filename)
-    treecount = 0
-    for tree in treefile:
-        treecount += 1
-    return treecount
+    """Count descriptions without constructing trees using the shared scanner."""
+    return pt.fast_treecount(filename, fileformat=args.informat)
 
-####################################################################################
+##########################################################################################
 
 def process_trees(count_burnin_filename_list, args, output):
 
@@ -638,8 +598,7 @@ def process_trees(count_burnin_filename_list, args, output):
             treefile = pt.Nexustreefile(filename)
         else:
             treefile = pt.Newicktreefile(filename)
-        for j in range(burnin):
-            treefile.readtree(returntree=False)
+        treefile.skip_trees(burnin)
         output.info(f"Discarded {burnin:,} of {count:,} trees (burnin fraction={args.burninfrac[i]:.2f})")
 
         # Instantiate Treesummary.
@@ -795,19 +754,23 @@ def file_overview_table(count_burnin_filename_list, output, show_path=False, pad
 ##########################################################################################
 
 def chunked_tree_strings_from_files(count_burnin_filename_list, max_chunk_size):
-    """yields (chunk_of_tree_strings, file_idx, parser_obj)"""
-
+    """Yield intact descriptions with stable parser and per-description command context."""
     for file_idx, (count, burnin, filename) in enumerate(count_burnin_filename_list):
-        with pt.Treefile(filename, strip_comments=False) as tf:
-            parser_obj = tf.parser_obj
-
-            for _ in range(burnin):
-                tf.readtree(returntree=False)
-
+        with pt.Treefile(filename, parse_meta=False) as tf:
+            tf.skip_trees(burnin)
             chunk = []
+            parser_obj = None
             for _ in range(burnin, count):
-                treestr = tf.readtree(returntree=False)
-                chunk.append(treestr)
+                treestr = tf.read_tree_text()
+                if treestr is None:
+                    raise pt.TreeError("Unexpected EOF before the counted trees were read")
+                current_parser = tf.parser_obj
+                command_kind = tf._last_command_kind
+                if chunk and current_parser is not parser_obj:
+                    yield (chunk, file_idx, parser_obj)
+                    chunk = []
+                parser_obj = current_parser
+                chunk.append((treestr, command_kind))
                 if len(chunk) == max_chunk_size:
                     yield (chunk, file_idx, parser_obj)
                     chunk = []
@@ -834,9 +797,8 @@ def worker_process_chunk(chunk, file_idx, parser_obj, args):
         quantile_k=args.ci_k
     )
 
-    for treestr in chunk:
-        treestr = pt.remove_comments(treestr)
-        tree = pt.Tree._from_string_private(parser_obj, treestr)
+    for treestr, command_kind in chunk:
+        tree = pt.Tree._from_string_private(parser_obj, treestr, command_kind=command_kind)
         ts.add_tree(tree)
 
     return (ts, file_idx, os.getpid())
@@ -856,9 +818,8 @@ def worker_process_ca_chunk(chunk, parser_obj):
     Worker: parse chunk -> update local CAHeightEstimator -> return it.
     """
     est = pt.CAHeightEstimator(_CA_PLAN, trackci=_CA_TRACKCI, quantile_k=_CA_QUANTILE_K)
-    for treestr in chunk:
-        treestr = pt.remove_comments(treestr)
-        tree = pt.Tree._from_string_private(parser_obj, treestr)
+    for treestr, command_kind in chunk:
+        tree = pt.Tree._from_string_private(parser_obj, treestr, command_kind=command_kind)
         est.add_tree(tree)
     return (est, len(chunk), os.getpid())
 

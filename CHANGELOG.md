@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Added pytest coverage for summary-tree printing across tree types, branch-length methods, output formats, credible intervals, and metadata/label suppression.
 
 #### Changed
+- Input counting and burn-in use shared lexical framing. Worker chunks retain complete descriptions with stable translation/parser and TREE/UTREE context; summary and CA workers no longer strip declarations or suffixes before parsing.
 - Documentation now distinguishes reconstructed MCC topology from retained representatives, explains mrHIPSTR's majority preference without claiming a low-support filter, and separates implemented library state/edit contracts from pending input and `.trprobs` migrations.
 - Summary construction establishes the tree's known rootedness from the existing workflow; printing only reads it and requests `print_rootedness=True`, preserving declarations with metadata disabled and avoiding the removed Nexus value argument.
 - Printing selects exact complete height/length interval keys from phylotreelib's `extra_meta` storage, retaining explicit precision seven and excluding unrelated annotations. With `--noblen`, branch metadata is omitted because its attachment requires a printed length; internal support labels retain their separate control.
