@@ -241,7 +241,7 @@ If you do not specify a rooting option:
 
 Nexus summary output now declares this interpretation explicitly: `[&R]` for MCC, HIPSTR, mrHIPSTR, and explicitly rooted consensus/MBC trees; `[&U]` for consensus/MBC trees without explicit rooting. The declaration does not reroot the result and is retained with `--nometa`. Plain Newick output is unchanged. A declaration cannot prevent subsequent manual rerooting in a viewer, which can make previously computed height annotations inconsistent with the displayed branch geometry.
 
-This is an unreleased feature: development checkouts using the new declaration require the matching phylotreelib source with `nexus(rooted=...)`, not the published 2.3.1 wheel. The minimum dependency must be updated before release; package version numbers have deliberately not been changed yet.
+This is an unreleased feature: development checkouts require the matching phylotreelib source with the `Tree.rooted` state, `nexus(print_rootedness=...)` and exact metadata-key output APIs. sumt assigns the interpretation from its summary/rooting workflow before export. The published phylotreelib 2.3.1 wheel lacks these APIs. The minimum dependency must be updated before release; package version numbers have deliberately not been changed yet.
 
 ### `--rootmid` (midpoint rooting)
 
@@ -313,8 +313,8 @@ Implementation note (approximate quantiles):
 - For distributions with variation, quantiles are found by walking through bins in numeric order until the cumulative count reaches
   (for example) 2.5%, 50% (median), or 97.5% of the samples. The quantile is reported as the **midpoint** of the bin where that cutoff falls.
   This means the resolution is limited by the bin width.
-- If all observed values are effectively identical, `sumt` reports that observed value directly for the median and credible-interval
-  endpoints instead of using a bucket midpoint.
+- For node-height summaries, if all observed heights are effectively identical, `sumt` reports that observed value directly for the median and credible-interval
+  endpoints instead of using a bucket midpoint. Branch-length quantiles remain approximate, including for constant lengths.
 - The precision is controlled by `--cik K`, which sets the within-magnitude resolution (2^K sub-bins per magnitude range):
   - higher K results in finer bins (more precision), but more memory/CPU
   - a worst-case **relative** midpoint error bound is about `2^-(K+1)`
@@ -565,4 +565,8 @@ If you use `sumt` in academic work, the simplest option is to cite the GitHub re
 
 ### Unreleased annotation storage migration
 
-The matched phylotreelib source checkout now stores intervals under complete keys in `extra_meta`. sumt explicitly selects the intervals requested through its existing CI options and retains seven significant digits; it does not copy unrelated sample annotations into output. Suppressing branch lengths also suppresses branch metacomments, while support labels remain controlled separately. Test the matching source checkouts together; package version and requirement metadata remain unchanged until release authorization.
+The matched phylotreelib source checkout stores all non-native annotations, including intervals, under complete keys in `extra_meta`; public `.ci` and writer `ci_labels` have been removed. sumt selects requested height keys such as `height_95%_CI` or branch-length keys such as `length_95%_CI` explicitly through the existing CI options. Statistical calculations and options are unchanged.
+
+sumt retains explicit `precision=7`, even though the library now defaults to full stored precision. It does not copy unrelated sample annotations into output. `--noblen` also suppresses branch metacomments to preserve annotation ownership, while `--nolabel` independently controls support labels. `--nometa` suppresses optional annotations while preserving Nexus rootedness declarations.
+
+The annotation-aware input parser and automatic library operation-state transitions are subsequent stages; sumt currently assigns output rootedness from its workflow. Test the matching source checkouts together. Package version and requirement metadata remain unchanged until release authorization.
