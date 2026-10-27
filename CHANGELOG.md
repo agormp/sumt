@@ -9,11 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Unreleased (on GitHub or being developed; not yet in PyPi version)
 
 #### Added
-- Nexus summary output now declares rootedness with `[&R]` for MCC/HIPSTR/mrHIPSTR or explicitly rooted consensus/MBC trees, and `[&U]` otherwise. These declarations remain when `--nometa` suppresses node/branch statistics. Plain Newick output is unchanged. This unreleased feature needs phylotreelib's new `nexus(rooted=...)` argument; the minimum dependency must be raised before release once the library release version is chosen.
+- Nexus summary output now declares rootedness with `[&R]` for MCC/HIPSTR/mrHIPSTR or explicitly rooted consensus/MBC trees, and `[&U]` otherwise. These declarations remain when `--nometa` suppresses node/branch statistics. Plain Newick output is unchanged. This unreleased feature needs phylotreelib's maintained-state Nexus output API; the minimum dependency must be raised before release once the library release version is chosen.
 - Added option --usemedian: specifies the use of median as pointestimate for branch length / node-height options (default is to use mean).
 - Added pytest coverage for summary-tree printing across tree types, branch-length methods, output formats, credible intervals, and metadata/label suppression.
 
 #### Changed
+- Summary printing establishes the tree's known rootedness from the existing workflow and requests `print_rootedness=True`, preserving declarations with metadata disabled and avoiding the removed Nexus value argument.
 - Printing selects exact complete height/length interval keys from phylotreelib's `extra_meta` storage, retaining explicit precision seven and excluding unrelated annotations. With `--noblen`, branch metadata is omitted because its attachment requires a printed length; internal support labels retain their separate control.
 - Summary-tree output now passes printing options directly to `Tree.newick()` and `Tree.nexus()`, replacing the call to `configure_sumtree_printing()`. This supports phylotreelib's forthcoming removal of stored printing settings while preserving sumt's command-line options and statistical annotations. The printing refactor alone supports phylotreelib >= 2.3.1; the new rootedness argument requires the matching unreleased library.
 - Empty metadata selections are passed as empty tuples so sumt continues to print only its chosen summary fields when phylotreelib's automatic metadata output is enabled.

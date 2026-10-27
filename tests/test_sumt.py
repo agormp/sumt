@@ -60,6 +60,7 @@ class TestPrintSumtree:
         sumt.print_sumtree(tree, summary, args, silent_output)
 
         result = args.outbase.with_suffix("." + treetype).read_text()
+        assert tree.rooted is (treetype in ("mcc", "hip", "mrhip"))
         if outformat == "nexus":
             declaration = "[&R] " if treetype in ("mcc", "hip", "mrhip") else "[&U] "
             assert "tree nexus_tree = " + declaration in result

@@ -1149,10 +1149,10 @@ def print_sumtree(sumtree, treesummary, args, output):
         "printdist": not args.noblen,
     }
 
+    sumtree.rooted = args.treetype in ("mcc", "hip", "mrhip") or bool(args.actively_rooted)
     with open_file_with_warning(confilename, args.nowarn, output) as confile:
         if args.outformat == "nexus":
-            rooted = args.treetype in ("mcc", "hip", "mrhip") or bool(args.actively_rooted)
-            tree_str = sumtree.nexus(rooted=rooted, **print_options)
+            tree_str = sumtree.nexus(print_rootedness=True, **print_options)
         else:
             tree_str = sumtree.newick(**print_options)
         confile.write(tree_str)
