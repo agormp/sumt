@@ -481,3 +481,58 @@ class TestPeakMemoryMonitorRun:
         assert monitor.peak.sample_count == 3
         assert monitor.peak.peak_total_rss_bytes == 310
         assert monitor.peak.peak_available_bytes_at_peak == 700
+
+
+class TestParseCommandline:
+
+    def test_unfinished_median_option_stops_before_processing(self, tmp_path, monkeypatch, capsys):
+        def forbidden(*args, **kwargs):
+            pytest.fail("Argument validation must precede input and output processing")
+
+        monkeypatch.setattr(sumt, "PeakMemoryMonitor",
+                            lambda interval_s: SimpleNamespace(start=lambda: None))
+        monkeypatch.setattr(sumt, "OutputManager", forbidden)
+        monkeypatch.setattr(sumt, "count_trees", forbidden)
+        with pytest.raises(SystemExit) as error:
+            sumt.main(["--mcc", "--caheight", "--ci", "0.95", "--usemedian",
+                       "--basename", str(tmp_path / "summary"), str(tmp_path / "absent.trees")])
+        assert error.value.code == 2
+        assert "--usemedian is not implemented. Point estimates use means." in capsys.readouterr().err
+        assert list(tmp_path.iterdir()) == []
+
+    def test_help_describes_mean_point_estimates(self):
+        helptext = " ".join(sumt.build_parser().format_help().split())
+        assert "--usemedian" not in helptext
+        assert "mean or median" not in helptext.lower()
+        assert "Branch lengths are set to the mean length" in helptext
+        assert "The mean is computed across trees where" in helptext
+        assert "mean MRCA height across all trees" in helptext
+
+
+class TestPrintResultSummary:
+
+    @pytest.mark.parametrize("mode,description", [
+        ("cladeheight", "mean node heights in input trees"),
+        ("caheight", "mean common ancestor heights in input trees"),
+        ("biplen", "mean branch lengths for corresponding bipartitions"),
+    ])
+    def test_point_estimate_description(self, mode, description, monkeypatch):
+        args = SimpleNamespace(
+            treetype="hip", actively_rooted=False, treeprobs=False, std=False, rootcred=False,
+            cladeheight=mode == "cladeheight", caheight=mode == "caheight",
+            biplen=mode == "biplen", noblen=False, usemedian=False,
+        )
+        monkeypatch.setattr(sumt, "compute_summary_variables",
+                            lambda *args: (3, "clade", " ", 2, 2, 0, None, "HIPSTR",
+                                           0, "bifurcation", 0, 0, 0))
+        monkeypatch.setattr(sumt, "cpu_process_summary_line", lambda count: "one process")
+        monkeypatch.setattr(sumt, "memory_summary_line", lambda peak: "memory report")
+        messages = []
+        output = SimpleNamespace(info=lambda text="", **kwargs: messages.append(text))
+        monitor = SimpleNamespace(stop=lambda: None)
+
+        sumt.print_result_summary(SimpleNamespace(logcred=0), None, 0, 10,
+                                  None, args, output, monitor)
+
+        assert "Branch lengths set based on " + description in messages
+        assert not any("median" in text for text in messages)

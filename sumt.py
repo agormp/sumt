@@ -178,6 +178,9 @@ def parse_commandline(commandlist):
     parser = build_parser()
     args = parser.parse_args(commandlist)
 
+    if args.usemedian:
+        parser.error("--usemedian is not implemented. Point estimates use means.")
+
     # Check for deprecated branch-length options
     if commandlist is None:
         commandlist = sys.argv
@@ -387,7 +390,7 @@ def build_parser():
         help="set branch lengths based on length of the corresponding leaf "
              "bipartition across input trees: "
              "each branch in tree corresponds to a bipartition of the leaves "
-             "into two groups. Branch lenghts are set to the mean or median of the length of the "
+             "into two groups. Branch lengths are set to the mean length of the "
              "corresponding bipartition across all input trees.")
 
     blen_excl.add_argument("--cladeheight", action="store_true",
@@ -395,7 +398,7 @@ def build_parser():
                  "branch lengths from those heights. Intended for rooted, clock-like trees. "
                  "Requires all clades in the summary tree to have been observed in the input "
                  "trees and may fail for some rootings. "
-                 "Mean or median is computed across trees where the specific, monophyletic clade "
+                 "The mean is computed across trees where the specific, monophyletic clade "
                  "is present, and may therefore be based on very few (down to one) values. "
                  "May produce negative branch lengths.")
 
@@ -404,7 +407,7 @@ def build_parser():
 
     blen_excl.add_argument("--caheight", action="store_true",
         help="'common ancestor height'; equivalent to TreeAnnotator --height ca. "
-             "Set node heights based on MRCA height across all trees, then derive branch "
+             "Set node heights based on mean MRCA height across all trees, then derive branch "
              "lengths from those heights. Intended for rooted, clock-like trees.")
 
     # This is deprecated now
@@ -412,8 +415,6 @@ def build_parser():
 
     blen_grp.add_argument(
         "--usemedian", action="store_true", help=argparse.SUPPRESS)
-        # help="use the posterior median as the point estimate for branch lengths/node heights "
-        #      "(mean is still computed; both mean and median are written as metacomments when median is tracked)")
 
     ####################################################################################
 
@@ -1239,16 +1240,15 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
         output.info("(tree is fully resolved - no polytomies)", padding=44)
 
     # Information about branch lengths
-    pointestimate = "median" if args.usemedian else "mean"
     if args.cladeheight:
         output.info()
-        output.info(f"Branch lengths set based on {pointestimate} node heights in input trees")
+        output.info("Branch lengths set based on mean node heights in input trees")
     if args.caheight:
         output.info()
-        output.info(f"Branch lengths set based on {pointestimate} common ancestor heights in input trees")
+        output.info("Branch lengths set based on mean common ancestor heights in input trees")
     elif args.biplen:
         output.info()
-        output.info(f"Branch lengths set based on {pointestimate} branch lengths for corresponding bipartitions")
+        output.info("Branch lengths set based on mean branch lengths for corresponding bipartitions")
     elif args.noblen:
         output.info()
         output.info(f"Branch lengths have not been tracked")

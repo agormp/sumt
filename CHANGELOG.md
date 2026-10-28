@@ -10,9 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 #### Added
 - Nexus summary output declares `[&R]` for MCC/HIPSTR/mrHIPSTR and explicitly rooted consensus/MBC trees, or `[&U]` otherwise. Declarations remain with `--nometa`.
-- `--usemedian` selects the median instead of the mean for branch-length/node-height estimates.
 
 #### Fixed
+- Reject the unfinished `--usemedian` option instead of reporting median estimates while computing means.
 - Source distributions include the public documentation. README documentation links also work on PyPI.
 - Corrected MCC, HIPSTR and mrHIPSTR descriptions in help text, status messages and the README.
 - Memory monitoring stops promptly instead of delaying command exit until the next sample.
