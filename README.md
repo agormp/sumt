@@ -43,6 +43,9 @@ Version 4.0.0 was a **major** release (breaking CLI changes, plus new capabiliti
 
 ## Installation
 
+The unreleased development version requires the matching phylotreelib source checkout.
+The published phylotreelib 2.3.1 package does not support these changes yet.
+
 ```bash
 python3 -m pip install sumt
 ```
@@ -157,8 +160,8 @@ fully resolved or no more compatible bipartitions remain.
 
 ### `--mcc` Maximum clade credibility tree
 
-Selects an **observed rooted topology** that maximizes the product of clade frequencies
-(equivalently: the sum of log clade frequencies), then reconstructs it from clades and summary records. It does not return or edit a retained input representative. This is mainly meaningful for **rooted** (often clock-like) trees.
+Selects the **observed rooted topology** with the highest product of clade frequencies
+(equivalently, the highest sum of log clade frequencies). This is mainly meaningful for **rooted** (often clock-like) trees.
 
 ### `--mbc` Maximum bipartition credibility tree
 
@@ -167,11 +170,11 @@ but differ in root position; MBC treats them as equivalent.
 
 ### `--hip` HIPSTR and `--mrhip` majority-rule HIPSTR
 
-HIPSTR (Highest Independent Posterior SubTree reconstruction) builds a fully resolved rooted summary by combining observed child-clade pairs with recursively accumulated clade scores. Its topology need not be an observed input topology. The root comes from this oriented clade reconstruction, rather than a separate root-frequency placement step.
+HIPSTR (Highest Independent Posterior SubTree reconstruction) builds a fully resolved rooted summary from clades observed in the input trees. Its topology need not have been observed among the input trees.
 (See: [HIPSTR: highest independent posterior subtree reconstruction in TreeAnnotator X. Baele et al., Bioinformatics, 41(10), 2025](https://academic.oup.com/bioinformatics/article/41/10/btaf488/8250098))
 
 - `--hip`: chooses the HIPSTR reconstruction, which can include clades below 50% support.
-- `--mrhip`: favors majority clades with support above 50% while resolving the remaining structure; it can also include lower-support clades. It is not a filter that removes every clade below 50%.
+- `--mrhip`: favors clades with more than 50% support while resolving the remaining structure. Lower-support clades can also be included.
 
 ---
 
@@ -234,13 +237,11 @@ You can choose at most one of: `--rootmid`, `--rootminvar`, `--rootog`, `--rooto
 
 If you do not specify a rooting option:
 
-- For `--mcc`, reconstruction retains the orientation of the selected observed clade topology.
+- For `--mcc`, the selected topology's root is retained.
 - For `--con`, `--all`, and `--mbc`, the output should be treated as *unrooted* unless you root it explicitly (e.g. with `--rootmid`, `--rootminvar`, or an outgroup).
-- For `--hip` and `--mrhip`, the output is **rooted by construction** (HIPSTR is defined on clades / child-clade pairs, i.e. rooted structure). In practice this means the output root reflects the rooted structure present in the input trees; if your input trees are not meaningfully rooted, HIPSTR-style summaries are usually not appropriate.
+- For `--hip` and `--mrhip`, the output is **rooted by construction**. Use these methods with meaningfully rooted input trees.
 
 The main summary Nexus output declares this interpretation explicitly: `[&R]` for MCC, HIPSTR, mrHIPSTR, and explicitly rooted consensus/MBC trees; `[&U]` for consensus/MBC trees without explicit rooting. The declaration does not reroot the result and is retained with `--nometa`. Plain Newick output is unchanged. A declaration cannot prevent subsequent manual rerooting in a viewer, which can make previously computed height annotations inconsistent with the displayed branch geometry.
-
-This is an unreleased feature: development checkouts require the matching phylotreelib source with the `Tree.rooted` state, `nexus(print_rootedness=...)` and exact metadata-key output APIs. sumt assigns the interpretation from its summary/rooting workflow before export. The published phylotreelib 2.3.1 wheel lacks these APIs. The minimum dependency must be updated before release; package version numbers have deliberately not been changed yet.
 
 ### `--rootmid` (midpoint rooting)
 
@@ -438,7 +439,7 @@ Notes on `-t PROB` (`.trprobs` output):
 - The file is **NEXUS** format (`#NEXUS … begin trees; … end;`) containing the most probable topologies up to the
   requested cumulative probability (a “credible set”).
 - Each tree entry is annotated with `p` (posterior probability of that topology) and `P` (cumulative probability so far).
-- Each entry declares the counted topology distribution: `[&R]` for clade topologies (including when both clades and bipartitions are tracked), or `[&U]` for bipartition-only topologies. This is independent of main-summary rooting and does not change the stored representative trees.
+- Each entry declares the counted topology distribution: `[&R]` for clade topologies (including when both clades and bipartitions are tracked), or `[&U]` for bipartition-only topologies. This is independent of how the main summary tree is rooted.
 - This is most useful for **small** numbers of taxa. With ~15–20+ taxa, almost every sampled tree is typically unique,
   so the “credible set” becomes long and less informative even though split/clade supports remain useful.
 
@@ -563,10 +564,8 @@ If you use `sumt` in academic work, the simplest option is to cite the GitHub re
 - Some combinations (especially `--cladeheight` / `--caheight`) assume clock-like, rooted trees.
 - Large tree files can be processed efficiently, but for best performance you may want to tune `--chunksize` and `--cpus`.
 
-### Unreleased annotation storage migration
+### Unreleased input and output changes
 
-The matched phylotreelib source checkout stores all non-native annotations, including intervals, under complete keys in `extra_meta`; public `.ci` and writer `ci_labels` have been removed. sumt selects requested height keys such as `height_95%_CI` or branch-length keys such as `length_95%_CI` explicitly through the existing CI options. Statistical calculations and options are unchanged.
+Input annotations are ignored when computing summary statistics. They are not copied to the output tree.
 
-sumt retains explicit `precision=7`, even though the library now defaults to full stored precision. It does not copy unrelated sample annotations into output. `--noblen` also suppresses branch metacomments to preserve annotation ownership, while `--nolabel` independently controls support labels. `--nometa` suppresses optional annotations while preserving Nexus rootedness declarations.
-
-Library constructors and editing operations now maintain rootedness, and sumt establishes its output interpretation during summary construction/rooting. Printing emits that state without changing it. Input now uses shared lexical counting and burn-in skipping. Serial and parallel/CA workers retain supported declarations and structured suffixes, carrying stable TREE/UTREE and translation context with each intact description. Optional input annotations remain disabled and are not aggregated as summary statistics. The `.trprobs` writer declares the counted distribution as `[&R]` when clade topologies are tracked, including when both kinds are tracked, or `[&U]` for bipartition-only topologies. It leaves representative trees and main-summary rooting unchanged. An undeclared Nexus TREE has no rooted/unrooted default; UTREE explicitly supplies an unrooted interpretation. Test the matching source checkouts together; package versions and requirements remain unchanged until release authorization.
+Summary statistics are still printed with seven significant digits. `--noblen` omits branch annotations, while `--nolabel` controls support labels. `--nometa` omits annotations but retains Nexus rootedness declarations.

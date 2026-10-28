@@ -350,15 +350,11 @@ def build_parser():
         help="majority rule consensus tree with all compatible bipartitions")
 
     sumtype_excl.add_argument("--mcc", dest="treetype", action="store_const", const="mcc",
-        help= "maximum clade credibility (MCC) tree. "
-              "The MCC tree is determined by inspecting tree samples and selecting the "
-              "tree that has the highest product of clade frequencies (= highest sum of "
-              "log of clade frequencies). The MCC tree is therefore a tree that has been "
-              "observed in the pool of tree samples, differing from the consensus tree "
-              "which typically does not match any individual sample. "
-              "Meaningful mainly for rooted input trees, for "
-              "example from clock-based analyses. By default, the rooting of the chosen "
-              "sample tree is retained.")
+        help="maximum clade credibility (MCC) tree. Selects the rooted topology "
+             "observed among the input trees with the highest product of clade "
+             "frequencies (equivalently, the highest sum of log clade frequencies). "
+             "Mainly useful for rooted input trees, for example from clock-based "
+             "analyses. The selected topology's root is retained.")
 
     sumtype_excl.add_argument("--mbc", dest="treetype", action="store_const", const="mbc",
         help="maximum bipartition credibility (MBC) tree. "
@@ -376,8 +372,9 @@ def build_parser():
              "among the input trees.")
 
     sumtype_excl.add_argument("--mrhip", dest="treetype", action="store_const", const="mrhip",
-        help="MrHIPSTR (majority-rule HIPSTR) summary tree. Like --hip, but includes only clades with "
-                 "at least 50%% support.")
+        help="MrHIPSTR (majority-rule HIPSTR) summary tree. Like --hip, but favors clades "
+             "with more than 50%% support when resolving the tree. Lower-support clades "
+             "can also be included.")
 
     ####################################################################################
 
@@ -1262,7 +1259,7 @@ def print_result_summary(sumtree, treesummary, start, n_trees_analyzed,
         if args.treetype == "mcc":
             output.info(f"{treetype} tree rooted at original root of tree sample having highest clade credibility")
         elif args.treetype in ("hip", "mrhip"):
-            output.info(f"{treetype} tree rooted at most frequently observed root bipartition")
+            output.info(f"{treetype} tree rooted by construction from input clades")
         else:
             output.info(f"{treetype} tree has not been explicitly rooted")
             output.info(f"Tree has been rooted at random internal node; root is at {rootdegree}")

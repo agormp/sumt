@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Unreleased (on GitHub or being developed; not yet in PyPi version)
 
 #### Fixed
+- Corrected the MCC, HIPSTR and mrHIPSTR descriptions in help text, status messages and the README.
 - Memory-monitor shutdown now interrupts the sampling interval instead of waiting for the next poll, avoiding added CLI latency while retaining peak-RSS sampling.
 - `.trprobs` entries now declare the counted topology distribution immediately after `=`: `[&R]` for clade topologies (which take precedence when both kinds are tracked), or `[&U]` for bipartition-only topologies. Main-summary rooting and representative rootedness do not affect this declaration. Representatives, tree names, probabilities, translation and the cumulative cutoff are unchanged.
 
