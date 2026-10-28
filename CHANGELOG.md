@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
-### Unreleased (not yet on PyPI)
+### [4.2.0] - 2026 October 28
 
 #### Added
 - Nexus summary output declares `[&R]` for MCC/HIPSTR/mrHIPSTR and explicitly rooted consensus/MBC trees, or `[&U]` otherwise. Declarations remain with `--nometa`.
@@ -21,7 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 #### Changed
 - Reduced redundant rootedness test combinations while retaining workflow and output checks.
 - Summary output retains requested interval annotations and seven-significant-digit precision with the new phylotreelib API. `--noblen` omits branch annotations, while support labels remain separately controlled.
-- Development requires the matching unreleased phylotreelib source. The minimum dependency must be raised before release once the library version is chosen.
+- Requires Python 3.10 or newer and phylotreelib 3.x (`>=3.0.0,<4`).
 - Shortened the README and moved detailed options, examples and older migration notes to `docs/recipes.md`.
 
 ---

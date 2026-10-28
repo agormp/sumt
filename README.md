@@ -9,6 +9,8 @@ Input trees are typically posterior samples from Bayesian MCMC analyses such as 
 
 ## Installation
 
+This README describes sumt 4.2.0, which requires Python 3.10 or newer and phylotreelib 3.x.
+
 ```bash
 python3 -m pip install sumt
 ```
@@ -18,8 +20,6 @@ To upgrade an existing installation:
 ```bash
 python3 -m pip install --upgrade sumt
 ```
-
-The unreleased development version requires the matching phylotreelib source checkout. Published phylotreelib 2.3.1 does not support these changes yet.
 
 ## Quick start
 
