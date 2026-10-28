@@ -1155,7 +1155,7 @@ def open_file_with_warning(filename, nowarn, output):
 def compute_trprobs(treesummary, args):
     """Returns sorted list of [freq, tree] lists (highest freq first)"""
 
-    # Python note: root trees in trprobs?
+    # Clade topologies take precedence when both distributions are tracked.
     if treesummary.trackclades:
         toposummary = treesummary.cladetoposummary
     elif treesummary.trackbips:
@@ -1172,6 +1172,7 @@ def compute_trprobs(treesummary, args):
 ##########################################################################################
 
 def print_trprobs(treesummary, trproblist, args, output):
+    declaration = "[&R]" if treesummary.trackclades else "[&U]"
     topofilename = args.outbase.parent / (args.outbase.name + ".trprobs")
     with open_file_with_warning(topofilename, args.nowarn, output) as topofile:
         topofile.write("#NEXUS\n\n")
@@ -1190,7 +1191,7 @@ def print_trprobs(treesummary, trproblist, args, output):
         for (freq, tree) in trproblist:
             cum += freq
             treestring = tree.newick(printdist=False, printlabels=False, transdict=treesummary.transdict)
-            topofile.write(f"    tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {treestring}\n")
+            topofile.write(f"    tree tree_{n} [p = {freq:.6f}] [P = {cum:.6f}] = {declaration} {treestring}\n")
             n += 1
             if cum > args.treeprobs:
                 break

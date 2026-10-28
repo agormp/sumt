@@ -8,15 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Unreleased (on GitHub or being developed; not yet in PyPi version)
 
+#### Fixed
+- `.trprobs` entries now declare the counted topology distribution immediately after `=`: `[&R]` for clade topologies (which take precedence when both kinds are tracked), or `[&U]` for bipartition-only topologies. Main-summary rooting and representative rootedness do not affect this declaration. Representatives, tree names, probabilities, translation and the cumulative cutoff are unchanged.
+
 #### Added
 - Nexus summary output now declares rootedness with `[&R]` for MCC/HIPSTR/mrHIPSTR or explicitly rooted consensus/MBC trees, and `[&U]` otherwise. These declarations remain when `--nometa` suppresses node/branch statistics. Plain Newick output is unchanged. This unreleased feature needs phylotreelib's maintained-state Nexus output API; the minimum dependency must be raised before release once the library release version is chosen.
 - Added option --usemedian: specifies the use of median as pointestimate for branch length / node-height options (default is to use mean).
 - Added pytest coverage for summary-tree printing across tree types, branch-length methods, output formats, credible intervals, and metadata/label suppression.
 
 #### Changed
-- The README now describes implemented shared input/context transport and explicitly keeps the separate topology-probability declaration change pending.
+- The README now describes implemented shared input/context transport and topology-probability declarations.
 - Input counting and burn-in use shared lexical framing. Worker chunks retain complete descriptions with stable translation/parser and TREE/UTREE context; summary and CA workers no longer strip declarations or suffixes before parsing.
-- Documentation now distinguishes reconstructed MCC topology from retained representatives, explains mrHIPSTR's majority preference without claiming a low-support filter, and separates implemented library state/edit contracts from pending input and `.trprobs` migrations.
+- Documentation now distinguishes reconstructed MCC topology from retained representatives, explains mrHIPSTR's majority preference without claiming a low-support filter, and documents the implemented library state/edit contracts.
 - Summary construction establishes the tree's known rootedness from the existing workflow; printing only reads it and requests `print_rootedness=True`, preserving declarations with metadata disabled and avoiding the removed Nexus value argument.
 - Printing selects exact complete height/length interval keys from phylotreelib's `extra_meta` storage, retaining explicit precision seven and excluding unrelated annotations. With `--noblen`, branch metadata is omitted because its attachment requires a printed length; internal support labels retain their separate control.
 - Summary-tree output now passes printing options directly to `Tree.newick()` and `Tree.nexus()`, replacing the call to `configure_sumtree_printing()`. This supports phylotreelib's forthcoming removal of stored printing settings while preserving sumt's command-line options and statistical annotations. The printing refactor alone supports phylotreelib >= 2.3.1; the maintained rootedness and exact-key APIs require the matching unreleased library.

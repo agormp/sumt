@@ -267,3 +267,117 @@ class TestWorkerProcessCaChunk:
         assert count == 3 and pid > 0
         assert all(record.n == 3 for record in estimator.acc.values())
         assert seen == [True, False, None]
+
+
+@pytest.fixture
+def topology_probability_summary():
+    trees = [pt.Tree.from_string(text, parse_meta=True) for text in (
+        '((A[&height=0]:1,B:1)AB[&height=1]:1,(C:1,D:1):1)ROOT:0.5[&length_sd=0.1];',
+        '((A:1,C:1):1,(B:1,D:1):1);',
+        '((A:1,D:1):1,(B:1,C:1):1);',
+    )]
+    transdict = trees[0].transdict()
+    return SimpleNamespace(
+        trackclades=True, trackbips=False, transdict=transdict,
+        translateblock=trees[0].translateblock(transdict),
+        cladetoposummary={i: SimpleNamespace(posterior=p, tree=tree)
+                         for i, (p, tree) in enumerate(zip((0.25, 0.5, 0.25), trees))},
+        biptoposummary={i: SimpleNamespace(posterior=p, tree=tree)
+                       for i, (p, tree) in enumerate(zip((0.5, 0.25, 0.25), trees))},
+    )
+
+
+class TestComputeTrprobs:
+
+    @pytest.mark.parametrize('trackclades,trackbips', [(True, False), (False, True), (True, True)])
+    def test_distribution_precedence(self, topology_probability_summary, trackclades, trackbips):
+        summary = topology_probability_summary
+        summary.trackclades, summary.trackbips = trackclades, trackbips
+        args = SimpleNamespace(trackclades=not trackclades, trackbips=not trackbips)
+        selected = summary.cladetoposummary if trackclades else summary.biptoposummary
+        expected = sorted(selected.values(), key=lambda entry: entry.posterior, reverse=True)
+
+        result = sumt.compute_trprobs(summary, args)
+
+        assert [p for p, tree in result] == [0.5, 0.25, 0.25]
+        assert all(tree is entry.tree for (_, tree), entry in zip(result, expected))
+
+
+class TestPrintTrprobs:
+
+    @pytest.mark.parametrize('trackclades,trackbips,rooted,actively_rooted,treetype,declaration', [
+        (True, False, False, False, 'mcc', '[&R]'),
+        (False, True, True, True, 'con', '[&U]'),
+        (True, True, None, False, 'con', '[&R]'),
+    ])
+    def test_distribution_declaration_preserves_representatives(
+            self, topology_probability_summary, printing_args, silent_output, monkeypatch,
+            trackclades, trackbips, rooted, actively_rooted, treetype, declaration):
+        summary, args = topology_probability_summary, printing_args
+        summary.trackclades, summary.trackbips = trackclades, trackbips
+        args.trackclades, args.trackbips = not trackclades, not trackbips
+        args.actively_rooted, args.treetype, args.treeprobs = actively_rooted, treetype, 1.0
+        entries = sumt.compute_trprobs(summary, args)
+        before = []
+        for _, tree in entries:
+            tree.rooted = rooted
+            before.append((tree.root, tree.root_suffix, tree.newick(),
+                           tuple((n, id(owner)) for n, owner in tree.nodedict.items()),
+                           tuple((p, c, id(branch)) for p, children in tree.child_dict.items()
+                                 for c, branch in children.items())))
+
+        def forbidden(*args, **kwargs):
+            pytest.fail('Printing topology probabilities must not copy or reroot representatives')
+
+        for method in ('copy_treeobject', 'reroot', 'unroot'):
+            monkeypatch.setattr(pt.Tree, method, forbidden)
+        sumt.print_trprobs(summary, entries, args, silent_output)
+
+        path = args.outbase.with_suffix('.trprobs')
+        result = path.read_text()
+        lines = [line for line in result.splitlines() if line.startswith('    tree ')]
+        for i, ((freq, tree), state, line) in enumerate(zip(entries, before, lines), 1):
+            assert line == (f'    tree tree_{i} [p = {freq:.6f}] '
+                            f'[P = {sum(p for p, _ in entries[:i]):.6f}] = {declaration} '
+                            + tree.newick(printdist=False, printlabels=False,
+                                          transdict=summary.transdict))
+            assert tree.rooted is rooted
+            assert (tree.root, tree.root_suffix, tree.newick(),
+                    tuple((n, id(owner)) for n, owner in tree.nodedict.items()),
+                    tuple((p, c, id(branch)) for p, children in tree.child_dict.items()
+                          for c, branch in children.items())) == state
+        assert len(lines) == len(entries)
+        assert summary.translateblock in result
+        with pt.Nexustreefile(path) as reader:
+            parsed = list(reader)
+        assert len(parsed) == len(entries)
+        assert all(tree.rooted is trackclades for tree in parsed)
+        assert [tree.topology() for tree in parsed] == [tree.topology() for _, tree in entries]
+
+    @pytest.mark.parametrize('cutoff,expected_count', [(0.6, 2), (0.75, 3), (1.0, 3)])
+    def test_probability_headers_and_strict_cumulative_cutoff(
+            self, topology_probability_summary, printing_args, silent_output, cutoff, expected_count):
+        summary, args = topology_probability_summary, printing_args
+        args.treeprobs = cutoff
+        entries = sumt.compute_trprobs(summary, args)
+
+        sumt.print_trprobs(summary, entries, args, silent_output)
+
+        result = args.outbase.with_suffix('.trprobs').read_text()
+        if cutoff < 1:
+            header = (f'[This file contains the {round(cutoff * 100)}% most probable trees found during the\n'
+                      f'MCMC search, sorted by posterior probability (the {round(cutoff * 100)}% HPD interval).\n')
+        else:
+            header = ('[This file contains all trees that were found during the MCMC\n'
+                      'search, sorted by posterior probability. \n')
+        expected = ('#NEXUS\n\n' + header
+                    + "Lower case 'p' indicates the posterior probability of a tree.\n"
+                    + "Upper case 'P' indicates the cumulative posterior probability.]\n\n"
+                    + 'begin trees;\n' + summary.translateblock)
+        for i, cumulative in enumerate((0.5, 0.75, 1.0)[:expected_count], 1):
+            freq, tree = entries[i - 1]
+            expected += (f'    tree tree_{i} [p = {freq:.6f}] [P = {cumulative:.6f}] = '
+                         + tree.newick(printdist=False, printlabels=False,
+                                       transdict=summary.transdict) + '\n')
+        expected += 'end;\n'
+        assert result.replace('= [&R] ', '= ') == expected
