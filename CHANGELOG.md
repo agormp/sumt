@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `--usemedian` selects the median instead of the mean for branch-length/node-height estimates.
 
 #### Fixed
-- Source distributions include the public documentation.
+- Source distributions include the public documentation. README documentation links also work on PyPI.
 - Corrected MCC, HIPSTR and mrHIPSTR descriptions in help text, status messages and the README.
 - Memory monitoring stops promptly instead of delaying command exit until the next sample.
 - `.trprobs` entries declare `[&R]` for clade topology probabilities, including when both topology types are tracked, or `[&U]` for bipartition-only probabilities. This is independent of main-summary rooting.

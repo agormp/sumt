@@ -48,7 +48,7 @@ For rooted clock trees, build an MCC tree with common-ancestor heights and 80% a
 sumt --mcc --caheight --ci 0.8,0.95 -b 0.1 --cpus 2 primate-mtDNA.trees
 ```
 
-This writes `primate-mtDNA.mcc`. Credible intervals are central, equal-tailed intervals based on approximate quantiles. `--cik` controls their numerical resolution. See the [interval guide](docs/recipes.md#credible-intervals---ci) for details.
+This writes `primate-mtDNA.mcc`. Credible intervals are central, equal-tailed intervals based on approximate quantiles. `--cik` controls their numerical resolution. See the [interval guide](https://github.com/agormp/sumt/blob/main/docs/recipes.md#credible-intervals---ci) for details.
 
 ### Combine independent runs
 
@@ -58,7 +58,7 @@ Input filenames are positional arguments. This example combines two MrBayes runs
 sumt --con --biplen --rootmid -b 0.25 -s mrbayes.1.t mrbayes.2.t
 ```
 
-See the [recipes](docs/recipes.md#downloading-example-data) for those example files and for per-file burn-in values.
+See the [recipes](https://github.com/agormp/sumt/blob/main/docs/recipes.md#downloading-example-data) for those example files and for per-file burn-in values.
 
 ## Choosing a summary
 
@@ -80,7 +80,7 @@ Choose one summary type and one branch-length/node-height method:
 | `--cladeheight` | Mean height where each exact clade occurs |
 | `--caheight` | Mean MRCA height of each summary clade's tips across all input trees |
 
-The height methods are intended for meaningfully rooted clock trees. The [option guide](docs/recipes.md#what-the-branch-length--node-height-modes-mean) explains their assumptions and differences.
+The height methods are intended for meaningfully rooted clock trees. The [option guide](https://github.com/agormp/sumt/blob/main/docs/recipes.md#what-the-branch-length--node-height-modes-mean) explains their assumptions and differences.
 
 ## Rooting and output
 
@@ -96,7 +96,7 @@ Nexus output declares `[&R]` for rooted results and `[&U]` for unrooted results.
 - `--noblen` omits branch lengths and their annotations.
 - `--cpus 1` runs in one process. Set a larger value for parallel processing, or 0 for automatic selection.
 
-Use `sumt --help` for all options. See the [recipes and option guide](docs/recipes.md) for root credibility, topology-probability files, performance tuning and migration from earlier versions.
+Use `sumt --help` for all options. See the [recipes and option guide](https://github.com/agormp/sumt/blob/main/docs/recipes.md) for root credibility, topology-probability files, performance tuning and migration from earlier versions.
 
 ## Citation
 
