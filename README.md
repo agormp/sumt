@@ -5,567 +5,99 @@
 
 `sumt` computes summary trees and associated statistics from one or more files of phylogenetic trees.
 
-Input trees are typically posterior samples from Bayesian MCMC analyses (BEAST / MrBayes), but could be any collection of plausible trees (e.g. equally parsimonious trees, or bootstrap replicates).
-
-Supported summary tree types:
-
-- Majority-rule consensus (`--con`)
-- Majority-rule consensus + all compatible bipartitions (`--all`)
-- Maximum clade credibility (`--mcc`)
-- Maximum bipartition credibility (`--mbc`)
-- HIPSTR (`--hip`) and majority-rule HIPSTR (`--mrhip`)
-
-Branch-length / node-height options:
-
-- `--noblen` (topology + support only)
-- `--biplen` (mean bipartition lengths)
-- `--cladeheight` (mean clade heights, then derive branch lengths)
-- `--caheight` (mean MRCA heights, then derive branch lengths, like TreeAnnotator `--height ca`)
-
-Rooting options:
-
-- `--rootmid`, `--rootminvar`
-- `--rootog TAX[,TAX,...]` or `--rootogfile FILE`
-- `--rootcred` to compute root credibility on the output tree
-
----
-
-## Version 4
-
-Version 4.0.0 was a **major** release (breaking CLI changes, plus new capabilities).
-
-- Now with multi-processing and computation of median + credible intervals
-- For a high-level overview, see **[What changed (4.0.0)](#what-changed-400)**.
-- For migration help, see **[Upgrading from 3.x → 4.x](#upgrading-from-3x--4x)**.
-- Version 4.1.1 renamed the node-height options; see **[Node-height terminology (4.1.1)](#node-height-terminology-411)**.
-
----
+Input trees are typically posterior samples from Bayesian MCMC analyses such as BEAST or MrBayes. They can also be other collections of plausible trees, such as bootstrap replicates.
 
 ## Installation
-
-The unreleased development version requires the matching phylotreelib source checkout.
-The published phylotreelib 2.3.1 package does not support these changes yet.
 
 ```bash
 python3 -m pip install sumt
 ```
 
-Upgrade:
+To upgrade an existing installation:
 
 ```bash
 python3 -m pip install --upgrade sumt
 ```
 
----
-
-## Downloading example data used in this README
-
-This README uses small example files that live in the repository under `examples/data/`.
-
-### Option A: curl
-
-macOS and most Linux distributions include `curl`. Windows 10/11 typically includes `curl` as well.
-
-```bash
-# BEAST example (NEXUS tree file, 1000 trees, 12 tips)
-curl -L -o primate-mtDNA.trees \
-  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/primate-mtDNA.trees
-
-# MrBayes example (two runs; .t tree files)
-curl -L -o mrbayes.1.t \
-  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.1.t
-curl -L -o mrbayes.2.t \
-  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.2.t
-```
-
-### Option B: Python
-
-```bash
-python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercontent.com/agormp/sumt/main/examples/data/primate-mtDNA.trees','primate-mtDNA.trees')"
-python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.1.t','mrbayes.1.t')"
-python -c "import urllib.request as u; u.urlretrieve('https://raw.githubusercontent.com/agormp/sumt/main/examples/data/mrbayes.2.t','mrbayes.2.t')"
-```
-
----
+The unreleased development version requires the matching phylotreelib source checkout. Published phylotreelib 2.3.1 does not support these changes yet.
 
 ## Quick start
 
-For additional short copy/paste patterns (including at least one example for every option), jump to **[Examples covering all main options](#examples-covering-all-main-options)**.
-
-For full option documentation, run `sumt -h` (or `sumt --help`).
-
-### 1) Consensus tree from a BEAST posterior tree file
+Download the small BEAST example used below:
 
 ```bash
-# Majority-rule consensus tree, branch lengths by mean bipartition length, midpoint rooted
+curl -L -o primate-mtDNA.trees \
+  https://raw.githubusercontent.com/agormp/sumt/main/examples/data/primate-mtDNA.trees
+```
+
+### Consensus tree
+
+Build a majority-rule consensus tree with mean bipartition lengths, discard 10% burn-in and midpoint-root the result:
+
+```bash
 sumt --con --biplen --rootmid -b 0.1 primate-mtDNA.trees
 ```
 
-This writes (by default) a summary tree file named `primate-mtDNA.con` (suffix = summary-tree type).
-Use `--outformat newick` if you prefer Newick output.
+This writes `primate-mtDNA.con` in Nexus format. Use `--outformat newick` for Newick output or `--basename NAME` to choose another output prefix.
 
-### 2) Credible intervals + parallel processing
+### MCC tree with common-ancestor heights and credible intervals
 
-```bash
-# 95% central CI for branch lengths; automatic CPU selection (0 = automatic)
-sumt --con --biplen --ci 0.95 --cpus 0 primate-mtDNA.trees
-```
-
-- `--ci 0.95` computes a central 95% credible interval for each estimated branch length (or node height)
-- Optional: --cik K adjusts quantile-approximation precision (details below)
-- `--cpus 0` chooses a default number of worker processes (use `--cpus 1` to force single-process, or specify an exact number of processes)
-
-### 3) Multi-file workflow (MrBayes example: two independent runs)
-
-This demonstrates:
-
-- multiple input files
-- burn-in via -b (one value for all files; optional comma-separated per-file values)
-- optional ASDSF (average standard deviation of split frequencies) computation (`-s`) as a convergence diagnostic
-- optional parallel processing (`--cpus`)
+For rooted clock trees, build an MCC tree with common-ancestor heights and 80% and 95% credible intervals, using two worker processes:
 
 ```bash
-# Typical: same burn-in for both independent runs
-sumt --con --biplen --rootmid -b 0.25 -s --cpus 0 \
-  mrbayes.1.t mrbayes.2.t
-
-# If you really need different burn-in per file, use comma-separated values:
-sumt --con --biplen --rootmid -b 0.25,0.4 -s --cpus 0 \
-  mrbayes.1.t mrbayes.2.t
-
-# Add 80% and 95% credible intervals on branch lengths
-sumt --con --biplen --rootmid -b 0.25 --ci 0.8,0.95 \
-  mrbayes.1.t mrbayes.2.t
+sumt --mcc --caheight --ci 0.8,0.95 -b 0.1 --cpus 2 primate-mtDNA.trees
 ```
 
-Output files are written with suffixes matching the summary-tree type (`.con`, `.mcc`, `.mbc`, `.hip`, `.mrhip`).
-Use `--basename NAME` to control the output prefix; otherwise it uses the stem of the first input file.
+This writes `primate-mtDNA.mcc`. Credible intervals are central, equal-tailed intervals based on approximate quantiles. `--cik` controls their numerical resolution. See the [interval guide](docs/recipes.md#credible-intervals---ci) for details.
 
----
+### Combine independent runs
 
-## What the different summary trees mean
-
-All summary trees represent a single “best” topology derived from a set of input trees, with support values (and optionally branch-length / node-height summaries). If your input trees are not posterior samples (e.g., equally parsimonious trees), the reported supports are empirical frequencies in your set (how often a split/clade occurs), not Bayesian posterior probabilities.
-
-### `--con` Majority-rule consensus tree
-
-Includes all bipartitions (splits) observed in **≥ 50%** of the post-burnin trees.
-Support is typically reported as bipartition frequency (posterior probability under a Bayesian interpretation).
-
-### `--all` Majority-rule consensus + all compatible bipartitions
-
-Starts with the majority-rule consensus tree and then considers additional bipartitions in descending frequency order.
-A bipartition is added if it is **compatible** with the current partially resolved tree. This continues until the tree is
-fully resolved or no more compatible bipartitions remain.
-
-### `--mcc` Maximum clade credibility tree
-
-Selects the **observed rooted topology** with the highest product of clade frequencies
-(equivalently, the highest sum of log clade frequencies). This is mainly meaningful for **rooted** (often clock-like) trees.
-
-### `--mbc` Maximum bipartition credibility tree
-
-Like MCC, but uses bipartitions instead of clades, and therefore **ignores rooting**. Two trees can share the same bipartitions
-but differ in root position; MBC treats them as equivalent.
-
-### `--hip` HIPSTR and `--mrhip` majority-rule HIPSTR
-
-HIPSTR (Highest Independent Posterior SubTree reconstruction) builds a fully resolved rooted summary from clades observed in the input trees. Its topology need not have been observed among the input trees.
-(See: [HIPSTR: highest independent posterior subtree reconstruction in TreeAnnotator X. Baele et al., Bioinformatics, 41(10), 2025](https://academic.oup.com/bioinformatics/article/41/10/btaf488/8250098))
-
-- `--hip`: chooses the HIPSTR reconstruction, which can include clades below 50% support.
-- `--mrhip`: favors clades with more than 50% support while resolving the remaining structure. Lower-support clades can also be included.
-
----
-
-## What the branch-length / node-height modes mean
-
-You always pick exactly one of: `--noblen`, `--biplen`, `--cladeheight`, `--caheight`.
-
-Here, **node height** means the distance from the most recent leaf to a node.
-
-### `--noblen` (no branch lengths)
-
-Computes **topology + support only**. Branch lengths in the output are set to 0 (or omitted if you choose Newick without lengths).
-
-Use this when:
-
-- you only care about the consensus topology/support, or
-- your input trees do not have meaningful lengths (e.g., pure topology samples).
-
-### `--biplen` (mean bipartition lengths)
-
-For each branch in the summary tree, `sumt` identifies the corresponding **leaf bipartition** (split) and sets the branch length to the
-**mean length** of that bipartition across the post-burnin input trees (where that bipartition occurs).
-
-This works for unrooted summaries (e.g., `--con`, `--all`, `--mbc`) and does not assume clock-like trees.
-
-With `--ci`, credible intervals (and median) are computed for **branch lengths**.
-
-### `--cladeheight` (mean clade heights, then derive branch lengths)
-
-Intended for **rooted clock-like trees** (e.g., time trees).
-
-For each clade in the *summary* tree, `sumt` sets the node height to the **mean node height observed for that exact monophyletic clade**,
-computed only across those input trees where the clade occurs as a monophyletic group.
-
-Then branch lengths are derived from heights (`blen = height(parent) - height(child)`).
-
-Notes:
-
-- This can be based on very few observations for rare clades.
-- It may produce **negative branch lengths** in some cases (a known issue with mean-height approaches).
-
-With `--ci`, credible intervals (and median) are computed for **node heights**.
-
-### `--caheight` (common-ancestor heights; TreeAnnotator-style `--height ca`)
-
-Also intended for **rooted clock-like trees**.
-
-For each clade in the summary tree, `sumt` computes, in **every** post-burnin input tree, the height of the MRCA of that clade’s tip set,
-and then takes the mean of those MRCA heights across all trees.
-
-This corresponds to TreeAnnotator’s “heights ca” approach.
-
-With `--ci`, credible intervals (and median) are computed for **node heights**.
-
----
-
-## What the rooting options mean
-
-You can choose at most one of: `--rootmid`, `--rootminvar`, `--rootog`, `--rootogfile`.
-
-If you do not specify a rooting option:
-
-- For `--mcc`, the selected topology's root is retained.
-- For `--con`, `--all`, and `--mbc`, the output should be treated as *unrooted* unless you root it explicitly (e.g. with `--rootmid`, `--rootminvar`, or an outgroup).
-- For `--hip` and `--mrhip`, the output is **rooted by construction**. Use these methods with meaningfully rooted input trees.
-
-The main summary Nexus output declares this interpretation explicitly: `[&R]` for MCC, HIPSTR, mrHIPSTR, and explicitly rooted consensus/MBC trees; `[&U]` for consensus/MBC trees without explicit rooting. The declaration does not reroot the result and is retained with `--nometa`. Plain Newick output is unchanged. A declaration cannot prevent subsequent manual rerooting in a viewer, which can make previously computed height annotations inconsistent with the displayed branch geometry.
-
-### `--rootmid` (midpoint rooting)
-
-Places the root at the midpoint of the tree’s diameter (the longest tip-to-tip path).
-Often useful as a quick heuristic when no outgroup is available.
-
-### `--rootminvar` (minimum-variance rooting)
-
-Chooses a root location that minimizes the variance in root-to-tip distances (aiming for the most “clock-like” rooting).
-See: [Minimum variance rooting of phylogenetic trees and implications for species tree reconstruction. Mai, Sayyari & Mirarab (2017), *PLOS ONE* 12(8)](https://doi.org/10.1371/journal.pone.0182238).
-
-### `--rootog TAX[,TAX,...]` and `--rootogfile FILE` (outgroup rooting)
-
-Roots the summary tree using an outgroup. The root is placed at the midpoint of the branch separating outgroup and ingroup.
-
-- `--rootog` takes a comma-separated list of taxa on the command line.
-- `--rootogfile` takes a file with one taxon name per line.
-
-If you provide multiple outgroup taxa, `sumt` attempts to place the root on the branch separating those taxa from the remaining tips.
-
----
-
-## Root credibility (`--rootcred`)
-
-`--rootcred` annotates *branches* in the output tree with how often the root was observed to fall on that branch among the input trees.
-
-There are two cases:
-
-1) **If you use an outgroup** (`--rootog` / `--rootogfile`):
-
-   - For each input tree, `sumt` identifies the branch where the outgroup attaches.
-   - Root credibility for a branch is the fraction of input trees where the outgroup attached there.
-   - This works even if the input trees are unrooted, because the outgroup attachment defines a rooting.
-
-2) **If you do not use an outgroup**:
-
-   - `sumt` assumes the input trees are already rooted (typical for BEAST clock trees).
-   - It tracks the observed root location (root bipartition) directly across trees.
-
-Why the “cumulated root credibility” may be < 100%:
-
-- Root credibility is only reported on branches that exist in the final summary topology. If some root locations occur on branches (bipartitions) that are *not present* in the summary tree, their mass is not represented.
-
-Example:
+Input filenames are positional arguments. This example combines two MrBayes runs, discards 25% burn-in from each and reports the average standard deviation of split frequencies:
 
 ```bash
-sumt --con --biplen --rootmid --rootcred primate-mtDNA.trees
+sumt --con --biplen --rootmid -b 0.25 -s mrbayes.1.t mrbayes.2.t
 ```
 
----
+See the [recipes](docs/recipes.md#downloading-example-data) for those example files and for per-file burn-in values.
 
-## Credible intervals (`--ci`)
+## Choosing a summary
 
-When you request `--ci`, `sumt` estimates **central credible intervals** and the **median** for either:
+Choose one summary type and one branch-length/node-height method:
 
-- branch lengths (when using `--biplen`), or
-- node heights (when using `--cladeheight` or `--caheight`)
-
-Implementation note (approximate quantiles):
-
-- Credible intervals are based on **estimated** quantiles (not exact order statistics).
-- To compute exact quantiles you would, in principle, have to store *all* branch-length (or height) values across *all* input trees.
-  That can require large amounts of memory for large analyses.
-- Instead, `sumt` uses a mergeable **log-bucket histogram** (see `QuantileAccumulator` in `phylotreelib`):
-  it does **one pass** through the trees and only stores **counts per bin**, not every individual value.
-- “Log-bucket” means the bins are spaced by **order of magnitude**:
-  values around 0.01, 0.1, 1, 10, 100 fall into different magnitude ranges, and within each range `sumt` subdivides more finely.
-  As a result, bins are **narrower for small values** and **wider for large values** (roughly constant *relative* precision).
-- For distributions with variation, quantiles are found by walking through bins in numeric order until the cumulative count reaches
-  (for example) 2.5%, 50% (median), or 97.5% of the samples. The quantile is reported as the **midpoint** of the bin where that cutoff falls.
-  This means the resolution is limited by the bin width.
-- For node-height summaries, if all observed heights are effectively identical, `sumt` reports that observed value directly for the median and credible-interval
-  endpoints instead of using a bucket midpoint. Branch-length quantiles remain approximate, including for constant lengths.
-- The precision is controlled by `--cik K`, which sets the within-magnitude resolution (2^K sub-bins per magnitude range):
-  - higher K results in finer bins (more precision), but more memory/CPU
-  - a worst-case **relative** midpoint error bound is about `2^-(K+1)`
-    (e.g. K=7 ≈ 0.39%, K=8 ≈ 0.20%, K=9 ≈ 0.10%)
-  - example: with K=7, a reported height of 1.0 could be off by up to ~0.004 in the worst case from binning alone
-    (and a height of 10.0 by up to ~0.04, because the bound is relative)
-- Default is `--cik 7`.
-- By default, `sumt` writes branch/node annotations (support, branch lengths, height summaries, credible intervals, etc.) as **NEXUS metacomments** on the corresponding branches/nodes in the output tree file. Many tree viewers can display these annotations, and you can also see them directly in the file as bracketed comments.
-- Use `--nometa` to suppress these node/branch annotations. Nexus output retains its `[&R]` or `[&U]` declaration because that specifies rootedness rather than a summary statistic.
-
-Examples:
-
-```bash
-# One CI (default precision, --cik 7):
-sumt --con --biplen --ci 0.95 primate-mtDNA.trees
-
-# Several CIs:
-sumt --con --biplen --ci 0.5,0.8,0.95 primate-mtDNA.trees
-
-# Increase precision of the quantile approximation:
-sumt --con --biplen --ci 0.95 --cik 9 primate-mtDNA.trees
-```
-
----
-
-## Examples covering all main options
-
-Below are short “pattern” examples. They are deliberately small and repetitive so you can copy/paste a working starting point.
-
-### Input/output controls
-
-```bash
-# Input format (autodetection usually works; use only if needed)
-sumt --informat nexus --con --biplen primate-mtDNA.trees
-sumt --informat newick --con --biplen mytrees.newick
-
-# Output format
-sumt --outformat newick --con --biplen primate-mtDNA.trees
-sumt --outformat nexus  --con --biplen primate-mtDNA.trees
-
-# Basename controls output stem
-sumt --basename primates_summary --con --biplen primate-mtDNA.trees
-
-# Suppress statistical annotations; retain the Nexus rootedness declaration
-sumt --con --biplen --nometa primate-mtDNA.trees
-
-# Overwrite without prompting; quiet mode implies -n
-sumt -n --con --biplen primate-mtDNA.trees
-sumt -q --con --biplen primate-mtDNA.trees
-
-# Verbose tracebacks (useful for debugging)
-sumt -v --con --biplen primate-mtDNA.trees
-```
-
-### Summary-tree types
-
-```bash
-sumt --con   --biplen primate-mtDNA.trees
-sumt --all   --biplen primate-mtDNA.trees
-sumt --mcc   --cladeheight primate-mtDNA.trees
-sumt --mbc   --biplen primate-mtDNA.trees
-sumt --hip   --biplen primate-mtDNA.trees
-sumt --mrhip --biplen primate-mtDNA.trees
-```
-
-### Branch-length / node-height settings
-
-```bash
-# Topology + support only
-sumt --con --noblen primate-mtDNA.trees
-
-# Mean bipartition lengths
-sumt --con --biplen primate-mtDNA.trees
-
-# Mean clade heights (clock-like rooted trees)
-sumt --mcc --cladeheight primate-mtDNA.trees
-
-# Common-ancestor heights (TreeAnnotator-style --height ca)
-sumt --mcc --caheight primate-mtDNA.trees
-```
-
-### Rooting and root credibility
-
-```bash
-# Midpoint / min-variance
-sumt --con --biplen --rootmid    primate-mtDNA.trees
-sumt --con --biplen --rootminvar primate-mtDNA.trees
-
-# Outgroup on command line (comma-separated list; not biologically meaningful...)
-sumt --con --biplen --rootog Macaca_fuscata,M._mulatta,M._fascicularis,M._sylvanus primate-mtDNA.trees
-
-# Outgroup from file (one taxon per line)
-printf "Macaca_fuscata\nM._mulatta\nM._fascicularis\nM._sylvanus\n" > outgroup.txt
-sumt --con --biplen --rootogfile outgroup.txt primate-mtDNA.trees
-
-# Root credibility on the output tree
-sumt --con --biplen --rootmid --rootcred primate-mtDNA.trees
-```
-
-### Bayesian / diagnostic options
-
-```bash
-# Burn-in (one value for all files)
-sumt --con --biplen -b 0.25 primate-mtDNA.trees
-
-# Burn-in (one value per file, comma-separated; could be different per file)
-sumt --con --biplen -b 0.25,0.25 mrbayes.1.t mrbayes.2.t
-
-# Tree probabilities and credible set of topologies
-sumt --con --biplen -t 0.95 primate-mtDNA.trees
-
-# ASDSF across files (+ minimum frequency threshold)
-sumt --con --biplen -s -f 0.1 mrbayes.1.t mrbayes.2.t
-
-# Credible intervals with higher quantile-precision
-sumt --con --biplen --ci 0.8,0.95 --cik 9 primate-mtDNA.trees
-```
-
-Notes on `-t PROB` (`.trprobs` output):
-
-- When you run with `-t` (e.g. `-t 0.95`), `sumt` writes a file named `<basename>.trprobs`.
-- The file is **NEXUS** format (`#NEXUS … begin trees; … end;`) containing the most probable topologies up to the
-  requested cumulative probability (a “credible set”).
-- Each tree entry is annotated with `p` (posterior probability of that topology) and `P` (cumulative probability so far).
-- Each entry declares the counted topology distribution: `[&R]` for clade topologies (including when both clades and bipartitions are tracked), or `[&U]` for bipartition-only topologies. This is independent of how the main summary tree is rooted.
-- This is most useful for **small** numbers of taxa. With ~15–20+ taxa, almost every sampled tree is typically unique,
-  so the “credible set” becomes long and less informative even though split/clade supports remain useful.
-
-
-### Performance tuning
-
-`sumt` can process large tree files faster by splitting work across multiple processes (`--cpus`).
-Internally, each worker processes trees in **chunks** (`--chunksize`, default: 250 trees per chunk).
-A larger chunk size reduces scheduling/serialization overhead, but can increase peak memory usage and sometimes
-reduce load balancing across CPUs.
-
-
-```bash
-# Parallel processing
-sumt --con --biplen --cpus 8 -b 0.2 mrbayes.1.t mrbayes.2.t
-
-# Force single-process
-sumt --con --biplen --cpus 1 -b 0.2 mrbayes.1.t mrbayes.2.t
-
-# Chunk size: larger reduces overhead, may increase memory usage
-sumt --con --biplen --cpus 8 --chunksize 500 -b 0.2 mrbayes.1.t mrbayes.2.t
-```
-
----
-
-## Version 4 migration notes
-
-### Node-height terminology (4.1.1)
-
-Version 4.1.1 changed the terminology and option names from node depth to node height:
-
-| Earlier option (4.0.0–4.1.0) | Current option |
+| Summary option | Result |
 |---|---|
-| `--meandepth` | `--cladeheight` |
-| `--cadepth` | `--caheight` |
+| `--con` | Majority-rule consensus |
+| `--all` | Consensus with compatible bipartitions added |
+| `--mcc` | Observed rooted topology with the highest clade credibility |
+| `--mbc` | Observed unrooted topology with the highest bipartition credibility |
+| `--hip` | Fully resolved rooted HIPSTR summary |
+| `--mrhip` | HIPSTR favoring clades with more than 50% support, while allowing lower-support clades |
 
-The earlier names remain available as hidden compatibility aliases, but emit deprecation warnings.
-New commands and scripts should use the current names.
+| Length/height option | Estimate |
+|---|---|
+| `--noblen` | Topology and support only |
+| `--biplen` | Mean length of each matching bipartition |
+| `--cladeheight` | Mean height where each exact clade occurs |
+| `--caheight` | Mean MRCA height of each summary clade's tips across all input trees |
 
-Earlier (4.0.0–4.1.0):
+The height methods are intended for meaningfully rooted clock trees. The [option guide](docs/recipes.md#what-the-branch-length--node-height-modes-mean) explains their assumptions and differences.
 
-```bash
-sumt --mcc --meandepth primate-mtDNA.trees
-sumt --mcc --cadepth primate-mtDNA.trees
-```
+## Rooting and output
 
-Current:
+MCC retains the selected topology's root. HIPSTR and mrHIPSTR are rooted by construction. Use these methods with meaningfully rooted input trees.
 
-```bash
-sumt --mcc --cladeheight primate-mtDNA.trees
-sumt --mcc --caheight primate-mtDNA.trees
-```
+Consensus and MBC output is unrooted unless a rooting option is requested. Choose midpoint rooting (`--rootmid`), minimum-variance rooting (`--rootminvar`) or an outgroup (`--rootog TAX[,TAX,...]`).
 
-### What changed (4.0.0)
+Nexus output declares `[&R]` for rooted results and `[&U]` for unrooted results. Summary statistics use seven significant digits. Input annotations are not summarized or copied to the output tree.
 
-This is a **major** release because it includes intentional breaking CLI changes:
+- `--ci 0.8,0.95` adds requested credible intervals.
+- `--nometa` omits statistical annotations but retains the rootedness declaration.
+- `--nolabel` omits internal support labels.
+- `--noblen` omits branch lengths and their annotations.
+- `--cpus 1` runs in one process. Set a larger value for parallel processing, or 0 for automatic selection.
 
-- **Removed `-i` / `-w` / `--autow`**: input files are now positional, and file weights are no longer supported (each tree counts equally).
-- **Added credible intervals** via `--ci`.
-- **Added multiprocessing** via `--cpus` and `--chunksize`.
-- **Simplified output formats**: `--outformat` is now `newick` or `nexus`; use `--nometa` to suppress metacomments.
-
-### Upgrading from 3.x to 4.x
-
-#### Input files
-
-Old (3.x):
-
-```bash
-sumt ... -i file1.t -i file2.t
-# or
-sumt ... -w 0.5 file1.t -w 1.0 file2.t
-```
-
-New (4.x):
-
-```bash
-sumt ... file1.t file2.t
-```
-
-Notes:
-
-- Weighting was removed
-- Filenames are now a positional argument (no longer requiring -i FILENAME)
-
-#### Burn-in syntax
-
-Old (3.x) accepted space-separated lists:
-
-```bash
-sumt ... -b 0.25 0.4 -i file1.t -i file2.t
-```
-
-New (4.x) uses one value or comma-separated values:
-
-```bash
-sumt ... -b 0.25,0.4 file1.t file2.t
-```
-
-#### Credible intervals (new)
-
-```bash
-sumt ... --ci 0.8,0.95
-```
-
-#### Multiprocessing (new)
-
-```bash
-sumt ... --cpus 8 --chunksize 500
-```
-
----
+Use `sumt --help` for all options. See the [recipes and option guide](docs/recipes.md) for root credibility, topology-probability files, performance tuning and migration from earlier versions.
 
 ## Citation
 
-If you use `sumt` in academic work, the simplest option is to cite the GitHub repository (GitHub “Cite this repository” in the sidebar).
-
----
-
-## Notes
-
-- Some combinations (especially `--cladeheight` / `--caheight`) assume clock-like, rooted trees.
-- Large tree files can be processed efficiently, but for best performance you may want to tune `--chunksize` and `--cpus`.
-
-### Unreleased input and output changes
-
-Input annotations are ignored when computing summary statistics. They are not copied to the output tree.
-
-Summary statistics are still printed with seven significant digits. `--noblen` omits branch annotations, while `--nolabel` controls support labels. `--nometa` omits annotations but retains Nexus rootedness declarations.
+If you use `sumt` in academic work, cite the GitHub repository using GitHub's “Cite this repository” link.

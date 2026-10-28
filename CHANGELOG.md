@@ -6,26 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
-### Unreleased (on GitHub or being developed; not yet in PyPi version)
-
-#### Fixed
-- Corrected the MCC, HIPSTR and mrHIPSTR descriptions in help text, status messages and the README.
-- Memory-monitor shutdown now interrupts the sampling interval instead of waiting for the next poll, avoiding added CLI latency while retaining peak-RSS sampling.
-- `.trprobs` entries now declare the counted topology distribution immediately after `=`: `[&R]` for clade topologies (which take precedence when both kinds are tracked), or `[&U]` for bipartition-only topologies. Main-summary rooting and representative rootedness do not affect this declaration. Representatives, tree names, probabilities, translation and the cumulative cutoff are unchanged.
+### Unreleased (not yet on PyPI)
 
 #### Added
-- Nexus summary output now declares rootedness with `[&R]` for MCC/HIPSTR/mrHIPSTR or explicitly rooted consensus/MBC trees, and `[&U]` otherwise. These declarations remain when `--nometa` suppresses node/branch statistics. Plain Newick output is unchanged. This unreleased feature needs phylotreelib's maintained-state Nexus output API; the minimum dependency must be raised before release once the library release version is chosen.
-- Added option --usemedian: specifies the use of median as pointestimate for branch length / node-height options (default is to use mean).
-- Added pytest coverage for summary-tree printing across tree types, branch-length methods, output formats, credible intervals, and metadata/label suppression.
+- Nexus summary output declares `[&R]` for MCC/HIPSTR/mrHIPSTR and explicitly rooted consensus/MBC trees, or `[&U]` otherwise. Declarations remain with `--nometa`.
+- `--usemedian` selects the median instead of the mean for branch-length/node-height estimates.
+
+#### Fixed
+- Corrected MCC, HIPSTR and mrHIPSTR descriptions in help text, status messages and the README.
+- Memory monitoring stops promptly instead of delaying command exit until the next sample.
+- `.trprobs` entries declare `[&R]` for clade topology probabilities, including when both topology types are tracked, or `[&U]` for bipartition-only probabilities. This is independent of main-summary rooting.
+- Counting, burn-in and parallel processing handle comments, Nexus declarations and translation tables consistently.
 
 #### Changed
-- The README now describes implemented shared input/context transport and topology-probability declarations.
-- Input counting and burn-in use shared lexical framing. Worker chunks retain complete descriptions with stable translation/parser and TREE/UTREE context; summary and CA workers no longer strip declarations or suffixes before parsing.
-- Documentation now distinguishes reconstructed MCC topology from retained representatives, explains mrHIPSTR's majority preference without claiming a low-support filter, and documents the implemented library state/edit contracts.
-- Summary construction establishes the tree's known rootedness from the existing workflow; printing only reads it and requests `print_rootedness=True`, preserving declarations with metadata disabled and avoiding the removed Nexus value argument.
-- Printing selects exact complete height/length interval keys from phylotreelib's `extra_meta` storage, retaining explicit precision seven and excluding unrelated annotations. With `--noblen`, branch metadata is omitted because its attachment requires a printed length; internal support labels retain their separate control.
-- Summary-tree output now passes printing options directly to `Tree.newick()` and `Tree.nexus()`, replacing the call to `configure_sumtree_printing()`. This supports phylotreelib's forthcoming removal of stored printing settings while preserving sumt's command-line options and statistical annotations. The printing refactor alone supports phylotreelib >= 2.3.1; the maintained rootedness and exact-key APIs require the matching unreleased library.
-- Empty metadata selections are passed as empty tuples so sumt continues to print only its chosen summary fields when phylotreelib's automatic metadata output is enabled.
+- Summary output retains requested interval annotations and seven-significant-digit precision with the new phylotreelib API. `--noblen` omits branch annotations, while support labels remain separately controlled.
+- Development requires the matching unreleased phylotreelib source. The minimum dependency must be raised before release once the library version is chosen.
+- Shortened the README and moved detailed options, examples and older migration notes to `docs/recipes.md`.
 
 ---
 
