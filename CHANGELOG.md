@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Counting, burn-in and parallel processing handle comments, Nexus declarations and translation tables consistently.
 
 #### Changed
+- Reduced redundant rootedness test combinations while retaining workflow and output checks.
 - Summary output retains requested interval annotations and seven-significant-digit precision with the new phylotreelib API. `--noblen` omits branch annotations, while support labels remain separately controlled.
 - Development requires the matching unreleased phylotreelib source. The minimum dependency must be raised before release once the library version is chosen.
 - Shortened the README and moved detailed options, examples and older migration notes to `docs/recipes.md`.

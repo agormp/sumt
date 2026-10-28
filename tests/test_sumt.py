@@ -114,19 +114,19 @@ class TestPrintSumtree:
         assert ")0.9" not in result
         assert ":0.1234568" in result
 
-    @pytest.mark.parametrize("treetype", ["con", "all", "mbc"])
     @pytest.mark.parametrize("rooted", [None, False, True])
     @pytest.mark.parametrize("nometa", [False, True])
     def test_stored_rooting_declaration(self, annotated_sumtree, printing_args, silent_output,
-                                         treetype, rooted, nometa):
+                                       rooted, nometa):
+        # The summary-annotation matrix covers per-type filenames and labels.
         args = printing_args
-        args.treetype = treetype
+        args.treetype = "con"
         args.actively_rooted = not rooted
         annotated_sumtree.rooted = rooted
         args.nometa = nometa
         sumt.print_sumtree(annotated_sumtree, SimpleNamespace(ci_labels=("95%_CI",)),
                           args, silent_output)
-        result = args.outbase.with_suffix("." + treetype).read_text()
+        result = args.outbase.with_suffix("." + args.treetype).read_text()
         declaration = "[&R]" if rooted is True else "[&U]" if rooted is False else ""
         assert annotated_sumtree.rooted is rooted
         assert "tree nexus_tree = " + (declaration + " " if declaration else "") in result
@@ -146,16 +146,29 @@ class TestPrintSumtree:
 
 class TestComputeSumtree:
 
-    @pytest.mark.parametrize("treetype", ["con", "all", "mcc", "mbc", "hip", "mrhip"])
-    @pytest.mark.parametrize("actively_rooted", [False, True, ["A"], []])
-    @pytest.mark.parametrize("cpus", [1, 2])
+    @pytest.mark.parametrize("treetype,actively_rooted,cpus,expected_rooted", [
+        ("con", False, 1, False),
+        ("all", False, 1, False),
+        ("mcc", False, 1, True),
+        ("mbc", False, 1, False),
+        ("hip", False, 1, True),
+        ("mrhip", False, 1, True),
+        ("con", True, 1, True),
+        ("con", ["A"], 1, True),
+        ("con", [], 1, False),
+        ("con", False, 2, False),
+        ("con", True, 2, True),
+        ("hip", False, 2, True),
+    ])
     def test_workflow_establishes_rootedness(self, monkeypatch, printing_args, silent_output,
-                                            treetype, actively_rooted, cpus):
+                                            treetype, actively_rooted, cpus, expected_rooted):
         args = printing_args
         args.treetype = treetype
         args.actively_rooted = actively_rooted
         args.cpus = cpus
-        args.outgroup = args.rootmid = args.rootminvar = False
+        args.outgroup = actively_rooted if isinstance(actively_rooted, list) else None
+        args.rootmid = actively_rooted is True
+        args.rootminvar = False
         tree = SimpleNamespace(rooted=None, set_blens_from_heights=lambda: None)
         monkeypatch.setattr(pt, "build_sumtree", lambda *a, **kw: tree)
         monkeypatch.setattr(sumt, "set_ca_heights_concurrent",
@@ -165,7 +178,7 @@ class TestComputeSumtree:
         worker_pids = set()
         result = sumt.compute_sumtree(object(), args, [], silent_output, 1, worker_pids)
         assert result is tree
-        assert result.rooted is (treetype in ("mcc", "hip", "mrhip") or bool(actively_rooted))
+        assert result.rooted is expected_rooted
         assert worker_pids == ({42} if cpus == 2 else set())
 
 
