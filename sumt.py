@@ -123,7 +123,7 @@ class PeakMemoryMonitor:
                 self.peak.peak_available_bytes_at_peak = avail
 
             self.peak.sample_count += 1
-            time.sleep(self.interval_s)
+            self._stop.wait(self.interval_s)
 
 ####################################################################################
 

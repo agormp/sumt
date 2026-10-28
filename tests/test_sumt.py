@@ -381,3 +381,90 @@ class TestPrintTrprobs:
                                        transdict=summary.transdict) + '\n')
         expected += 'end;\n'
         assert result.replace('= [&R] ', '= ') == expected
+
+
+class TestPeakMemoryMonitorStop:
+
+    def test_stop_interrupts_sampling_interval_and_preserves_peak(self, monkeypatch):
+        from threading import Event, Thread
+
+        sampled = Event()
+        stopped = Event()
+        finish_sample = Event()
+        monitor = sumt.PeakMemoryMonitor(interval_s=2)
+        assert monitor.stop() is monitor.peak
+        assert monitor.peak.sample_count == 0
+
+        def root_memory_info():
+            sampled.set()
+            finish_sample.wait()
+            return SimpleNamespace(rss=100)
+
+        child = SimpleNamespace(memory_info=lambda: SimpleNamespace(rss=30))
+        root = SimpleNamespace(children=lambda recursive: [child], memory_info=root_memory_info)
+        monkeypatch.setattr(sumt.psutil, 'Process', lambda pid: root)
+        monkeypatch.setattr(sumt.psutil, 'virtual_memory', lambda: SimpleNamespace(available=4096))
+
+        returned = []
+        errors = []
+        monitor_thread = stop_thread = None
+
+        def stop_monitor():
+            try:
+                finish_sample.set()
+                returned.append(monitor.stop())
+            except BaseException as error:
+                errors.append(error)
+            finally:
+                stopped.set()
+
+        try:
+            monitor.start()
+            monitor_thread = monitor._thread
+            assert sampled.wait(5), 'Monitor did not reach its first sample'
+            stop_thread = Thread(target=stop_monitor, daemon=True)
+            stop_thread.start()
+            assert stopped.wait(0.5), 'Stopping waited for the sampling interval'
+            assert not errors
+            assert len(returned) == 1 and returned[0] is monitor.peak
+            assert not monitor_thread.is_alive()
+            assert monitor._thread is None
+            assert monitor.peak.sample_count == 1
+            assert monitor.peak.peak_total_rss_bytes == 130
+            assert monitor.peak.peak_available_bytes_at_peak == 4096
+            assert monitor.stop() is monitor.peak
+        finally:
+            monitor._stop.set()
+            finish_sample.set()
+            if stop_thread is not None:
+                stop_thread.join(timeout=3)
+            if monitor_thread is not None:
+                monitor_thread.join(timeout=3)
+            assert stop_thread is None or not stop_thread.is_alive()
+            assert monitor_thread is None or not monitor_thread.is_alive()
+
+
+class TestPeakMemoryMonitorRun:
+
+    def test_sampling_keeps_maximum_rss_and_matching_available_memory(self, monkeypatch):
+        monitor = sumt.PeakMemoryMonitor(interval_s=0)
+        samples = iter(((100, 1000), (300, 700), (200, 900)))
+        current = SimpleNamespace(rss=None)
+
+        def virtual_memory():
+            current.rss, available = next(samples)
+            if current.rss == 200:
+                monitor._stop.set()
+            return SimpleNamespace(available=available)
+
+        child = SimpleNamespace(memory_info=lambda: SimpleNamespace(rss=10))
+        root = SimpleNamespace(children=lambda recursive: [child],
+                               memory_info=lambda: SimpleNamespace(rss=current.rss))
+        monkeypatch.setattr(sumt.psutil, 'Process', lambda pid: root)
+        monkeypatch.setattr(sumt.psutil, 'virtual_memory', virtual_memory)
+
+        monitor._run()
+
+        assert monitor.peak.sample_count == 3
+        assert monitor.peak.peak_total_rss_bytes == 310
+        assert monitor.peak.peak_available_bytes_at_peak == 700
