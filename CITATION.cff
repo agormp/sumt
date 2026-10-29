@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: "If you use sumt in your work, please cite this repository."
 title: "sumt: a command-line program for computing consensus trees and other phylogenetic tree summaries"
-version: 4.2.0
-date-released: 2026-10-28
+version: 4.2.1
+date-released: 2026-10-29
 authors:
   - family-names: "Pedersen"
     given-names: "Anders Gorm"

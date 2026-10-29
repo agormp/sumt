@@ -1,13 +1,13 @@
 # phylotreelib dependency compatibility
 
-Date: 2026-10-28. Status: Release preparation for phylotreelib 3.0.0 and sumt 4.2.0.
+Date: 2026-10-28. Updated: 2026-10-29 for phylotreelib 3.0.1 and sumt 4.2.1.
 
 ## Dependency policy
 
-Use the oldest tested version that supplies all required features as the lower bound, and exclude the next incompatible major version. For sumt 4.2.0:
+Use the oldest tested version that supplies all required features as the lower bound, and exclude the next incompatible major version. For sumt 4.2.1:
 
 ```text
-phylotreelib>=3.0.0,<4
+phylotreelib>=3.0.1,<4
 ```
 
 The lower bound prevents installation with a library missing required features. The upper bound prevents automatically upgrading to a major release with incompatible API changes. A blanket `3.*` constraint alone would still permit versions older than a later required minimum. `~=3.0.0` would restrict updates to the 3.0 series, not all compatible 3.x releases, so explicit bounds are clearer here.
@@ -18,7 +18,7 @@ Exact pins belong in a reproducible analysis environment or lock file, not neces
 
 ## Release preparation
 
-The release versions are phylotreelib 3.0.0 and sumt 4.2.0. Both require Python 3.10 or newer.
+The patch release versions are phylotreelib 3.0.1 and sumt 4.2.1. The new minimum includes the Tree iteration and cache fixes. Both require Python 3.10 or newer.
 
 phylotreelib 3.0.0 removes public printing settings and changes the input/output API. Rootedness is stored in `Tree.rooted`. Nexus output uses `print_rootedness` to include or suppress its declaration. The former `nexus(rooted=...)` argument has been removed. sumt 4.2.0 uses this API and cannot run against phylotreelib 2.3.1.
 

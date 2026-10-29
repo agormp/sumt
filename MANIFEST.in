@@ -1,2 +1,3 @@
 include CHANGELOG.md CITATION.cff
 include docs/recipes.md
+prune notes
